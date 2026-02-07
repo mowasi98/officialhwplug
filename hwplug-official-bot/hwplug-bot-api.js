@@ -660,23 +660,10 @@ async function startReading(page) {
         
         if (clicked) {
             console.log(`   ✅ Clicked "Start reading" in popup`);
-            await delay(3000);
+            console.log(`   ⏳ Waiting for reading page to load...`);
+            await delay(5000); // Wait for reading page to load
         } else {
             console.log(`   ⚠️  Could not find "Start reading" button in popup`);
-        }
-        
-        // Now click "Continue Reading" or "Start reading" on the next page
-        console.log('   📋 Looking for Continue/Start reading button...');
-        await delay(1500);
-        buttons = await page.$$('button, a');
-        for (const button of buttons) {
-            const text = await page.evaluate(el => el.textContent, button);
-            if (text.match(/continue\s*reading|start\s*reading/i)) {
-                await button.click();
-                console.log(`   ✓ Clicked "${text.trim()}"`);
-                await delay(2000);
-                break;
-            }
         }
         
         console.log('   ✓ Navigated to reading page');
