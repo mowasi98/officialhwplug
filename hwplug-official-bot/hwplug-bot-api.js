@@ -665,13 +665,15 @@ async function startReading(page) {
             console.log(`   ⚠️  Could not find "Start reading" button in popup`);
         }
         
-        // Click "Continue Reading"
+        // Now click "Continue Reading" or "Start reading" on the next page
+        console.log('   📋 Looking for Continue/Start reading button...');
+        await delay(1500);
         buttons = await page.$$('button, a');
         for (const button of buttons) {
             const text = await page.evaluate(el => el.textContent, button);
-            if (text.match(/continue\s*reading/i)) {
+            if (text.match(/continue\s*reading|start\s*reading/i)) {
                 await button.click();
-                console.log('   ✓ Clicked "Continue Reading"');
+                console.log(`   ✓ Clicked "${text.trim()}"`);
                 await delay(2000);
                 break;
             }
