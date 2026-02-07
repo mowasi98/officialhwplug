@@ -128,6 +128,9 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
         while (roundNumber <= maxRounds) {
             console.log(`\n=== Round ${roundNumber} ===`);
             
+            // Close cookie banner if it appears (can happen randomly!)
+            await closeCookieBanner(page, true);
+            
             // Check if we're on the progress page or reading page
             await delay(1000);
             const pageType = await checkPageType(page);
@@ -157,6 +160,9 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 // Step 5: Read and extract the passage
                 console.log('Step 5: Extracting passage text...');
                 await extractPassageFromMarkers(page);
+                
+                // Close cookie banner before clicking buttons!
+                await closeCookieBanner(page, true);
                 
                 // Step 6: Click "I have read up to here"
                 console.log('Step 6: Clicking "I have read up to here"...');
@@ -270,6 +276,9 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
 
 async function selectSchool(page, schoolName) {
     try {
+        // Close cookie banner if present
+        await closeCookieBanner(page, true);
+        
         await page.waitForSelector('input[type="text"], select, [placeholder*="school" i]', { timeout: 5000 });
         
         const schoolInput = await page.$('input[type="text"]');
@@ -280,6 +289,9 @@ async function selectSchool(page, schoolName) {
             await page.keyboard.press('Enter');
             await delay(500);
         }
+        
+        // Close cookie banner again before clicking continue
+        await closeCookieBanner(page, true);
         
         const buttons = await page.$$('button, a, input[type="submit"]');
         for (const button of buttons) {
@@ -303,31 +315,50 @@ async function login(page, username, password, loginType = 'Google') {
         // Wait for the login page to load
         await delay(1500);
         
+        // Close cookie banner BEFORE trying to find login buttons!
+        console.log('   🍪 Checking for cookie banner...');
+        await closeCookieBanner(page);
+        await delay(300);
+        
         console.log(`   🔑 Login method: ${loginType}`);
         
         // Check if we need to click "Log in with Google/Microsoft" button
         if (loginType === 'Google' || loginType === 'Microsoft') {
             const searchText = loginType === 'Google' ? 'google' : 'microsoft';
-            console.log(`   🔍 Looking for "Log in to Sparx using ${loginType}" button...`);
+            console.log(`   🔍 Looking for "${loginType}" login button...`);
             
-            const buttons = await page.$$('button, a');
+            // Close cookie banner one more time (it can appear randomly!)
+            await closeCookieBanner(page, true);
+            await delay(500);
+            
+            const buttons = await page.$$('button, a, div[role="button"]');
             let buttonClicked = false;
             
+            console.log(`   📋 Found ${buttons.length} total buttons/links on page`);
+            
+            // First pass: Look for the specific button
             for (const button of buttons) {
                 try {
-                    const text = await page.evaluate(el => el.textContent.toLowerCase().replace(/\s+/g, ' ').trim(), button);
-                    // Log each button we check for debugging
-                    if (text.includes('log in') || text.includes('sparx')) {
-                        console.log(`      Checking button: "${text}"`);
+                    const text = await page.evaluate(el => {
+                        return (el.textContent || el.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    }, button);
+                    
+                    // Log ALL buttons that mention google/microsoft/sparx/login
+                    if (text.includes(searchText) || text.includes('sparx') || text.includes('log') || text.includes('sign')) {
+                        console.log(`      Found button: "${text}"`);
                     }
-                    // Match "log in to sparx using google/microsoft" or "log in with google/microsoft"
-                    if ((text.includes('log in') && text.includes(searchText)) || 
-                        (text.includes('sparx') && text.includes(searchText))) {
-                        await button.click();
-                        console.log(`   ✅ Clicked "${loginType}" login button!`);
-                        buttonClicked = true;
-                        await delay(3000); // Wait for Google/Microsoft login page
-                        break;
+                    
+                    // Super aggressive matching: If it mentions the login type (google/microsoft), click it!
+                    if (text.includes(searchText)) {
+                        // Extra check: Is this a login-related button?
+                        if (text.includes('log') || text.includes('sign') || text.includes('sparx')) {
+                            console.log(`   🎯 Attempting to click: "${text}"`);
+                            await button.click();
+                            console.log(`   ✅ Clicked "${loginType}" login button!`);
+                            buttonClicked = true;
+                            await delay(3000); // Wait for Google/Microsoft login page
+                            break;
+                        }
                     }
                 } catch (e) {
                     // Skip buttons that error
@@ -384,19 +415,20 @@ async function login(page, username, password, loginType = 'Google') {
     }
 }
 
-// Close cookie banner (call this BEFORE login!)
-async function closeCookieBanner(page) {
+// Close cookie banner (call this EVERYWHERE!)
+// This function checks for cookie banners and closes them if found
+// Can be called multiple times - it's fast and non-blocking
+async function closeCookieBanner(page, silent = false) {
     try {
-        await delay(1000);
-        
         const clicked = await page.evaluate(() => {
-            const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
+            const allButtons = Array.from(document.querySelectorAll('button, [role="button"], a'));
             for (const btn of allButtons) {
                 const text = btn.textContent.trim();
                 const ariaLabel = btn.getAttribute('aria-label') || '';
                 // Look for X button or "Accept All" cookies button
                 if (text === '×' || text === 'X' || text === '✕' || 
-                    text.toLowerCase().includes('accept') ||
+                    text.toLowerCase().includes('accept all') ||
+                    text.toLowerCase().includes('accept cookies') ||
                     ariaLabel.toLowerCase().includes('close') || 
                     ariaLabel.toLowerCase().includes('dismiss')) {
                     btn.click();
@@ -406,14 +438,14 @@ async function closeCookieBanner(page) {
             return false;
         });
         
-        if (clicked) {
-            console.log('   ✓ Closed cookie banner / Accepted cookies');
-            await delay(800);
-        } else {
-            console.log('   ℹ️  No cookie banner found');
+        if (clicked && !silent) {
+            console.log('   ✓ Closed cookie banner');
+            await delay(500);
         }
+        return clicked;
     } catch (error) {
-        console.log('   ⚠️  Error closing cookie banner (continuing anyway)');
+        // Silent fail - cookie banner check shouldn't break the flow
+        return false;
     }
 }
 
