@@ -102,35 +102,46 @@ let browser = null;
 let page = null; // Single tab for all products
 
 /**
- * QUEUE SYSTEM WITH BATCH DETECTION
- * ==================================
- * Detects when multiple orders come in at once (batch purchases) and uses shorter wait times.
+ * PROPER QUEUE SYSTEM - ONE ORDER AT A TIME PER PRODUCT
+ * ======================================================
+ * Each product has its own queue. Orders are processed ONE AT A TIME.
+ * Wait time between orders is based on when the PREVIOUS order STARTED (not finished).
  * 
- * Batch Purchase (orders within 30 seconds):
- * - Different products: 2 minutes wait
- * - Same product: 12 minutes wait (2 min base + 10 min penalty)
+ * How it works:
+ * - Person A orders Sparx Maths → Starts immediately at 2:00 PM
+ * - Person B orders Sparx Maths → Added to queue, waits for Person A to START, then waits 20 min → Starts at 2:20 PM
+ * - Person C orders Sparx Maths → Added to queue, waits for Person B to START, then waits 20 min → Starts at 2:40 PM
  * 
- * Separate Purchases (orders more than 30 seconds apart):
- * - Different products: 5 minutes wait (configurable)
- * - Same product: 1 hour wait (configurable)
- * 
- * Example Batch:
- * - 0:00 - User buys Sparx Maths (starts immediately)
- * - 0:05 - User buys Sparx Reader (within 30s = batch) → WAITS 2 minutes → starts at 2:00
- * - 0:10 - User buys Educate (within 30s = batch) → WAITS 2 minutes → starts at 4:00
- * - 0:15 - User buys Sparx Maths again (within 30s = batch, SAME product) → WAITS 12 minutes → starts at 16:00
- * 
- * Example Separate:
- * - 1:00 - Different user buys Seneca (more than 30s from last order = separate) → WAITS 5 minutes → starts at 6:00
+ * Settings (controlled via admin panel):
+ * - globalWaitMinutes: Wait time between DIFFERENT products (default: 5 min)
+ * - sameProductWaitMinutes: Wait time between SAME product orders (default: 20 min)
  */
-let globalLastSubmissionTime = 0; // Track ANY product submission
-let lastOrderReceivedTime = 0; // Track when orders are RECEIVED (not processed)
+
+// Track last START time for each product
 const lastSubmissionTime = {
   'Sparx Maths': 0,
   'Sparx Reader': 0,
   'Educate': 0,
   'Seneca': 0
 };
+
+// Queue for each product (array of pending orders)
+const productQueues = {
+  'Sparx Maths': [],
+  'Sparx Reader': [],
+  'Educate': [],
+  'Seneca': []
+};
+
+// Track if we're currently processing a queue for each product
+const processingQueue = {
+  'Sparx Maths': false,
+  'Sparx Reader': false,
+  'Educate': false,
+  'Seneca': false
+};
+
+let globalLastSubmissionTime = 0; // Track ANY product submission (for different products wait)
 
 // Track last known config values to detect changes
 let lastKnownConfig = { globalWaitMinutes: 5, sameProductWaitMinutes: 60 };
@@ -310,12 +321,12 @@ async function initBrowser() {
   // Fetch current queue settings from backend API
   const queueTimes = await getQueueWaitTimes();
   const config = await fetchQueueConfigFromAPI() || loadQueueConfig();
-  const batchAny = 2; // Hardcoded batch time for different products
-  const batchSame = config.globalWaitMinutes + 10; // Batch time for same product (global + 10)
   
-  console.log('📋 Queue system configured:');
-  console.log(`   📦 BATCH (orders within 30s): ${batchAny} min different products, ${batchSame} min same product`);
-  console.log(`   📋 SEPARATE (orders >30s apart): ${config.globalWaitMinutes} min any product, ${Math.floor(config.sameProductWaitMinutes/60)}h ${config.sameProductWaitMinutes%60}m same product`);
+  console.log('📋 Queue system configured (PROPER QUEUE - ONE AT A TIME):');
+  console.log(`   ⏱️  Wait between DIFFERENT products: ${config.globalWaitMinutes} min`);
+  console.log(`   ⏱️  Wait between SAME product orders: ${Math.floor(config.sameProductWaitMinutes/60)}h ${config.sameProductWaitMinutes%60}m`);
+  console.log(`   📊 Orders are processed ONE AT A TIME per product`);
+  console.log(`   📊 Wait time is from when PREVIOUS order STARTED (not finished)`);
   console.log(`📺 DISPLAY environment: ${process.env.DISPLAY || 'NOT SET'}`);
   
   browser = await puppeteer.launch({
@@ -384,9 +395,15 @@ async function initBrowser() {
   
   console.log('✅ Discord login detected!');
   console.log('🎯 Browser bot is now ready to automate submissions!');
-  console.log('📋 Queue system active with SMART BATCH DETECTION:');
-  console.log('   📦 BATCH (orders within 30s): 2 min different products, 12 min same product');
-  console.log('   📋 SEPARATE (orders >30s apart): 5 min any product, 1 hour same product');
+  console.log('');
+  console.log('📋 ═══════════════════════════════════════════════════');
+  console.log('📋  PROPER QUEUE SYSTEM ACTIVE');
+  console.log('📋 ═══════════════════════════════════════════════════');
+  console.log('📋  • Orders processed ONE AT A TIME per product');
+  console.log('📋  • Wait time from PREVIOUS order START (not finish)');
+  console.log('📋  • Different products can run in parallel');
+  console.log('📋  • Settings controlled via admin panel');
+  console.log('📋 ═══════════════════════════════════════════════════');
   console.log('');
   console.log('📦 Available products:');
   Object.keys(CONFIG.channels).forEach(product => {
@@ -395,176 +412,244 @@ async function initBrowser() {
   console.log('');
 }
 
-// Check if we need to wait for a product (with batch purchase detection)
-async function waitForProductQueue(productName) {
-  const now = Date.now();
-  const timeSinceLastAnyProduct = now - globalLastSubmissionTime;
-  const timeSinceLastSameProduct = now - (lastSubmissionTime[productName] || 0);
+// Add order to product queue and start processing if not already running
+async function addToQueue(productName, username, password, school, loginType, skipQueue, resolve, reject) {
+  console.log('');
+  console.log('🎯 ═══════════════════════════════════════════════════');
+  console.log(`🎯  NEW ORDER RECEIVED: ${productName}`);
+  console.log('🎯 ═══════════════════════════════════════════════════');
+  console.log(`👤 Username: ${username}`);
+  console.log(`🔑 Login Type: ${loginType}`);
+  console.log(`⚡ Skip Queue: ${skipQueue}`);
+  console.log('');
   
-  // Detect if this is a batch purchase (order received within 30 seconds of last order)
-  const timeSinceLastOrderReceived = now - lastOrderReceivedTime;
-  const isBatchPurchase = lastOrderReceivedTime > 0 && timeSinceLastOrderReceived < 30000; // 30 seconds
+  // Create order object
+  const order = {
+    productName,
+    username,
+    password,
+    school,
+    loginType,
+    skipQueue,
+    resolve,
+    reject,
+    addedTime: Date.now()
+  };
   
-  // Update last order received time
-  lastOrderReceivedTime = now;
-  
-  // Load current queue wait times from config (now fetches from backend API)
-  const queueTimes = await getQueueWaitTimes();
-  const config = loadQueueConfig();
-  
-  // Determine wait times based on batch vs separate purchase
-  let waitTime = 0;
-  let waitReason = '';
-  
-  if (isBatchPurchase) {
-    // BATCH PURCHASE - shorter wait times
-    console.log(`📦 BATCH PURCHASE DETECTED (order within 30s of previous order)`);
+  // If SKIP QUEUE, process IMMEDIATELY in parallel (don't add to queue!)
+  if (skipQueue) {
+  console.log('');
+    console.log('⚡ ═══════════════════════════════════════════════════');
+    console.log('⚡  SKIP QUEUE DETECTED - BYPASSING QUEUE ENTIRELY!');
+    console.log('⚡ ═══════════════════════════════════════════════════');
+    console.log('⚡  This order will START IMMEDIATELY in parallel');
+    console.log('⚡  Does NOT wait for other orders to finish');
+    console.log('⚡ ═══════════════════════════════════════════════════');
+    console.log('');
     
-    // Check if same product in batch
-    const timeSinceSameProductInBatch = now - (lastSubmissionTime[productName] || 0);
-    if (timeSinceSameProductInBatch < queueTimes.sameProduct) {
-      // Same product in batch: 2 min base + 10 min penalty = 12 min total
-      const BATCH_SAME_PRODUCT_WAIT = 12 * 60 * 1000; // 12 minutes
-      waitTime = Math.max(0, BATCH_SAME_PRODUCT_WAIT - timeSinceSameProductInBatch);
-      waitReason = `same product ("${productName}") in BATCH - 12 min required (2 min + 10 min penalty)`;
-    } else if (timeSinceLastAnyProduct < 2 * 60 * 1000) {
-      // Different product in batch: 2 minutes
-      waitTime = (2 * 60 * 1000) - timeSinceLastAnyProduct;
-      waitReason = `different product in BATCH - 2 min required`;
-    }
-  } else {
-    // SEPARATE PURCHASE - use configured wait times
-    console.log(`📋 SEPARATE PURCHASE (order more than 30s from previous)`);
-    
-    // Check if we need to wait for the same product
-    if (timeSinceLastSameProduct < queueTimes.sameProduct) {
-      waitTime = queueTimes.sameProduct - timeSinceLastSameProduct;
-      const displayTime = config.sameProductWaitMinutes >= 60 
-        ? `${Math.floor(config.sameProductWaitMinutes / 60)} hour(s) ${config.sameProductWaitMinutes % 60} min` 
-        : `${config.sameProductWaitMinutes} min`;
-      waitReason = `same product ("${productName}") - ${displayTime} required`;
-    }
-    
-    // Check if we need to wait for ANY product - use this if it's LONGER
-    if (timeSinceLastAnyProduct < queueTimes.global) {
-      const globalWaitTime = queueTimes.global - timeSinceLastAnyProduct;
-      if (globalWaitTime > waitTime) {
-        waitTime = globalWaitTime;
-        waitReason = `any product - ${config.globalWaitMinutes} min required between all orders`;
-      }
-    }
-  }
-  
-  if (waitTime > 0) {
-    const waitMinutes = Math.floor(waitTime / 60000);
-    const waitSeconds = Math.floor((waitTime % 60000) / 1000);
-    
-    console.log(`⏰ QUEUE: Waiting for ${waitReason}`);
-    console.log(`⏳ QUEUE: Need to wait ${waitMinutes} min ${waitSeconds} sec before processing "${productName}"...`);
-    
-    // Wait in 30-second intervals to show progress
-    let remainingWait = waitTime;
-    while (remainingWait > 0) {
-      const chunk = Math.min(30000, remainingWait); // 30 seconds max
-      await new Promise(resolve => setTimeout(resolve, chunk));
-      remainingWait -= chunk;
-      
-      if (remainingWait > 0) {
-        const remainingMin = Math.ceil(remainingWait / 60000);
-        console.log(`⏳ QUEUE: ${remainingMin} minute(s) remaining...`);
-      }
-    }
-    
-    console.log(`✅ QUEUE: Wait complete for "${productName}"!`);
-  } else {
-    console.log(`✅ QUEUE: "${productName}" is ready - no wait needed`);
-  }
-  
-  // Update the last submission times
-  globalLastSubmissionTime = Date.now();
-  lastSubmissionTime[productName] = Date.now();
+    // Process immediately (don't add to queue, don't wait)
+    processSkipQueueOrder(order);
+    return;
 }
 
-// Main function: Submit homework to SparxNow (with retry logic for detached frames)
-async function submitToSparxNow(productName, username, password, school = '', loginType = 'Google', skipQueue = false) {
-  const MAX_RETRIES = 2;
-  let lastError = null;
+  // Normal order: Add to queue
+  productQueues[productName].push(order);
+  const queuePosition = productQueues[productName].length;
   
-  // Wait for queue (5-minute gap between same product) - UNLESS skipQueue is true
-  if (skipQueue) {
-    console.log('');
-    console.log('⚡ ═══════════════════════════════════════════════════');
-    console.log('⚡  SKIP QUEUE ACTIVATED - BYPASSING ALL WAIT TIMES');
-    console.log('⚡ ═══════════════════════════════════════════════════');
-    console.log('⚡  Processing order IMMEDIATELY without queue delays');
-    console.log('⚡ ═══════════════════════════════════════════════════');
-    console.log('');
+  console.log(`📋 Added to "${productName}" queue`);
+  console.log(`📊 Queue position: ${queuePosition} of ${queuePosition}`);
+  console.log(`📦 Total in queue: ${queuePosition}`);
+  console.log('');
+  
+  // Start processing if not already running
+  if (!processingQueue[productName]) {
+    console.log(`🚀 Starting queue processor for "${productName}"`);
+    processProductQueue(productName);
   } else {
-    await waitForProductQueue(productName);
+    console.log(`⏳ Queue processor already running for "${productName}"`);
+    console.log(`⏳ This order will start after ${queuePosition - 1} order(s) ahead`);
   }
+}
+
+// Process a Skip Queue order immediately (bypasses queue entirely)
+async function processSkipQueueOrder(order) {
+  console.log('');
+  console.log('⚡ ═══════════════════════════════════════════════════');
+  console.log(`⚡  PROCESSING SKIP QUEUE ORDER: ${order.productName}`);
+  console.log('⚡ ═══════════════════════════════════════════════════');
+  console.log(`👤 Username: ${order.username}`);
+  console.log(`⚡ Starting IMMEDIATELY without any waits`);
+  console.log('');
   
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  try {
+    console.log(`🚀 SKIP QUEUE ORDER STARTING NOW at ${new Date().toLocaleTimeString()}`);
+    console.log('');
+    
+    // Process the order immediately (no queue waits)
+    const result = await submitToSparxNowInternal(
+      order.productName,
+      order.username,
+      order.password,
+      order.school,
+      order.loginType
+    );
+    
+    // Resolve the promise with result
+    order.resolve(result);
+    
+    console.log('');
+    console.log('⚡ ═══════════════════════════════════════════════════');
+    console.log(`⚡  SKIP QUEUE ORDER COMPLETED: ${order.productName}`);
+    console.log('⚡ ═══════════════════════════════════════════════════');
+    console.log('');
+    
+  } catch (error) {
+    console.error(`❌ Skip Queue order failed for ${order.username}:`, error.message);
+    
+    // Reject the promise with error
+    order.reject(error);
+  }
+}
+
+// Process queue for a specific product (ONE ORDER AT A TIME)
+async function processProductQueue(productName) {
+  // Mark as processing
+  processingQueue[productName] = true;
+  
+  console.log('');
+  console.log('⚙️ ═══════════════════════════════════════════════════');
+  console.log(`⚙️  QUEUE PROCESSOR STARTED: ${productName}`);
+  console.log('⚙️ ═══════════════════════════════════════════════════');
+  console.log('');
+  
+  // Process orders one by one
+  while (productQueues[productName].length > 0) {
+    // Get the first order in queue
+    const order = productQueues[productName][0];
+    
+    console.log('');
+    console.log('🔄 ═══════════════════════════════════════════════════');
+    console.log(`🔄  PROCESSING NEXT ORDER: ${productName}`);
+    console.log('🔄 ═══════════════════════════════════════════════════');
+    console.log(`👤 Username: ${order.username}`);
+    console.log(`📊 Remaining in queue after this: ${productQueues[productName].length - 1}`);
+    console.log('');
+    
     try {
-      console.log('\n' + '='.repeat(60));
-      console.log(`🚀 SUBMISSION ATTEMPT ${attempt}/${MAX_RETRIES} for "${productName}"`);
-      console.log('='.repeat(60));
+      // Calculate wait time based on PREVIOUS order's START time
+      const now = Date.now();
+      const timeSinceLastSameProduct = now - (lastSubmissionTime[productName] || 0);
+      const timeSinceLastAnyProduct = now - globalLastSubmissionTime;
       
-      const result = await submitToSparxNowInternal(productName, username, password, school, loginType);
+      // Get queue settings from backend API
+      const queueTimes = await getQueueWaitTimes();
+      const config = await fetchQueueConfigFromAPI() || loadQueueConfig();
       
-      // Check if the result indicates failure (Internal function returns {success: false} instead of throwing)
-      if (result.success === false) {
-        throw new Error(result.error || 'Submission failed');
+      let waitTime = 0;
+      let waitReason = '';
+      
+      // Check if we need to wait for the SAME product
+      if (timeSinceLastSameProduct < queueTimes.sameProduct) {
+        waitTime = queueTimes.sameProduct - timeSinceLastSameProduct;
+        const displayTime = config.sameProductWaitMinutes >= 60 
+          ? `${Math.floor(config.sameProductWaitMinutes / 60)} hour(s) ${config.sameProductWaitMinutes % 60} min` 
+          : `${config.sameProductWaitMinutes} min`;
+        waitReason = `same product ("${productName}") - ${displayTime} required between START times`;
       }
       
-      console.log(`\n✅ SUBMISSION SUCCESSFUL ON ATTEMPT ${attempt} for "${productName}"!\n`);
-      return result;
+      // Check if we need to wait for ANY product (different products)
+      if (timeSinceLastAnyProduct < queueTimes.global) {
+        const globalWaitTime = queueTimes.global - timeSinceLastAnyProduct;
+        if (globalWaitTime > waitTime) {
+          waitTime = globalWaitTime;
+          waitReason = `any product - ${config.globalWaitMinutes} min required between all orders`;
+        }
+      }
+      
+      if (waitTime > 0) {
+        const waitMinutes = Math.floor(waitTime / 60000);
+        const waitSeconds = Math.floor((waitTime % 60000) / 1000);
+        
+        console.log(`⏰ QUEUE: Waiting for ${waitReason}`);
+        console.log(`⏳ QUEUE: Need to wait ${waitMinutes} min ${waitSeconds} sec before STARTING...`);
+        console.log('');
+        
+        // Wait in 30-second intervals to show progress
+        let remainingWait = waitTime;
+        while (remainingWait > 0) {
+          const chunk = Math.min(30000, remainingWait); // 30 seconds max
+          await new Promise(resolve => setTimeout(resolve, chunk));
+          remainingWait -= chunk;
+          
+          if (remainingWait > 0) {
+            const remainingMin = Math.ceil(remainingWait / 60000);
+            console.log(`⏳ QUEUE: ${remainingMin} minute(s) remaining...`);
+          }
+        }
+        
+        console.log(`✅ QUEUE: Wait complete! Starting order now...`);
+        console.log('');
+      } else {
+        console.log(`✅ QUEUE: No wait needed - starting immediately!`);
+        console.log('');
+      }
+      
+      // Record START time BEFORE processing
+      globalLastSubmissionTime = Date.now();
+      lastSubmissionTime[productName] = Date.now();
+      
+      console.log(`🚀 ORDER STARTING NOW at ${new Date().toLocaleTimeString()}`);
+      console.log('');
+      
+      // Process the order (without retry wrapper - that's handled in submitToSparxNow)
+      const result = await submitToSparxNowInternal(
+        order.productName,
+        order.username,
+        order.password,
+        order.school,
+        order.loginType
+      );
+      
+      // Resolve the promise with result
+      order.resolve(result);
       
     } catch (error) {
-      lastError = error;
-      const errorMsg = error.message || String(error);
+      console.error(`❌ Order failed for ${order.username}:`, error.message);
       
-      console.log(`\n❌ ATTEMPT ${attempt} FAILED for "${productName}": ${errorMsg}\n`);
-      
-      // Check if it's a retryable error (detached frame, connection closed, etc.)
-      if (errorMsg.includes('detached Frame') || 
-          errorMsg.includes('Execution context was destroyed') ||
-          errorMsg.includes('Protocol error') ||
-          errorMsg.includes('Connection closed') ||
-          errorMsg.includes('Target closed')) {
-        
-        if (attempt < MAX_RETRIES) {
-          const waitTime = 3000;
-          console.log(`⏳ ${errorMsg.includes('Connection closed') ? 'Browser connection lost' : 'Detached frame detected'}. Waiting ${waitTime/1000}s before retry...\n`);
-          
-          // If connection closed or target closed, reinitialize browser
-          if (errorMsg.includes('Connection closed') || errorMsg.includes('Target closed')) {
-            console.log(`🔄 Reinitializing browser...\n`);
-            try {
-              if (browser) {
-                await browser.close();
-              }
-            } catch (e) {
-              // Browser already closed, that's fine
-            }
-            browser = null;
-            page = null;
-          }
-          
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        } else {
-          console.log(`❌ All ${MAX_RETRIES} attempts failed for "${productName}".\n`);
-        }
-      } else {
-        // Non-retryable error, throw immediately
-        console.log(`❌ Non-retryable error for "${productName}". Stopping attempts.\n`);
-        throw error;
-      }
+      // Reject the promise with error
+      order.reject(error);
     }
+    
+    // Remove this order from queue (it's done)
+    productQueues[productName].shift();
+    
+    console.log('');
+    console.log('✅ ═══════════════════════════════════════════════════');
+    console.log(`✅  ORDER COMPLETED: ${productName}`);
+    console.log('✅ ═══════════════════════════════════════════════════');
+    console.log(`📊 Remaining in queue: ${productQueues[productName].length}`);
+    console.log('');
+    
+    // Continue to next order in queue (if any)
   }
   
-  // All retries exhausted
-  console.log(`❌ SUBMISSION FAILED AFTER ${MAX_RETRIES} ATTEMPTS for "${productName}"\n`);
-  throw lastError;
+  console.log('');
+  console.log('🏁 ═══════════════════════════════════════════════════');
+  console.log(`🏁  QUEUE PROCESSOR FINISHED: ${productName}`);
+  console.log('🏁 ═══════════════════════════════════════════════════');
+  console.log(`📊 All orders processed. Queue is now empty.`);
+  console.log('');
+  
+  // Mark as not processing
+  processingQueue[productName] = false;
+}
+
+// Main function: Submit homework to SparxNow (adds to queue and returns a promise)
+async function submitToSparxNow(productName, username, password, school = '', loginType = 'Google', skipQueue = false) {
+  // Return a promise that will be resolved/rejected by the queue processor
+  return new Promise((resolve, reject) => {
+    addToQueue(productName, username, password, school, loginType, skipQueue, resolve, reject);
+  });
 }
 
 // Internal submission function (can retry if frame detaches)
@@ -992,67 +1077,67 @@ async function submitToSparxNowInternal(productName, username, password, school 
       // Skip the rest of the form filling for non-Seneca products
       
     } else {
-      console.log('🔍 Looking for "Login with Cookies" button...');
+    console.log('🔍 Looking for "Login with Cookies" button...');
+    
+    // Strategy: Find "Login with Cookies", then click the button to its LEFT
+    const secondButtonClicked = await page.evaluate(() => {
+      // Get ALL buttons on the page
+      const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
       
-      // Strategy: Find "Login with Cookies", then click the button to its LEFT
-      const secondButtonClicked = await page.evaluate(() => {
-        // Get ALL buttons on the page
-        const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
-        
-        console.log('Total buttons found:', allButtons.length);
-        
-        // Find the "Login with Cookies" button first
-        let cookieButtonIndex = -1;
-        allButtons.forEach((btn, i) => {
-          const text = btn.textContent?.replace(/\s+/g, ' ').trim() || '';
-          if (text.includes('Login with Cookies') || (text.includes('Cookie') && text.includes('Login'))) {
-            console.log(`Found "Login with Cookies" at index ${i}`);
-            cookieButtonIndex = i;
-          }
-        });
-        
-        if (cookieButtonIndex === -1) {
-          console.log('❌ Could not find "Login with Cookies" button');
-          return false;
+      console.log('Total buttons found:', allButtons.length);
+      
+      // Find the "Login with Cookies" button first
+      let cookieButtonIndex = -1;
+      allButtons.forEach((btn, i) => {
+        const text = btn.textContent?.replace(/\s+/g, ' ').trim() || '';
+        if (text.includes('Login with Cookies') || (text.includes('Cookie') && text.includes('Login'))) {
+          console.log(`Found "Login with Cookies" at index ${i}`);
+          cookieButtonIndex = i;
         }
-        
-        // Now find the button BEFORE it (to the left)
-        if (cookieButtonIndex > 0) {
-          const targetButton = allButtons[cookieButtonIndex - 1];
-          const targetText = targetButton.textContent?.replace(/\s+/g, ' ').trim() || '';
-          
-          console.log(`Button to the LEFT of "Login with Cookies": "${targetText}"`);
-          
-          // Verify it says "Login" (not "Check Queue" or something else)
-          if (targetText.includes('Login')) {
-            console.log('✅ Clicking the Login button to the left!');
-            targetButton.click();
-            return true;
-          } else {
-            console.log('❌ Button to the left is not "Login", it says:', targetText);
-          }
-        }
-        
-        console.log('❌ Could not find Login button to the left of cookies');
-        return false;
       });
       
-      if (!secondButtonClicked) {
-        throw new Error('Could not find regular Login button next to Login with Cookies');
+      if (cookieButtonIndex === -1) {
+        console.log('❌ Could not find "Login with Cookies" button');
+        return false;
       }
       
-      console.log('✅ Clicked regular Login button!');
-      console.log('⏳ Waiting for modal to appear...');
+      // Now find the button BEFORE it (to the left)
+      if (cookieButtonIndex > 0) {
+        const targetButton = allButtons[cookieButtonIndex - 1];
+        const targetText = targetButton.textContent?.replace(/\s+/g, ' ').trim() || '';
+        
+        console.log(`Button to the LEFT of "Login with Cookies": "${targetText}"`);
+        
+        // Verify it says "Login" (not "Check Queue" or something else)
+        if (targetText.includes('Login')) {
+          console.log('✅ Clicking the Login button to the left!');
+          targetButton.click();
+          return true;
+        } else {
+          console.log('❌ Button to the left is not "Login", it says:', targetText);
+        }
+      }
+      
+      console.log('❌ Could not find Login button to the left of cookies');
+      return false;
+    });
     
-      // Wait longer for modal to appear
-      await new Promise(resolve => setTimeout(resolve, 4000));
+    if (!secondButtonClicked) {
+      throw new Error('Could not find regular Login button next to Login with Cookies');
+    }
+    
+    console.log('✅ Clicked regular Login button!');
+    console.log('⏳ Waiting for modal to appear...');
+    
+    // Wait longer for modal to appear
+    await new Promise(resolve => setTimeout(resolve, 4000));
     }
     
     // Skip form filling for Seneca (it handles login automatically)
     if (!productName.toLowerCase().includes('seneca')) {
       // FIRST: Select login type from dropdown (do this BEFORE filling fields!)
       console.log(`📋 Step 1: Selecting Login Type: ${loginType} FIRST...`);
-      console.log('⚠️ Selecting dropdown first to prevent field clearing');
+    console.log('⚠️ Selecting dropdown first to prevent field clearing');
     
     await new Promise(resolve => setTimeout(resolve, 500));
     
@@ -1231,7 +1316,7 @@ async function submitToSparxNowInternal(productName, username, password, school 
       console.log(`⌨️ Pressing Arrow Down ${arrowPresses} times to select ${loginType}...`);
       for (let i = 0; i < arrowPresses; i++) {
         await page.keyboard.press('ArrowDown');
-        await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 200));
       }
       console.log('⌨️ Pressing Enter...');
       await page.keyboard.press('Enter');
@@ -1368,14 +1453,14 @@ async function submitToSparxNowInternal(productName, username, password, school 
     // Wait for submission to process
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-      // Take screenshot of result
-      await page.screenshot({ path: 'submit-result.png' });
-      console.log('📸 Screenshot saved: submit-result.png');
+    // Take screenshot of result
+    await page.screenshot({ path: 'submit-result.png' });
+    console.log('📸 Screenshot saved: submit-result.png');
     } // End of non-Seneca form filling
     
     // Check for errors (applies to non-Seneca products only)
     if (!productName.toLowerCase().includes('seneca')) {
-      console.log('🔍 Checking for errors...');
+    console.log('🔍 Checking for errors...');
     const errorCheck = await page.evaluate(() => {
       // Check if modal is still open (indicates error)
       const modals = document.querySelectorAll('[role="dialog"], .modal');
@@ -1409,19 +1494,19 @@ async function submitToSparxNowInternal(productName, username, password, school 
       return { hasError: false };
     });
     
-      // If there are errors, throw exception
-      if (errorCheck.hasError) {
-        const errorMsg = errorCheck.errors.join(', ');
-        console.log('');
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('❌ SUBMISSION FAILED!');
-        console.log('═══════════════════════════════════════════════════════');
-        console.log('Error:', errorMsg);
-        console.log('');
-        throw new Error(`Submission failed: ${errorMsg}`);
-      }
-      
-      console.log('✅ Login form submitted! Modal closed.');
+    // If there are errors, throw exception
+    if (errorCheck.hasError) {
+      const errorMsg = errorCheck.errors.join(', ');
+      console.log('');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('❌ SUBMISSION FAILED!');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('Error:', errorMsg);
+      console.log('');
+      throw new Error(`Submission failed: ${errorMsg}`);
+    }
+    
+    console.log('✅ Login form submitted! Modal closed.');
     } // End of non-Seneca error checking
     
     console.log('⏳ Waiting for SparxNow to log in...');
@@ -1455,10 +1540,10 @@ async function submitToSparxNowInternal(productName, username, password, school 
         } else {
           // For Sparx products: look for "Welcome" or "Autocompleter"
           hasSuccess = allText.some(text => 
-            text.includes('Welcome,') || 
-            text.includes('Autocompleter') ||
-            text.includes('Choose a homework task')
-          );
+          text.includes('Welcome,') || 
+          text.includes('Autocompleter') ||
+          text.includes('Choose a homework task')
+        );
         }
         
         if (hasSuccess) {
@@ -1991,15 +2076,15 @@ async function submitToSparxNowInternal(productName, username, password, school 
           y: rect.top,
           text: text
         };
-      });
-      
+        });
+        
       // Sort by Y position (smallest = highest on screen = TOP)
       elementsWithPosition.sort((a, b) => a.y - b.y);
       
       // Pick the first one (smallest Y = top on screen)
       const topHomework = elementsWithPosition[0];
       const homeworkText = topHomework.text;
-      
+        
       console.log(`✅ TOP PICK: Element with smallest Y position (${Math.round(topHomework.y)}px)`);
       console.log(`   Text: ${homeworkText.substring(0, 80)}`);
         console.log(`   Tag: ${topHomework.element.tagName}, ID: ${topHomework.element.id}, Class: ${topHomework.element.className}`);
@@ -2089,7 +2174,7 @@ async function submitToSparxNowInternal(productName, username, password, school 
     
     // Wait and check for confirmation message
     let productType = 'Sparx Maths';
-    if (productName.toLowerCase().includes('reader')) {
+          if (productName.toLowerCase().includes('reader')) {
       productType = 'Sparx Reader';
     } else if (productName.toLowerCase().includes('seneca')) {
       productType = 'Seneca';

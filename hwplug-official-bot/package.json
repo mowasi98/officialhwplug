@@ -7,8 +7,9 @@
     "start": "node hwplug-official-bot.js"
   },
   "dependencies": {
-    "puppeteer": "^21.0.0",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "dotenv": "^17.2.4",
+    "puppeteer": "^21.0.0"
   },
   "author": "Homework Plug",
   "license": "MIT"

@@ -312,13 +312,13 @@ async function selectSchool(page, schoolName) {
 
 async function login(page, username, password, loginType = 'Google') {
     try {
-        // Wait for the login page to load
-        await delay(1500);
+        // Wait for the login page to fully load
+        await delay(2500);
         
         // Close cookie banner BEFORE trying to find login buttons!
         console.log('   🍪 Checking for cookie banner...');
         await closeCookieBanner(page);
-        await delay(300);
+        await delay(1000);
         
         console.log(`   🔑 Login method: ${loginType}`);
         
@@ -329,63 +329,147 @@ async function login(page, username, password, loginType = 'Google') {
             
             // Close cookie banner one more time (it can appear randomly!)
             await closeCookieBanner(page, true);
-            await delay(500);
+            await delay(1000); // Wait longer!
             
-            const buttons = await page.$$('button, a, div[role="button"]');
-            let buttonClicked = false;
+            // SUPER AGGRESSIVE: Find and click the blue Google/Microsoft button!
+            console.log(`   📋 Searching for the big blue "${loginType}" button...`);
             
-            console.log(`   📋 Found ${buttons.length} total buttons/links on page`);
-            
-            // First pass: Look for the specific button
-            for (const button of buttons) {
-                try {
-                    const text = await page.evaluate(el => {
-                        return (el.textContent || el.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
-                    }, button);
+            const result = await page.evaluate((searchType) => {
+                const searchText = searchType.toLowerCase();
+                const buttonInfo = [];
+                
+                // Find ALL button elements and check their HTML too!
+                const allButtons = document.querySelectorAll('button, a[role="button"], div[role="button"]');
+                
+                for (const btn of allButtons) {
+                    const text = (btn.textContent || btn.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    const html = btn.outerHTML.toLowerCase();
+                    const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
                     
-                    // Log ALL buttons that mention google/microsoft/sparx/login
-                    if (text.includes(searchText) || text.includes('sparx') || text.includes('log') || text.includes('sign')) {
-                        console.log(`      Found button: "${text}"`);
-                    }
+                    buttonInfo.push({
+                        text: text || '(empty)',
+                        hasGoogle: html.includes(searchText),
+                        ariaLabel: ariaLabel
+                    });
                     
-                    // Super aggressive matching: If it mentions the login type (google/microsoft), click it!
+                    // Strategy 1: Check text content
                     if (text.includes(searchText)) {
-                        // Extra check: Is this a login-related button?
-                        if (text.includes('log') || text.includes('sign') || text.includes('sparx')) {
-                            console.log(`   🎯 Attempting to click: "${text}"`);
-                            await button.click();
-                            console.log(`   ✅ Clicked "${loginType}" login button!`);
-                            buttonClicked = true;
-                            await delay(3000); // Wait for Google/Microsoft login page
-                            break;
+                        if (text.includes('log in') || text.includes('sparx') || text.includes('sign')) {
+                            btn.click();
+                            return { success: true, method: 'text', text: text, buttons: buttonInfo };
                         }
                     }
-                } catch (e) {
-                    // Skip buttons that error
-                    continue;
+                    
+                    // Strategy 2: Check HTML source (for hidden text or Google mentions)
+                    if (html.includes(searchText)) {
+                        if (html.includes('log') || html.includes('sparx') || html.includes('sign')) {
+                            btn.click();
+                            return { success: true, method: 'html', text: text || '(via HTML)', buttons: buttonInfo };
+                        }
+                    }
+                    
+                    // Strategy 3: Check aria-label
+                    if (ariaLabel.includes(searchText)) {
+                        btn.click();
+                        return { success: true, method: 'aria-label', text: ariaLabel, buttons: buttonInfo };
+                    }
                 }
+                
+                // Strategy 4: XPath search for exact text
+                const allText = document.body.innerText;
+                if (allText.includes('Log in to Sparx using ' + searchType)) {
+                    const xpath = `//*[contains(text(), 'Log in to Sparx using ${searchType}')]`;
+                    const xpathResult = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                    if (xpathResult.singleNodeValue) {
+                        const element = xpathResult.singleNodeValue;
+                        const button = element.closest('button') || element;
+                        button.click();
+                        return { success: true, method: 'xpath', text: element.textContent, buttons: buttonInfo };
+                    }
+                }
+                
+                // Strategy 5: Emergency fallback - click the 4th button if it looks like an icon button
+                // (The Google button often shows as just an icon/emoji)
+                if (searchType.toLowerCase() === 'google' && allButtons.length >= 4) {
+                    const btn4 = allButtons[3]; // Index 3 = 4th button
+                    const text4 = (btn4.textContent || '').trim();
+                    if (text4.length < 5) { // Likely an icon-only button
+                        console.log(`Emergency: Clicking button #4 (icon button): "${text4}"`);
+                        btn4.click();
+                        return { success: true, method: 'emergency-button-4', text: text4, buttons: buttonInfo };
+                    }
+                }
+                
+                return { success: false, buttons: buttonInfo };
+            }, loginType);
+            
+            // Log what we found
+            console.log(`   📋 Found ${result.buttons.length} buttons on page:`);
+            result.buttons.forEach((info, i) => {
+                const googleMarker = info.hasGoogle ? ' ← HAS GOOGLE IN HTML!' : '';
+                console.log(`      ${i + 1}. Text: "${info.text.substring(0, 50)}"${googleMarker}`);
+            });
+            
+            buttonClicked = result.success;
+            if (buttonClicked) {
+                console.log(`   ✅ Clicked "${loginType}" button via ${result.method}: "${result.text}"`);
             }
             
-            if (!buttonClicked) {
+            if (buttonClicked) {
+                console.log(`   ✅ Clicked "${loginType}" login button!`);
+                await delay(2000);
+                
+                // Wait for Google/Microsoft OAuth page to load
+                console.log(`   ⏳ Waiting for ${loginType} OAuth page...`);
+                await delay(2000);
+                
+                // Enter credentials in Google/Microsoft login page
+                await page.waitForSelector('input[type="email"], input[type="text"]', { timeout: 8000 });
+                
+                const emailField = await page.$('input[type="email"], input[type="text"]');
+                if (emailField) {
+                    await emailField.type(username, { delay: 30 });
+                    console.log(`   ✓ Email entered (${loginType})`);
+                    await delay(500);
+                    await page.keyboard.press('Enter');
+                    await delay(2000);
+                }
+                
+                // Enter password
+                await page.waitForSelector('input[type="password"]', { timeout: 5000 });
+                const passwordField = await page.$('input[type="password"]');
+                if (passwordField) {
+                    await passwordField.type(password, { delay: 30 });
+                    console.log(`   ✓ Password entered (${loginType})`);
+                    await delay(500);
+                    await page.keyboard.press('Enter');
+                    console.log(`   ✓ Submitted ${loginType} login`);
+                    await delay(3000);
+                }
+                
+            } else {
                 console.log(`   ⚠️  "${loginType}" button not found, trying direct login...`);
+                // Fall through to direct login below
             }
         } else {
             console.log('   📝 Using direct login (username/password fields)');
         }
         
-        // Now enter credentials (works for all login types)
-        await page.waitForSelector('input[type="text"], input[name*="user" i], input[id*="user" i], input[type="email"]', { timeout: 5000 });
-        
-        const usernameField = await page.$('input[type="text"], input[name*="user" i], input[type="email"]');
-        if (usernameField) {
-            await usernameField.type(username, { delay: 30 });
-            console.log('   ✓ Username entered');
-        }
-        
-        const passwordField = await page.$('input[type="password"]');
-        if (passwordField) {
-            await passwordField.type(password, { delay: 30 });
-            console.log('   ✓ Password entered');
+        // Direct login (only if Google/Microsoft button wasn't clicked OR loginType is 'Direct')
+        if ((loginType !== 'Google' && loginType !== 'Microsoft') || !buttonClicked) {
+            await page.waitForSelector('input[type="text"], input[name*="user" i], input[id*="user" i], input[type="email"]', { timeout: 5000 });
+            
+            const usernameField = await page.$('input[type="text"], input[name*="user" i], input[type="email"]');
+            if (usernameField) {
+                await usernameField.type(username, { delay: 30 });
+                console.log('   ✓ Username entered (Direct)');
+            }
+            
+            const passwordField = await page.$('input[type="password"]');
+            if (passwordField) {
+                await passwordField.type(password, { delay: 30 });
+                console.log('   ✓ Password entered (Direct)');
+            }
         }
         
         // Click login/submit button
@@ -407,7 +491,9 @@ async function login(page, username, password, loginType = 'Google') {
             await page.keyboard.press('Enter');
         }
         
-        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 });
+        // Wait for login to complete (don't use waitForNavigation as it can timeout on Google OAuth)
+        console.log('   ⏳ Waiting for login to complete...');
+        await delay(6000);
         console.log('   ✅ Logged in successfully');
     } catch (error) {
         console.log('   ⚠️  Login might need manual adjustment');
