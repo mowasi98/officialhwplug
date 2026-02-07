@@ -3913,7 +3913,10 @@ app.get('/process-order-hwplug-bot', async (req, res) => {
     console.log(`📡 EMAIL BUTTON: Calling Homework Plug Bot API: ${HWPLUG_BOT_API_URL}/submit-homework`);
     const botResponse = await fetch(`${HWPLUG_BOT_API_URL}/submit-homework`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' // For ngrok free plan
+      },
       body: JSON.stringify({
         username: order.username,
         password: order.password,
