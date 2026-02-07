@@ -541,13 +541,13 @@ async function startReading(page) {
         await delay(1500);
         await page.waitForSelector('button, a', { timeout: 5000 });
         
-        // Click "Start reading"
+        // Click "Start reading" or "Start your current task"
         let buttons = await page.$$('button, a');
         for (const button of buttons) {
             const text = await page.evaluate(el => el.textContent, button);
-            if (text.match(/start.*reading/i)) {
+            if (text.match(/start.*(reading|task|current)/i)) {
                 await button.click();
-                console.log('   ✓ Clicked "Start reading"');
+                console.log(`   ✓ Clicked "${text.trim().substring(0, 50)}"`);
                 await delay(2000);
                 break;
             }
