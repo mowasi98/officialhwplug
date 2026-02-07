@@ -108,13 +108,17 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
         console.log('Step 2: Selecting school...');
         await selectSchool(page, schoolName);
 
-        // Step 3: Login
-        console.log('Step 3: Logging in...');
+        // Step 3: Close cookie banner (BEFORE login!)
+        console.log('Step 3: Closing cookie banner...');
+        await closeCookieBanner(page);
+
+        // Step 4: Login
+        console.log('Step 4: Logging in...');
         await login(page, username, password, loginType);
 
-        // Step 4: Close cookie banner and navigate to reading
-        console.log('Step 4: Navigating to reading task...');
-        await closeCookieBannerAndStartReading(page);
+        // Step 5: Navigate to reading
+        console.log('Step 5: Navigating to reading task...');
+        await startReading(page);
 
         // Main Loop: Repeat until 300 SRP is earned
         console.log('\n📚 Starting reading loop - Target: 300 SRP\n');
@@ -353,19 +357,6 @@ async function login(page, username, password, loginType = 'Google') {
             console.log('   ✓ Password entered');
         }
         
-        // Accept cookies if present
-        await delay(500);
-        const allButtons = await page.$$('button');
-        for (const button of allButtons) {
-            const text = await page.evaluate(el => el.textContent, button);
-            if (text.match(/accept\s*all/i)) {
-                await button.click();
-                console.log('   ✓ Accepted cookies');
-                await delay(800);
-                break;
-            }
-        }
-        
         // Click login/submit button
         const buttons = await page.$$('button, input[type="submit"]');
         let loginClicked = false;
@@ -393,35 +384,46 @@ async function login(page, username, password, loginType = 'Google') {
     }
 }
 
-async function closeCookieBannerAndStartReading(page) {
+// Close cookie banner (call this BEFORE login!)
+async function closeCookieBanner(page) {
     try {
-        await delay(1500);
+        await delay(1000);
         
         const clicked = await page.evaluate(() => {
             const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
             for (const btn of allButtons) {
-                const rect = btn.getBoundingClientRect();
-                if (rect.bottom > window.innerHeight - 200) {
-                    const text = btn.textContent.trim();
-                    const ariaLabel = btn.getAttribute('aria-label') || '';
-                    if (text === '×' || text === 'X' || text === '✕' || 
-                        ariaLabel.toLowerCase().includes('close') || 
-                        ariaLabel.toLowerCase().includes('dismiss')) {
-                        btn.click();
-                        return true;
-                    }
+                const text = btn.textContent.trim();
+                const ariaLabel = btn.getAttribute('aria-label') || '';
+                // Look for X button or "Accept All" cookies button
+                if (text === '×' || text === 'X' || text === '✕' || 
+                    text.toLowerCase().includes('accept') ||
+                    ariaLabel.toLowerCase().includes('close') || 
+                    ariaLabel.toLowerCase().includes('dismiss')) {
+                    btn.click();
+                    return true;
                 }
             }
             return false;
         });
         
         if (clicked) {
-            console.log('   ✓ Closed cookie banner');
-            await delay(500);
+            console.log('   ✓ Closed cookie banner / Accepted cookies');
+            await delay(800);
+        } else {
+            console.log('   ℹ️  No cookie banner found');
         }
-        
+    } catch (error) {
+        console.log('   ⚠️  Error closing cookie banner (continuing anyway)');
+    }
+}
+
+// Navigate to reading task (call this AFTER login!)
+async function startReading(page) {
+    try {
+        await delay(1500);
         await page.waitForSelector('button, a', { timeout: 5000 });
         
+        // Click "Start reading"
         let buttons = await page.$$('button, a');
         for (const button of buttons) {
             const text = await page.evaluate(el => el.textContent, button);
@@ -433,6 +435,7 @@ async function closeCookieBannerAndStartReading(page) {
             }
         }
         
+        // Click "Continue Reading"
         buttons = await page.$$('button, a');
         for (const button of buttons) {
             const text = await page.evaluate(el => el.textContent, button);
