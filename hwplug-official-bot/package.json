@@ -1,0 +1,15 @@
+{
+  "name": "hwplug-official-bot",
+  "version": "1.0.0",
+  "description": "Homework Plug Official Bot - Automated homework completion for educational platforms",
+  "main": "hwplug-official-bot.js",
+  "scripts": {
+    "start": "node hwplug-official-bot.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "axios": "^1.6.0"
+  },
+  "author": "Homework Plug",
+  "license": "MIT"
+}

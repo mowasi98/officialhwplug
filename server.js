@@ -15,6 +15,10 @@ const fetch = globalThis.fetch || require('node-fetch');
 const DISCORD_BOT_API_URL = process.env.DISCORD_BOT_API_URL || 'http://13.60.26.180:3001';
 console.log(`🤖 Discord Bot API configured: ${DISCORD_BOT_API_URL}`);
 
+// Homework Plug Official Bot API URL Configuration (for Sparx Reader)
+const HWPLUG_BOT_API_URL = process.env.HWPLUG_BOT_API_URL || 'http://13.60.26.180:3002';
+console.log(`🎓 Homework Plug Bot API configured: ${HWPLUG_BOT_API_URL}`);
+
 const app = express();
 
 // Security: Helmet for security headers
@@ -3564,12 +3568,13 @@ async function sendCashPaymentNotification(data) {
               <div style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); padding: 25px; border-radius: 12px; border: 3px solid #28a745; margin-bottom: 25px; box-shadow: 0 6px 20px rgba(40,167,69,0.3); text-align: center;">
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Bot Does It</a>
+                  ${productName === 'Sparx Reader' ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Discord Bot</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">👤 I'll Do It</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${productName === 'Sparx Reader' ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Discord Bot | ⚡ Skip Queue | 🔄 REDO | 👤 Manual</p>
               </div>
               `) : ''}
 
@@ -3721,12 +3726,13 @@ async function sendLoginDetailsNotification(data) {
               <div style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); padding: 25px; border-radius: 12px; border: 3px solid #28a745; margin-bottom: 25px; box-shadow: 0 6px 20px rgba(40,167,69,0.3); text-align: center;">
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Bot Does It</a>
+                  ${platform === 'Sparx Reader' ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Discord Bot</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">👤 I'll Do It</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${platform === 'Sparx Reader' ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Discord Bot | ⚡ Skip Queue | 🔄 REDO | 👤 Manual</p>
               </div>
               `) : `
               <!-- No Buttons -->
@@ -3810,6 +3816,197 @@ app.post('/admin/set-bot-mode', (req, res) => {
       ? 'Bot will now automatically process homework' 
       : 'Bot will now send email for confirmation'
   });
+});
+
+// Email Button Endpoint: Homework Plug Bot Does It (clicked from email - Sparx Reader only)
+app.get('/process-order-hwplug-bot', async (req, res) => {
+  const { orderId } = req.query;
+  
+  console.log(`📧 EMAIL BUTTON: Homework Plug Bot clicked - Order ID: ${orderId}`);
+  
+  if (!orderId) {
+    return res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Error - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Error</h1>
+          <p>Missing order ID</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  // Check if order exists
+  if (!pendingOrders[orderId]) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Order Not Found - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>⚠️ Order Not Found</h1>
+          <p>This order has already been processed or doesn't exist.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  const order = pendingOrders[orderId];
+  
+  // Check if this is a Sparx Reader order
+  if (order.productName !== 'Sparx Reader') {
+    return res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Wrong Product - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #ffc107; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>⚠️ Wrong Product</h1>
+          <p>Homework Plug Bot only works for Sparx Reader.</p>
+          <p>This order is for: <strong>${order.productName}</strong></p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  // Mark as processed
+  pendingOrders[orderId].processed = true;
+  pendingOrders[orderId].processedAt = new Date().toISOString();
+  pendingOrders[orderId].processedBy = 'hwplug-bot';
+  
+  console.log(`🎓 EMAIL BUTTON: Triggering Homework Plug Bot for order: ${orderId}`);
+  console.log(`   Product: ${order.productName}`);
+  console.log(`   Username: ${order.username}`);
+  console.log(`   School: ${order.school}`);
+  
+  // Trigger the Homework Plug Bot
+  try {
+    console.log(`📡 EMAIL BUTTON: Calling Homework Plug Bot API: ${HWPLUG_BOT_API_URL}/submit-homework`);
+    const botResponse = await fetch(`${HWPLUG_BOT_API_URL}/submit-homework`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: order.username,
+        password: order.password,
+        school: order.school,
+        loginType: order.loginType || 'Google' // Include login type
+      })
+    });
+    
+    console.log(`📥 EMAIL BUTTON: Homework Plug Bot API response status: ${botResponse.status}`);
+    const botResult = await botResponse.json();
+    console.log(`📥 EMAIL BUTTON: Homework Plug Bot API response:`, botResult);
+    
+    if (botResult.success) {
+      console.log(`✅ EMAIL BUTTON: Homework Plug Bot successfully triggered!`);
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Homework Plug Bot Started - hwplug</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            h1 { color: #28a745; }
+            .info { background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>✅ Homework Plug Bot Started!</h1>
+            <div style="font-size: 64px; margin: 20px 0;">🎓</div>
+            <p><strong>The Homework Plug Bot is now doing your Sparx Reader homework!</strong></p>
+            <div class="info">
+              <p><strong>Product:</strong> ${order.productName}</p>
+              <p><strong>Username:</strong> ${order.username}</p>
+              <p><strong>School:</strong> ${order.school}</p>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now.</p>
+            <p style="color: #28a745; font-size: 14px; margin-top: 10px;">✨ Using AI-powered reading comprehension!</p>
+          </div>
+        </body>
+        </html>
+      `);
+    } else {
+      console.error(`❌ EMAIL BUTTON: Homework Plug Bot trigger failed: ${botResult.error}`);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Bot Error - hwplug</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            h1 { color: #d9534f; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>❌ Bot Error</h1>
+            <p>Failed to start Homework Plug Bot.</p>
+            <p style="color: #666; font-size: 14px;">${botResult.error || 'Unknown error'}</p>
+            <p style="margin-top: 20px;"><a href="mailto:${process.env.YOUR_EMAIL}" style="color: #6C63FF;">Contact support</a></p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+  } catch (error) {
+    console.error(`❌ EMAIL BUTTON: Error calling Homework Plug Bot API:`, error.message);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Connection Error - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Connection Error</h1>
+          <p>Could not connect to Homework Plug Bot.</p>
+          <p style="color: #666; font-size: 14px;">${error.message}</p>
+          <p style="margin-top: 20px;"><a href="mailto:${process.env.YOUR_EMAIL}" style="color: #6C63FF;">Contact support</a></p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
 });
 
 // Email Button Endpoint: Bot Does It (clicked from email)
