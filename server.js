@@ -3907,6 +3907,7 @@ app.get('/process-order-hwplug-bot', async (req, res) => {
   console.log(`   Product: ${order.productName}`);
   console.log(`   Username: ${order.username}`);
   console.log(`   School: ${order.school}`);
+  console.log(`   Login Type: ${order.loginType || 'Google (default)'}`);
   
   // Trigger the Homework Plug Bot
   try {

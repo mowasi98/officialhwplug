@@ -2,6 +2,9 @@
 // This wraps the Sparx Reader bot into an Express API
 // Run on AWS: pm2 start hwplug-bot-api.js --name hwplug-bot
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const puppeteer = require('puppeteer');
 const axios = require('axios');
@@ -301,19 +304,30 @@ async function login(page, username, password, loginType = 'Google') {
         // Check if we need to click "Log in with Google/Microsoft" button
         if (loginType === 'Google' || loginType === 'Microsoft') {
             const searchText = loginType === 'Google' ? 'google' : 'microsoft';
-            console.log(`   🔍 Looking for "Log in with ${loginType}" button...`);
+            console.log(`   🔍 Looking for "Log in to Sparx using ${loginType}" button...`);
             
             const buttons = await page.$$('button, a');
             let buttonClicked = false;
             
             for (const button of buttons) {
-                const text = await page.evaluate(el => el.textContent.toLowerCase(), button);
-                if (text.includes(`log in`) && text.includes(searchText)) {
-                    await button.click();
-                    console.log(`   ✓ Clicked "Log in with ${loginType}" button`);
-                    buttonClicked = true;
-                    await delay(2000); // Wait for redirect/popup
-                    break;
+                try {
+                    const text = await page.evaluate(el => el.textContent.toLowerCase().replace(/\s+/g, ' ').trim(), button);
+                    // Log each button we check for debugging
+                    if (text.includes('log in') || text.includes('sparx')) {
+                        console.log(`      Checking button: "${text}"`);
+                    }
+                    // Match "log in to sparx using google/microsoft" or "log in with google/microsoft"
+                    if ((text.includes('log in') && text.includes(searchText)) || 
+                        (text.includes('sparx') && text.includes(searchText))) {
+                        await button.click();
+                        console.log(`   ✅ Clicked "${loginType}" login button!`);
+                        buttonClicked = true;
+                        await delay(3000); // Wait for Google/Microsoft login page
+                        break;
+                    }
+                } catch (e) {
+                    // Skip buttons that error
+                    continue;
                 }
             }
             
