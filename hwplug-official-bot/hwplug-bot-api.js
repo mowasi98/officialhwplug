@@ -626,20 +626,43 @@ async function startReading(page) {
             console.log('   ⚠️  No task button found');
         }
         
-        // Now click "Start reading" at the bottom
-        console.log('   📋 Looking for "Start reading" button...');
+        // Wait for the book popup to appear
+        console.log('   ⏳ Waiting for book popup to load...');
+        await delay(3000); // Wait longer for popup!
+        
+        // Close cookie banner in case it appeared over the popup
+        await closeCookieBanner(page, true);
+        
+        // Now click "Start reading" button IN THE POPUP
+        console.log('   📋 Looking for "Start reading" button in popup...');
         await delay(1000);
-        buttons = await page.$$('button, a');
-        for (const button of buttons) {
-            const text = await page.evaluate(el => el.textContent, button);
-            const cleanText = text.replace(/\s+/g, ' ').trim();
-            
-            if (text.match(/start.*reading/i)) {
-                await button.click();
-                console.log(`   ✅ Clicked "Start reading"`);
-                await delay(2000);
-                break;
+        
+        // Try clicking the button using page.evaluate to find it in the popup
+        const clicked = await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button, a'));
+            for (const btn of buttons) {
+                const text = (btn.textContent || btn.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                console.log(`Found button: "${text}"`);
+                
+                // Look for "Start Reading" or "Start reading"
+                if (text === 'start reading' || text.includes('start reading')) {
+                    // Make sure it's visible (not hidden)
+                    const rect = btn.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        console.log(`Clicking visible button: "${text}"`);
+                        btn.click();
+                        return true;
+                    }
+                }
             }
+            return false;
+        });
+        
+        if (clicked) {
+            console.log(`   ✅ Clicked "Start reading" in popup`);
+            await delay(3000);
+        } else {
+            console.log(`   ⚠️  Could not find "Start reading" button in popup`);
         }
         
         // Click "Continue Reading"
