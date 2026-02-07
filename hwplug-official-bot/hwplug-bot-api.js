@@ -598,7 +598,7 @@ async function startReading(page) {
             console.log('   ⚠️  Timeout waiting for buttons');
         });
         
-        // Click "Start reading" or "Start your current task"
+        // Click "Continue your current task" OR "Start your current task"
         let buttons = await page.$$('button, a');
         console.log(`   📋 Found ${buttons.length} buttons/links`);
         
@@ -608,11 +608,12 @@ async function startReading(page) {
             const cleanText = text.replace(/\s+/g, ' ').trim();
             
             // Log buttons that might be relevant
-            if (cleanText.toLowerCase().includes('start') || cleanText.toLowerCase().includes('task')) {
+            if (cleanText.toLowerCase().includes('start') || cleanText.toLowerCase().includes('task') || cleanText.toLowerCase().includes('continue')) {
                 console.log(`      Button: "${cleanText.substring(0, 60)}"`);
             }
             
-            if (text.match(/start.*(reading|task|current)/i)) {
+            // Look for "Continue your current task" OR "Start your current task"
+            if (text.match(/(continue|start).*(current\s*task)/i)) {
                 await button.click();
                 console.log(`   ✅ Clicked "${cleanText.substring(0, 50)}"`);
                 await delay(2000);
@@ -622,7 +623,23 @@ async function startReading(page) {
         }
         
         if (!foundButton) {
-            console.log('   ⚠️  No Start button found');
+            console.log('   ⚠️  No task button found');
+        }
+        
+        // Now click "Start reading" at the bottom
+        console.log('   📋 Looking for "Start reading" button...');
+        await delay(1000);
+        buttons = await page.$$('button, a');
+        for (const button of buttons) {
+            const text = await page.evaluate(el => el.textContent, button);
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            
+            if (text.match(/start.*reading/i)) {
+                await button.click();
+                console.log(`   ✅ Clicked "Start reading"`);
+                await delay(2000);
+                break;
+            }
         }
         
         // Click "Continue Reading"
