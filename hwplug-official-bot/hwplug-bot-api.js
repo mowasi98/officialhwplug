@@ -233,6 +233,53 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 await clickButton(page, 'Start');
                 await delay(2000);
                 
+            } else if (pageType === 'book_completed') {
+                // Book completed! Rate it and choose another book
+                console.log(`   🎉 BOOK COMPLETED! Starting next book...`);
+                
+                // Step 1: Rate the book (click "About right" star)
+                console.log(`   ⭐ Rating book...`);
+                await closeCookieBanner(page, true);
+                await delay(1000);
+                
+                // Click on "About right" emoji/star (middle option)
+                let ratingClicked = await page.evaluate(() => {
+                    const buttons = Array.from(document.querySelectorAll('button, div[role="button"], img, svg'));
+                    for (const btn of buttons) {
+                        const text = (btn.textContent || btn.alt || '').toLowerCase();
+                        if (text.includes('about right') || text.includes('right')) {
+                            btn.click();
+                            return true;
+                        }
+                    }
+                    // Fallback: click 3rd button/emoji (usually "About right")
+                    const allButtons = Array.from(document.querySelectorAll('button[aria-label], img[alt]'));
+                    if (allButtons.length >= 3) {
+                        allButtons[2].click();
+                        return true;
+                    }
+                    return false;
+                });
+                
+                if (ratingClicked) {
+                    console.log(`   ✓ Rated book`);
+                }
+                await delay(1500);
+                
+                // Step 2: Click "Choose another book"
+                console.log(`   📚 Choosing another book...`);
+                await clickButton(page, 'Choose another book');
+                await delay(2000);
+                
+                // Step 3: Click "Choose this book" or "Start reading" on popup
+                console.log(`   ✅ Selecting new book...`);
+                await clickButton(page, 'Choose this book');
+                await delay(1500);
+                await clickButton(page, 'Start reading');
+                await delay(3000);
+                
+                console.log(`   ✓ New book started!`);
+                
             } else if (pageType === 'book_feedback') {
                 // Book feedback survey - select "About right" and continue
                 console.log(`   📝 Book feedback survey - selecting difficulty...`);
@@ -538,19 +585,44 @@ async function closeCookieBanner(page, silent = false) {
 // Navigate to reading task (call this AFTER login!)
 async function startReading(page) {
     try {
-        await delay(1500);
-        await page.waitForSelector('button, a', { timeout: 5000 });
+        console.log('   ⏳ Waiting for page to load...');
+        await delay(2000);
+        
+        // Close cookie banner if present!
+        console.log('   🍪 Closing cookie banner...');
+        await closeCookieBanner(page);
+        await delay(500);
+        
+        console.log('   📋 Looking for Start button...');
+        await page.waitForSelector('button, a', { timeout: 10000 }).catch(() => {
+            console.log('   ⚠️  Timeout waiting for buttons');
+        });
         
         // Click "Start reading" or "Start your current task"
         let buttons = await page.$$('button, a');
+        console.log(`   📋 Found ${buttons.length} buttons/links`);
+        
+        let foundButton = false;
         for (const button of buttons) {
             const text = await page.evaluate(el => el.textContent, button);
+            const cleanText = text.replace(/\s+/g, ' ').trim();
+            
+            // Log buttons that might be relevant
+            if (cleanText.toLowerCase().includes('start') || cleanText.toLowerCase().includes('task')) {
+                console.log(`      Button: "${cleanText.substring(0, 60)}"`);
+            }
+            
             if (text.match(/start.*(reading|task|current)/i)) {
                 await button.click();
-                console.log(`   ✓ Clicked "${text.trim().substring(0, 50)}"`);
+                console.log(`   ✅ Clicked "${cleanText.substring(0, 50)}"`);
                 await delay(2000);
+                foundButton = true;
                 break;
             }
+        }
+        
+        if (!foundButton) {
+            console.log('   ⚠️  No Start button found');
         }
         
         // Click "Continue Reading"
@@ -680,7 +752,9 @@ function checkPageType(page) {
     return page.evaluate(() => {
         const bodyText = document.body.innerText;
         
-        if (bodyText.includes('How much do you like this book')) {
+        if (bodyText.includes('Congratulations') && bodyText.includes('You finished')) {
+            return 'book_completed';
+        } else if (bodyText.includes('How much do you like this book') || bodyText.includes('How easy or difficult was this book')) {
             return 'book_feedback';
         } else if (bodyText.includes('Let\'s try again') && bodyText.includes('moved you back')) {
             return 'moved_back';
@@ -734,10 +808,16 @@ async function clickContinueReading(page) {
 
 async function clickButton(page, buttonText) {
     try {
-        const buttons = await page.$$('button, a');
+        await closeCookieBanner(page, true); // Close cookie banner before clicking
+        
+        const buttons = await page.$$('button, a, div[role="button"]');
         for (const button of buttons) {
-            const text = await page.evaluate(el => el.textContent.trim(), button);
-            if (text.toLowerCase() === buttonText.toLowerCase()) {
+            const text = await page.evaluate(el => (el.textContent || el.innerText || '').trim(), button);
+            const cleanText = text.replace(/\s+/g, ' ');
+            const searchText = buttonText.toLowerCase().replace(/\s+/g, ' ');
+            
+            // Exact match or contains match
+            if (cleanText.toLowerCase() === searchText || cleanText.toLowerCase().includes(searchText)) {
                 await button.click();
                 console.log(`   ✓ Clicked "${buttonText}"`);
                 return true;
