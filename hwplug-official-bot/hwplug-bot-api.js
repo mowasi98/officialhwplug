@@ -148,7 +148,13 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 console.log(`   📊 Progress: ${currentSRP} / 300 SRP`);
                 
                 if (currentSRP >= 300) {
-                    console.log('\n🎉 SUCCESS! Reached 300 SRP!');
+                    console.log('\n' + '='.repeat(60));
+                    console.log('🎉 SUCCESS! TARGET REACHED!');
+                    console.log('='.repeat(60));
+                    console.log(`✅ Final SRP: ${currentSRP} / 300`);
+                    console.log(`✅ Rounds completed: ${roundNumber}`);
+                    console.log('🔒 Closing browser and ending session...');
+                    console.log('='.repeat(60) + '\n');
                     break;
                 }
                 
@@ -329,6 +335,7 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
         if (browser) {
             console.log('🔒 Closing browser...');
             await browser.close();
+            console.log('✅ Browser closed successfully\n');
         }
     }
 }
