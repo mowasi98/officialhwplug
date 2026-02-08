@@ -93,8 +93,13 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
     try {
         browser = await puppeteer.launch({
             headless: CONFIG.HEADLESS,
-            args: ['--start-maximized', '--no-sandbox', '--disable-setuid-sandbox'],
-            defaultViewport: null,
+            args: [
+                '--start-minimized',  // Start minimized so it doesn't interrupt gaming
+                '--no-sandbox', 
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage'
+            ],
+            defaultViewport: { width: 1920, height: 1080 }, // Full HD for better element detection
             executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
         });
 
@@ -123,13 +128,14 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
         // Main Loop: Repeat until 300 SRP is earned
         console.log('\n📚 Starting reading loop - Target: 300 SRP\n');
         let roundNumber = 1;
-        let maxRounds = 25; // ~300 SRP / 14 SRP per round = ~21 rounds
+        let maxRounds = 100; // High safety limit - bot will stop when 300 SRP reached
         
         while (roundNumber <= maxRounds) {
             console.log(`\n=== Round ${roundNumber} ===`);
             
             // Close cookie banner if it appears (can happen randomly!)
             await closeCookieBanner(page, true);
+            await delay(500); // Brief pause to let page stabilize
             
             // Check if we're on the progress page or reading page
             await delay(1000);
@@ -152,7 +158,7 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 if (!clicked) {
                     clicked = await clickButton(page, 'Next');
                 }
-                await delay(2000);
+                await delay(1000); // Faster transition to next passage
                 
             } else if (pageType === 'reading') {
                 // We're on reading page - extract text and answer questions
@@ -164,20 +170,28 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 // Close cookie banner before clicking buttons!
                 await closeCookieBanner(page, true);
                 
-                // Step 6: Click "I have read up to here"
+                // Step 6: Click "I have read up to here" (optional - might not exist)
                 console.log('Step 6: Clicking "I have read up to here"...');
-                await clickIHaveReadUpToHere(page);
-                await delay(1500);
+                const readClicked = await clickIHaveReadUpToHere(page);
+                if (readClicked) {
+                    await delay(1500);
+                    
+                    // Step 6b: Click "Yes, ask me the questions." (OPTIONAL - only appears sometimes!)
+                    console.log('Step 6b: Confirming "Yes, ask me the questions."...');
+                    await clickYesAskQuestions(page); // Don't check result - it's optional!
+                    await delay(1000);
+                }
                 
-                // Step 6b: Click "Yes, ask me the questions." on confirmation popup
-                console.log('Step 6b: Confirming "Yes, ask me the questions."...');
-                await clickYesAskQuestions(page);
-                await delay(2000);
-                
-                // Step 7: Answer all questions
-                console.log('Step 7: Answering questions with AI...');
-                await answerAllQuestions(page);
-                await delay(2000);
+                // Check if we're on questions page now
+                const currentPageType = await checkPageType(page);
+                if (currentPageType === 'questions') {
+                    // Step 7: Answer all questions
+                    console.log('Step 7: Answering questions with AI...');
+                    await answerAllQuestions(page);
+                    await delay(800);
+                } else {
+                    console.log(`   ℹ️  Not on questions page yet (on: ${currentPageType}), continuing loop...`);
+                }
                 
             } else if (pageType === 'confirmation') {
                 // On confirmation popup - click "Yes, ask me the questions"
@@ -189,7 +203,7 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 // On questions page - answer them
                 console.log('   Answering questions...');
                 await answerAllQuestions(page);
-                await delay(2000);
+                await delay(800); // Quick check after questions
                 
             } else if (pageType === 'success') {
                 // Passed! Click "Next" to continue
@@ -202,7 +216,7 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 if (!clicked) {
                     clicked = await clickButton(page, 'Retry');
                 }
-                await delay(2000);
+                await delay(1000); // Faster transition
                 
             } else if (pageType === 'retry') {
                 // Failed - Click "Retry" or "Next" to try again
@@ -215,7 +229,7 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 if (!clicked) {
                     clicked = await clickButton(page, 'Next');
                 }
-                await delay(2000);
+                await delay(1000); // Faster retry
                 
             } else if (pageType === 'swap_book') {
                 // Book swap suggestion - click "Keep trying" to stay with current book
@@ -330,8 +344,8 @@ async function selectSchool(page, schoolName) {
         
         const schoolInput = await page.$('input[type="text"]');
         
-        if (schoolInput) {
-            await schoolInput.type(schoolName, { delay: 30 });
+        if (schoolInput && schoolName) {
+            await schoolInput.type(String(schoolName), { delay: 30 });
             await delay(300);
             await page.keyboard.press('Enter');
             await delay(500);
@@ -378,89 +392,75 @@ async function login(page, username, password, loginType = 'Google') {
             await closeCookieBanner(page, true);
             await delay(1000); // Wait longer!
             
-            // SUPER AGGRESSIVE: Find and click the blue Google/Microsoft button!
-            console.log(`   📋 Searching for the big blue "${loginType}" button...`);
+            // Find and click the Google/Microsoft button using the SAME method as "Continue Reading"!
+            console.log(`   📋 Searching for Sparx ${loginType} login button (any variation)...`);
             
-            const result = await page.evaluate((searchType) => {
-                const searchText = searchType.toLowerCase();
-                const buttonInfo = [];
-                
-                // Find ALL button elements and check their HTML too!
-                const allButtons = document.querySelectorAll('button, a[role="button"], div[role="button"]');
-                
-                for (const btn of allButtons) {
-                    const text = (btn.textContent || btn.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
-                    const html = btn.outerHTML.toLowerCase();
-                    const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
+            let result;
+            try {
+                result = await page.evaluate((searchType) => {
+                    const debugInfo = {
+                        found: false,
+                        method: '',
+                        text: '',
+                        clicked: false,
+                        buttonCount: 0,
+                        checkedTexts: []
+                    };
                     
-                    buttonInfo.push({
-                        text: text || '(empty)',
-                        hasGoogle: html.includes(searchText),
-                        ariaLabel: ariaLabel
-                    });
+                    // Search ONLY CLICKABLE elements (buttons, links, clickable divs/spans)
+                    const allElements = Array.from(document.querySelectorAll('button, a, div[role="button"], span[role="button"], [onclick], input[type="button"], input[type="submit"]'));
+                    debugInfo.buttonCount = allElements.length;
                     
-                    // Strategy 1: Check text content
-                    if (text.includes(searchText)) {
-                        if (text.includes('log in') || text.includes('sparx') || text.includes('sign')) {
-                            btn.click();
-                            return { success: true, method: 'text', text: text, buttons: buttonInfo };
+                    for (const el of allElements) {
+                        const text = (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
+                        const textLower = text.toLowerCase();
+                        const searchLower = searchType.toLowerCase();
+                        
+                        // Store first 10 button texts for debugging
+                        if (debugInfo.checkedTexts.length < 10) {
+                            debugInfo.checkedTexts.push(text.substring(0, 50));
+                        }
+                        
+                        // ONLY look for exact text: "Log in to Sparx using Google/Microsoft"
+                        const matches = textLower.includes(`log in to sparx using ${searchLower}`);
+                        
+                        if (matches) {
+                            // Make sure it's visible
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width > 0 && rect.height > 0) {
+                                debugInfo.found = true;
+                                debugInfo.text = text;
+                                debugInfo.method = 'exact text match';
+                                el.click();
+                                debugInfo.clicked = true;
+                                return debugInfo;
+                            }
                         }
                     }
                     
-                    // Strategy 2: Check HTML source (for hidden text or Google mentions)
-                    if (html.includes(searchText)) {
-                        if (html.includes('log') || html.includes('sparx') || html.includes('sign')) {
-                            btn.click();
-                            return { success: true, method: 'html', text: text || '(via HTML)', buttons: buttonInfo };
-                        }
-                    }
-                    
-                    // Strategy 3: Check aria-label
-                    if (ariaLabel.includes(searchText)) {
-                        btn.click();
-                        return { success: true, method: 'aria-label', text: ariaLabel, buttons: buttonInfo };
-                    }
-                }
-                
-                // Strategy 4: XPath search for exact text
-                const allText = document.body.innerText;
-                if (allText.includes('Log in to Sparx using ' + searchType)) {
-                    const xpath = `//*[contains(text(), 'Log in to Sparx using ${searchType}')]`;
-                    const xpathResult = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                    if (xpathResult.singleNodeValue) {
-                        const element = xpathResult.singleNodeValue;
-                        const button = element.closest('button') || element;
-                        button.click();
-                        return { success: true, method: 'xpath', text: element.textContent, buttons: buttonInfo };
-                    }
-                }
-                
-                // Strategy 5: Emergency fallback - click the 4th button if it looks like an icon button
-                // (The Google button often shows as just an icon/emoji)
-                if (searchType.toLowerCase() === 'google' && allButtons.length >= 4) {
-                    const btn4 = allButtons[3]; // Index 3 = 4th button
-                    const text4 = (btn4.textContent || '').trim();
-                    if (text4.length < 5) { // Likely an icon-only button
-                        console.log(`Emergency: Clicking button #4 (icon button): "${text4}"`);
-                        btn4.click();
-                        return { success: true, method: 'emergency-button-4', text: text4, buttons: buttonInfo };
-                    }
-                }
-                
-                return { success: false, buttons: buttonInfo };
-            }, loginType);
-            
-            // Log what we found
-            console.log(`   📋 Found ${result.buttons.length} buttons on page:`);
-            result.buttons.forEach((info, i) => {
-                const googleMarker = info.hasGoogle ? ' ← HAS GOOGLE IN HTML!' : '';
-                console.log(`      ${i + 1}. Text: "${info.text.substring(0, 50)}"${googleMarker}`);
-            });
-            
-            buttonClicked = result.success;
-            if (buttonClicked) {
-                console.log(`   ✅ Clicked "${loginType}" button via ${result.method}: "${result.text}"`);
+                    return debugInfo;
+                }, loginType);
+            } catch (error) {
+                // Page navigated during button search - might have auto-logged in!
+                console.log(`   ℹ️  Page changed during button search (might have auto-logged in)`);
+                result = { found: false, clicked: false };
             }
+            
+            // Log result
+            console.log(`   📋 Searched ${result.buttonCount} clickable elements`);
+            if (result.checkedTexts.length > 0) {
+                console.log(`   📋 First ${result.checkedTexts.length} button texts:`);
+                result.checkedTexts.forEach((text, i) => {
+                    console.log(`      [${i}] "${text}"`);
+                });
+            }
+            if (result.found) {
+                console.log(`   ✅ Found "${loginType}" button: "${result.text.substring(0, 60)}"`);
+            } else {
+                console.log(`   ⚠️  Could not find Sparx ${loginType} login button`);
+            }
+            
+            buttonClicked = result.clicked;
             
             if (buttonClicked) {
                 console.log(`   ✅ Clicked "${loginType}" login button!`);
@@ -479,11 +479,12 @@ async function login(page, username, password, loginType = 'Google') {
                     console.log(`   ✓ Email entered (${loginType})`);
                     await delay(500);
                     await page.keyboard.press('Enter');
-                    await delay(2000);
+                    console.log(`   ⏳ Waiting for password page to load...`);
+                    await delay(1500); // FASTER - just enough for Google to load password page
                 }
                 
                 // Enter password
-                await page.waitForSelector('input[type="password"]', { timeout: 5000 });
+                await page.waitForSelector('input[type="password"]', { timeout: 10000 });
                 const passwordField = await page.$('input[type="password"]');
                 if (passwordField) {
                     await passwordField.type(password, { delay: 30 });
@@ -540,7 +541,7 @@ async function login(page, username, password, loginType = 'Google') {
         
         // Wait for login to complete (don't use waitForNavigation as it can timeout on Google OAuth)
         console.log('   ⏳ Waiting for login to complete...');
-        await delay(6000);
+        await delay(4000); // Faster login wait
         console.log('   ✅ Logged in successfully');
     } catch (error) {
         console.log('   ⚠️  Login might need manual adjustment');
@@ -586,12 +587,12 @@ async function closeCookieBanner(page, silent = false) {
 async function startReading(page) {
     try {
         console.log('   ⏳ Waiting for page to load...');
-        await delay(2000);
+        await delay(1500); // Faster page load wait
         
         // Close cookie banner if present!
         console.log('   🍪 Closing cookie banner...');
         await closeCookieBanner(page);
-        await delay(500);
+        await delay(300); // Faster cookie banner wait
         
         console.log('   📋 Looking for Start button...');
         await page.waitForSelector('button, a', { timeout: 10000 }).catch(() => {
@@ -616,7 +617,7 @@ async function startReading(page) {
             if (text.match(/(continue|start).*(current\s*task)/i)) {
                 await button.click();
                 console.log(`   ✅ Clicked "${cleanText.substring(0, 50)}"`);
-                await delay(2000);
+                await delay(1000); // Faster - just enough for popup to appear
                 foundButton = true;
                 break;
             }
@@ -628,42 +629,131 @@ async function startReading(page) {
         
         // Wait for the book popup to appear
         console.log('   ⏳ Waiting for book popup to load...');
-        await delay(3000); // Wait longer for popup!
+        await delay(1500);
         
-        // Close cookie banner in case it appeared over the popup
-        await closeCookieBanner(page, true);
+        // CRITICAL: Close cookie banner FIRST! (it appears as a popup and blocks the real book popup!)
+        console.log('   🍪 Closing any cookie banners...');
+        await closeCookieBanner(page);
+        await delay(500);
+        await closeCookieBanner(page, true); // Try again!
+        await delay(500);
         
-        // Now click "Start reading" button IN THE POPUP
-        console.log('   📋 Looking for "Start reading" button in popup...');
-        await delay(1000);
+        // Now click "Start reading" or "Continue reading" button IN THE POPUP
+        console.log('   📋 Looking for "Start/Continue reading" button in popup...');
+        await delay(1000); // Brief wait for real book popup after cookies cleared
         
-        // Try clicking the button using page.evaluate to find it in the popup
-        const clicked = await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('button, a'));
-            for (const btn of buttons) {
-                const text = (btn.textContent || btn.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
-                console.log(`Found button: "${text}"`);
-                
-                // Look for "Start Reading" or "Start reading"
-                if (text === 'start reading' || text.includes('start reading')) {
-                    // Make sure it's visible (not hidden)
-                    const rect = btn.getBoundingClientRect();
-                    if (rect.width > 0 && rect.height > 0) {
-                        console.log(`Clicking visible button: "${text}"`);
-                        btn.click();
-                        return true;
+        // Try clicking the button - FIRST find the popup, THEN find button inside it
+        const result = await page.evaluate(() => {
+            const debugInfo = {
+                popupFound: false,
+                popupMethod: '',
+                buttons: [],
+                clicked: false,
+                matchedButton: null
+            };
+            
+            // Step 1: Find the BOOK POPUP (skip cookie popups!)
+            let popup = null;
+            const allPopups = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"], .modal, [class*="modal"], [class*="popup"], [class*="dialog"]'));
+            
+            // Filter out cookie popups - look for popup with reading-related content
+            for (const p of allPopups) {
+                const text = p.textContent || '';
+                // Skip if it looks like a cookie popup
+                if (text.includes('Accept all') || text.includes('Decline all') || text.includes('Cookie')) {
+                    continue; // Skip cookie popups!
+                }
+                // This might be the book popup!
+                popup = p;
+                debugInfo.popupFound = true;
+                debugInfo.popupMethod = 'role/class selector (filtered)';
+                break;
+            }
+            
+            // If no popup found by role/class, look for element with book description
+            if (!popup) {
+                const allDivs = Array.from(document.querySelectorAll('div'));
+                for (const div of allDivs) {
+                    const text = div.textContent || '';
+                    // Look for div containing book-related text
+                    if (text.includes('Show more') || text.includes('show more')) {
+                        popup = div;
+                        debugInfo.popupFound = true;
+                        debugInfo.popupMethod = 'Show more text';
+                        break;
                     }
                 }
             }
-            return false;
+            
+            if (!popup) {
+                popup = document.body; // Fallback to whole page
+                debugInfo.popupMethod = 'fallback to body';
+            }
+            
+            // Step 2: Search for buttons ONLY INSIDE the popup
+            const buttons = Array.from(popup.querySelectorAll('button, a, [role="button"]'));
+            
+            // DETAILED LOGGING: Collect ALL buttons info
+            buttons.forEach((btn) => {
+                const text = (btn.textContent || btn.innerText || '').replace(/\s+/g, ' ').trim();
+                const rect = btn.getBoundingClientRect();
+                debugInfo.buttons.push({
+                    text: text,
+                    visible: rect.width > 0 && rect.height > 0,
+                    width: rect.width,
+                    height: rect.height
+                });
+            });
+            
+            // Step 3: Look for the reading button (PRIORITIZE "Continue Reading" over "Start reading"!)
+            let continueReadingBtn = null;
+            let startReadingBtn = null;
+            
+            for (const btn of buttons) {
+                const text = (btn.textContent || btn.innerText || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                const rect = btn.getBoundingClientRect();
+                const visible = rect.width > 0 && rect.height > 0;
+                
+                // Look for "Continue Reading" (PRIORITY!)
+                if ((text === 'continue reading' || text.includes('continue reading')) && visible) {
+                    continueReadingBtn = { btn, text };
+                }
+                // Look for "Start Reading" (fallback)
+                else if ((text === 'start reading' || text.includes('start reading')) && visible) {
+                    startReadingBtn = { btn, text };
+                }
+            }
+            
+            // Click "Continue Reading" first, then "Start Reading" as fallback
+            const targetBtn = continueReadingBtn || startReadingBtn;
+            if (targetBtn) {
+                debugInfo.matchedButton = { text: targetBtn.text, visible: true };
+                targetBtn.btn.click();
+                debugInfo.clicked = true;
+                return debugInfo;
+            }
+            
+            return debugInfo;
         });
         
+        // NOW log the debug info in Node.js (where we can see it!)
+        console.log(`   🔍 DEBUG: Popup found: ${result.popupFound} (via ${result.popupMethod})`);
+        console.log(`   🔍 DEBUG: Found ${result.buttons.length} buttons in popup:`);
+        result.buttons.forEach((btn, i) => {
+            console.log(`      [${i}] "${btn.text.substring(0, 60)}" (visible: ${btn.visible})`);
+        });
+        if (result.matchedButton) {
+            console.log(`   🎯 DEBUG: Matched button: "${result.matchedButton.text}" (visible: ${result.matchedButton.visible})`);
+        }
+        
+        const clicked = result.clicked;
+        
         if (clicked) {
-            console.log(`   ✅ Clicked "Start reading" in popup`);
+            console.log(`   ✅ Clicked "Start/Continue reading" in popup`);
             console.log(`   ⏳ Waiting for reading page to load...`);
-            await delay(5000); // Wait for reading page to load
+            await delay(2000); // Quick wait for reading page to load
         } else {
-            console.log(`   ⚠️  Could not find "Start reading" button in popup`);
+            console.log(`   ⚠️  Could not find "Start reading" or "Continue reading" button in popup`);
         }
         
         console.log('   ✓ Navigated to reading page');
@@ -781,6 +871,11 @@ function checkPageType(page) {
     return page.evaluate(() => {
         const bodyText = document.body.innerText;
         
+        // CHECK QUESTIONS FIRST! (highest priority - questions can appear with passage text in background)
+        if (bodyText.match(/Q\d+\./)) {
+            return 'questions';
+        }
+        // Check for completion/feedback states
         if (bodyText.includes('Congratulations') && bodyText.includes('You finished')) {
             return 'book_completed';
         } else if (bodyText.includes('How much do you like this book') || bodyText.includes('How easy or difficult was this book')) {
@@ -799,8 +894,6 @@ function checkPageType(page) {
             return 'progress';
         } else if (bodyText.includes('Start reading here') || bodyText.includes('Click here when you\'re ready')) {
             return 'reading';
-        } else if (bodyText.match(/Q\d+\./)) {
-            return 'questions';
         } else {
             return 'unknown';
         }
@@ -872,14 +965,15 @@ async function clickIHaveReadUpToHere(page) {
                 await button.click();
                 console.log('   ✓ Clicked "I have read up to here"');
                 await delay(1000);
-                return;
+                return true; // Successfully clicked!
             }
         }
         
         console.log('   ⚠️  Could not find "I have read up to here" button');
+        return false; // Button not found
     } catch (error) {
         console.log('   ⚠️  Error clicking "I have read up to here"');
-        throw error;
+        return false; // Error occurred
     }
 }
 
@@ -914,7 +1008,7 @@ async function answerAllQuestions(page) {
         attempts++;
         
         try {
-            await delay(1500);
+            await delay(800); // Faster question checking
             
             const pageType = await checkPageType(page);
             
@@ -968,8 +1062,16 @@ async function answerAllQuestions(page) {
                 lastQuestionNumber = currentQuestionNumber;
                 questionsAnswered++;
                 
-                console.log(`   ⏳ Waiting for question to advance...`);
-                await delay(4000);
+                // Try to click "Continue" button immediately (if it exists)
+                await delay(800); // Brief wait for button to appear
+                const continueClicked = await clickButton(page, 'Continue');
+                if (continueClicked) {
+                    console.log(`   ✅ Clicked "Continue"`);
+                    await delay(800); // Quick wait for next question
+                } else {
+                    // No Continue button - might auto-advance
+                    await delay(1500); // Wait a bit longer for auto-advance
+                }
                 
             } else {
                 console.log(`   ⚠️  Failed to click answer, trying again...`);
