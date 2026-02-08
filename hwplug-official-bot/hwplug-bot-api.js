@@ -235,7 +235,35 @@ async function runSparxReaderBot(schoolName, username, password, loginType = 'Go
                 if (!clicked) {
                     clicked = await clickButton(page, 'Next');
                 }
-                await delay(1000); // Faster retry
+                await delay(2000); // Wait for next screen to load
+                
+                // Check if "struggling" message appears (sometimes happens after retry)
+                const hasStrugglingMessage = await page.evaluate(() => {
+                    const text = document.body.innerText;
+                    return text.includes("you're struggling") || text.includes("Let's carry on");
+                });
+                
+                if (hasStrugglingMessage) {
+                    console.log(`   💭 "Struggling" message detected - clicking Continue reading...`);
+                    await clickButton(page, 'Continue reading');
+                    await delay(2000);
+                }
+                
+                // Check if "choose book" prompt appears (sometimes happens after struggling)
+                const hasChooseBookPrompt = await page.evaluate(() => {
+                    const text = document.body.innerText;
+                    return text.includes("continue with this book") || text.includes("choose another book");
+                });
+                
+                if (hasChooseBookPrompt) {
+                    console.log(`   📖 Book choice prompt detected - clicking Continue with this book...`);
+                    let continueClicked = await clickButton(page, 'Continue with this book');
+                    if (!continueClicked) {
+                        // Try alternate wording
+                        continueClicked = await clickButton(page, 'Continue');
+                    }
+                    await delay(2000);
+                }
                 
             } else if (pageType === 'swap_book') {
                 // Book swap suggestion - click "Keep trying" to stay with current book
