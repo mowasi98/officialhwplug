@@ -1,28 +1,38 @@
-# Environment variables (contains sensitive passwords and API keys)
+# Environment variables (contains sensitive credentials)
 .env
+.env.local
+.env.production
 
-# Node modules (dependencies - can be reinstalled with npm install)
+# Node modules
 node_modules/
+npm-debug.log
+yarn-error.log
 
-# Logs
-*.log
-npm-debug.log*
+# Bot code (proprietary - keep private)
+Hwplug/discord-bot/
+Hwplug/homework-plug-bot/
+Hwplug/hwplug v1/
+
+# SSH keys
+.ssh/
+*.pem
 
 # OS files
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Editor files
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Temporary/downloaded files
-success_files/
+# Logs
+*.log
+logs/
 
-# Persistent data storage (contains user data - should not be committed)
-data.json
-
-# Optional: If you want to exclude package-lock.json (some prefer to include it)
-# package-lock.json
+# Backup files
+*-BACKUP.js
+*-OLD.js
+*.bak
