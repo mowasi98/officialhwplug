@@ -27,6 +27,14 @@ if (!HWPLUG_BOT_API_URL) {
 }
 console.log(`🎓 Homework Plug Bot API configured: ${HWPLUG_BOT_API_URL}`);
 
+// Bot API Authentication
+const BOT_API_SECRET = process.env.BOT_API_SECRET;
+if (!BOT_API_SECRET) {
+  console.error('❌ BOT_API_SECRET environment variable is not set');
+  process.exit(1);
+}
+console.log(`🔐 Bot API authentication: ✅ Configured`);
+
 const app = express();
 
 // Security: Helmet for security headers
@@ -224,7 +232,10 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
               
               const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${BOT_API_SECRET}`
+                },
                 body: JSON.stringify({
                   productName: productName,
                   username: username,
@@ -1182,7 +1193,10 @@ app.post('/admin/reset-counters', async (req, res) => {
     console.log(`🤖 ADMIN: Also resetting bot's daily counter at ${DISCORD_BOT_API_URL}...`);
     const botResetResponse = await fetch(`${DISCORD_BOT_API_URL}/admin/reset-counter`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${BOT_API_SECRET}`
+      },
       body: JSON.stringify({ password: ADMIN_PASSWORD })
     });
     
@@ -3041,7 +3055,10 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
           console.log(`📡 CASH: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
           fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${BOT_API_SECRET}`
+            },
             body: JSON.stringify({
               productName: productName,
               username: username,
@@ -4032,6 +4049,7 @@ app.get('/process-order-hwplug-bot', async (req, res) => {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${BOT_API_SECRET}`,
         'ngrok-skip-browser-warning': 'true' // For ngrok free plan
       },
       body: JSON.stringify({
