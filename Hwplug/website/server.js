@@ -170,7 +170,7 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
       if (username && password && productName) {
         // Check bot automation mode for ALL products
         let orderId = null;
-        const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca');
+        const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca' || productName === 'Sparx Science');
         
         // ALWAYS create order ID for bot products (for REDO button in emails)
         if (isBotProduct) {
@@ -399,7 +399,8 @@ let dailyLimits = {
   'Sparx Reader': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
   'Sparx Maths': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
   'Educate': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
-  'Seneca': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } }
+  'Seneca': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
+  'Sparx Science': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 }, comingSoon: true }
 };
 
 // Test mode flag - when enabled, shows "Come back later" screen to all users
@@ -660,6 +661,18 @@ async function loadData() {
             basePrice: loadedLimits['Seneca']?.extraSlots?.basePrice || 3,
             currentPrice: loadedLimits['Seneca']?.extraSlots?.currentPrice || 3
           }
+        },
+        'Sparx Science': {
+          ...dailyLimits['Sparx Science'],
+          ...loadedLimits['Sparx Science'],
+          maxSlots: loadedLimits['Sparx Science']?.maxSlots || 5,
+          extraSlots: {
+            count: loadedLimits['Sparx Science']?.extraSlots?.count || 0,
+            max: loadedLimits['Sparx Science']?.extraSlots?.max || 8,
+            basePrice: loadedLimits['Sparx Science']?.extraSlots?.basePrice || 3,
+            currentPrice: loadedLimits['Sparx Science']?.extraSlots?.currentPrice || 3
+          },
+          comingSoon: loadedLimits['Sparx Science']?.comingSoon !== undefined ? loadedLimits['Sparx Science'].comingSoon : true
         }
       };
       
@@ -834,6 +847,20 @@ app.get('/check-product-availability', (req, res) => {
     });
   }
   
+  // Check if product is in Coming Soon mode
+  if (product.comingSoon) {
+    return res.json({
+      available: false,
+      remaining: 0,
+      count: product.count,
+      max: MAX_PURCHASES_PER_DAY,
+      comingSoon: true,
+      timeRestricted: false,
+      manuallyDisabled: false,
+      extraSlots: product.extraSlots || null
+    });
+  }
+  
   // Check if regular slots are full
   const regularAvailable = product.count < MAX_PURCHASES_PER_DAY;
   const remaining = Math.max(0, MAX_PURCHASES_PER_DAY - product.count);
@@ -904,6 +931,15 @@ app.post('/reserve-slot', (req, res) => {
       success: false, 
       error: 'Product is not available right now',
       manuallyDisabled: true
+    });
+  }
+  
+  // Check if product is in Coming Soon mode
+  if (product.comingSoon) {
+    return res.json({ 
+      success: false, 
+      error: 'This product is coming soon! Stay tuned.',
+      comingSoon: true
     });
   }
   
@@ -1353,6 +1389,37 @@ app.post('/admin/toggle-product-availability', (req, res) => {
     message: `${productName} ${available ? 'marked as available' : 'marked as not available'}`,
     product: productName,
     availability: available
+  });
+});
+
+// Admin endpoint to toggle Coming Soon mode for a product
+app.post('/admin/toggle-coming-soon', (req, res) => {
+  const { password, productName, comingSoon } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!productName || !dailyLimits[productName]) {
+    return res.status(400).json({ error: 'Product not found' });
+  }
+  
+  // Toggle Coming Soon mode for the product
+  dailyLimits[productName].comingSoon = comingSoon === true;
+  
+  // Save to disk
+  saveData();
+  
+  res.json({
+    success: true,
+    message: `${productName} Coming Soon mode ${comingSoon ? 'enabled' : 'disabled'}`,
+    product: productName,
+    comingSoon: comingSoon
   });
 });
 
@@ -3004,7 +3071,7 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
     
     // Check bot automation mode for ALL products
     let orderId = null;
-    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca');
+    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca' || productName === 'Sparx Science');
     
     // ALWAYS create order ID for bot products (for REDO button in emails)
     if (isBotProduct) {
@@ -3272,7 +3339,7 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
     // Send email notification with login details (CARD PAYMENT - only email sent for card)
     // Check bot automation mode for ALL products
     let orderId = null;
-    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca');
+    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca' || productName === 'Sparx Science');
     
     // ALWAYS create order ID for bot products (for REDO button in emails)
     if (isBotProduct) {

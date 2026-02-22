@@ -753,6 +753,14 @@
                                                   onclick="toggleProductAvailability('${product}', ${!isUnavailable})" style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
                                             ${isUnavailable ? 'Mark Available' : 'Mark Not Available'}
                                           </button>
+                                          ${product === 'Sparx Science' || counters[product].comingSoon !== undefined ? `
+                                          <button class="btn btn-small ${counters[product].comingSoon ? 'btn-success' : 'btn-warning'}" 
+                                                  id="comingSoon-${safeProductId}"
+                                                  onclick="toggleComingSoon('${product}', ${!counters[product].comingSoon})" 
+                                                  style="touch-action: manipulation; -webkit-tap-highlight-color: transparent; background: ${counters[product].comingSoon ? '#ff9800' : '#28a745'}; border-color: ${counters[product].comingSoon ? '#f57c00' : '#218838'};">
+                                            ${counters[product].comingSoon ? '🚧 Coming Soon ON' : '✅ Coming Soon OFF'}
+                                          </button>
+                                          ` : ''}
                                         </div>
                                       </div>
                                       <div class="count">${count} / ${maxSlots}${hasExtraSlots ? `<br><span style="font-size: 0.8rem; color: #ffc107;">+${extraSlotCount}/${extraSlotMax} extra @ £${extraSlotCurrentPrice}</span>` : ''}</div>
@@ -871,6 +879,46 @@
                                       checkStatus(); // Refresh status
                                     } else {
                                       showMessage(data.error || 'Error updating availability', 'error');
+                                    }
+                                  } catch (error) {
+                                    showMessage('Error connecting to server', 'error');
+                                    console.error('Error:', error);
+                                  }
+                                }
+
+                                async function toggleComingSoon(productName, comingSoon) {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  const action = comingSoon ? 'enable Coming Soon mode' : 'disable Coming Soon mode';
+                                  if (!confirm(`Are you sure you want to ${action} for "${productName}"?`)) {
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/admin/toggle-coming-soon`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify({ 
+                                        password: password,
+                                        productName: productName,
+                                        comingSoon: comingSoon
+                                      }),
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage(`✅ ${data.message}!`, 'success');
+                                      checkStatus(); // Refresh status
+                                    } else {
+                                      showMessage(data.error || 'Error updating Coming Soon mode', 'error');
                                     }
                                   } catch (error) {
                                     showMessage('Error connecting to server', 'error');

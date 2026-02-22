@@ -791,6 +791,13 @@
         width: 85vw;
         max-width: 360px;
       }
+      /* Mobile responsive coming soon banner */
+      .item-card > div[id^="comingSoonBanner-"] {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.8rem;
+        top: 8px;
+        white-space: nowrap;
+      }
       .logo {
         font-size: 2.2rem;
       }
@@ -1113,6 +1120,32 @@
         <a href="#" class="extra-slot-buy-btn" data-product="Seneca" data-is-extra="true" onclick="buyExtraSlot(event, 'Seneca')">Buy Extra Slot</a>
       </div>
     </div>
+    
+    <div class="item-card" data-product="Sparx Science" id="sparxScienceCard">
+      <!-- Coming Soon Banner -->
+      <div id="comingSoonBanner-Sparx Science" style="display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: #fff; padding: 0.4rem 1.2rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; z-index: 10; box-shadow: 0 4px 12px rgba(255,152,0,0.4); white-space: nowrap;">
+        🚧 COMING SOON 🚧
+      </div>
+      
+      <div class="item-title">Sparx Science</div>
+      <div class="item-desc">Improve your science skills with tasks</div>
+      <div class="price">&pound;2</div>
+      <div id="slots-Sparx Science"></div>
+      <a href="login.html?product=Sparx%20Science&price=2&stripe=https%3A%2F%2Fbuy.stripe.com%2FPLACEHOLDER" class="buy-btn" data-product="Sparx Science" id="sparxScienceBtn">Buy Now</a>
+      
+      <!-- Extra Slot Overlay (only shown when regular slots are full) -->
+      <div class="extra-slot-overlay" id="extraSlotOverlay-Sparx Science">
+        <div class="extra-slot-title">🔥 Slots Finished!</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Sparx Science</div>
+        <div class="extra-slot-price" id="extraSlotPrice-Sparx Science">£3</div>
+        <div class="extra-slot-badge">Limited Time</div>
+        <div class="extra-slot-info">Extra Slot Available</div>
+        <div class="extra-slot-progress" id="extraSlotProgress-Sparx Science">
+          <!-- Progress bar will be dynamically inserted here -->
+        </div>
+        <a href="#" class="extra-slot-buy-btn" data-product="Sparx Science" data-is-extra="true" onclick="buyExtraSlot(event, 'Sparx Science')">Buy Extra Slot</a>
+      </div>
+    </div>
   </section>
 
   <footer>
@@ -1135,7 +1168,7 @@
       ? 'http://localhost:10000' 
       : 'https://test2-adsw.onrender.com';
 
-    const products = ['Sparx Reader', 'Sparx Maths', 'Educate', 'Seneca'];
+    const products = ['Sparx Reader', 'Sparx Maths', 'Educate', 'Seneca', 'Sparx Science'];
 
     // Check and display availability status
     async function checkAvailabilityStatus() {
@@ -1989,10 +2022,26 @@
               // The click handler checks for 'disabled' class
               slotsDiv.innerHTML = '<div class="slots-message">⚠️ Product unavailable. Come back later</div>';
               if (extraSlotOverlay) extraSlotOverlay.classList.remove('active');
+            } else if (data.comingSoon) {
+              // Product is in Coming Soon mode
+              const comingSoonBanner = document.getElementById(`comingSoonBanner-${product}`);
+              if (comingSoonBanner) comingSoonBanner.style.display = 'block';
+              
+              buyBtn.classList.add('disabled');
+              buyBtn.style.pointerEvents = 'none';
+              buyBtn.textContent = 'Coming Soon';
+              // DON'T set onclick - it overwrites addEventListener!
+              slotsDiv.innerHTML = '<div class="slots-message" style="color: #ff9800; font-weight: 600;">🚧 Coming Soon! Stay tuned</div>';
+              if (extraSlotOverlay) extraSlotOverlay.classList.remove('active');
             } else if (data.available) {
               // Regular product is available
+              // Hide coming soon banner if it exists
+              const comingSoonBanner = document.getElementById(`comingSoonBanner-${product}`);
+              if (comingSoonBanner) comingSoonBanner.style.display = 'none';
+              
               buyBtn.classList.remove('disabled');
               buyBtn.style.pointerEvents = 'auto';
+              buyBtn.textContent = 'Buy Now'; // Reset text
               
               // Add smooth transition when updating slot numbers
               const oldContent = slotsDiv.innerHTML;
