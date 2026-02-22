@@ -309,9 +309,137 @@
                                   color: #721c24;
                                   border: 1px solid #f5c6cb;
                                 }
+                                
+                                /* Custom Modal Styles */
+                                .modal-overlay {
+                                  display: none;
+                                  position: fixed;
+                                  top: 0;
+                                  left: 0;
+                                  right: 0;
+                                  bottom: 0;
+                                  background: rgba(0, 0, 0, 0.6);
+                                  backdrop-filter: blur(4px);
+                                  z-index: 10000;
+                                  animation: fadeIn 0.2s ease-out;
+                                }
+                                
+                                .modal-overlay.active {
+                                  display: flex;
+                                  align-items: center;
+                                  justify-content: center;
+                                  padding: 1rem;
+                                }
+                                
+                                .modal-box {
+                                  background: #fff;
+                                  border-radius: 16px;
+                                  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                                  max-width: 500px;
+                                  width: 100%;
+                                  animation: slideUp 0.3s ease-out;
+                                  overflow: hidden;
+                                }
+                                
+                                @keyframes slideUp {
+                                  from {
+                                    transform: translateY(50px);
+                                    opacity: 0;
+                                  }
+                                  to {
+                                    transform: translateY(0);
+                                    opacity: 1;
+                                  }
+                                }
+                                
+                                .modal-header {
+                                  background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%);
+                                  color: #fff;
+                                  padding: 1.5rem;
+                                  text-align: center;
+                                  font-size: 1.3rem;
+                                  font-weight: 700;
+                                }
+                                
+                                .modal-body {
+                                  padding: 2rem 1.5rem;
+                                  color: #333;
+                                  font-size: 1rem;
+                                  line-height: 1.6;
+                                  text-align: center;
+                                }
+                                
+                                .modal-buttons {
+                                  display: flex;
+                                  gap: 1rem;
+                                  padding: 0 1.5rem 1.5rem 1.5rem;
+                                  justify-content: center;
+                                }
+                                
+                                .modal-btn {
+                                  flex: 1;
+                                  padding: 0.9rem 1.5rem;
+                                  border: none;
+                                  border-radius: 8px;
+                                  font-size: 1rem;
+                                  font-weight: 600;
+                                  cursor: pointer;
+                                  transition: all 0.2s;
+                                  touch-action: manipulation;
+                                  -webkit-tap-highlight-color: transparent;
+                                  min-height: 48px;
+                                }
+                                
+                                .modal-btn-confirm {
+                                  background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%);
+                                  color: #fff;
+                                  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.3);
+                                }
+                                
+                                .modal-btn-confirm:hover {
+                                  transform: translateY(-2px);
+                                  box-shadow: 0 6px 16px rgba(108, 99, 255, 0.4);
+                                }
+                                
+                                .modal-btn-cancel {
+                                  background: #f0f0f0;
+                                  color: #333;
+                                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                                }
+                                
+                                .modal-btn-cancel:hover {
+                                  background: #e0e0e0;
+                                  transform: translateY(-2px);
+                                }
+                                
+                                @media (max-width: 600px) {
+                                  .modal-box {
+                                    margin: 1rem;
+                                  }
+                                  
+                                  .modal-buttons {
+                                    flex-direction: column;
+                                  }
+                                  
+                                  .modal-btn {
+                                    width: 100%;
+                                  }
+                                }
                               </style>
                             </head>
                             <body>
+                              <!-- Custom Confirmation Modal -->
+                              <div id="confirmModal" class="modal-overlay">
+                                <div class="modal-box">
+                                  <div class="modal-header" id="modalHeader">⚠️ Confirm Action</div>
+                                  <div class="modal-body" id="modalBody">Are you sure you want to proceed?</div>
+                                  <div class="modal-buttons">
+                                    <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+                                    <button class="modal-btn modal-btn-confirm" id="modalConfirm">Confirm</button>
+                                  </div>
+                                </div>
+                              </div>
+                              
                               <div class="admin-container">
                                 <h1>🔐 Admin Panel - <img src="plug-logo.png" alt="Plug Logo" style="height: 1em; vertical-align: middle; margin: 0 0.3em;">hwplug</h1>
                                 
@@ -589,6 +717,49 @@
                                   }, 5000);
                                 }
 
+                                // Custom Confirmation Modal
+                                function customConfirm(message, title = '⚠️ Confirm Action') {
+                                  return new Promise((resolve) => {
+                                    const modal = document.getElementById('confirmModal');
+                                    const modalHeader = document.getElementById('modalHeader');
+                                    const modalBody = document.getElementById('modalBody');
+                                    const confirmBtn = document.getElementById('modalConfirm');
+                                    const cancelBtn = document.getElementById('modalCancel');
+                                    
+                                    modalHeader.textContent = title;
+                                    modalBody.textContent = message;
+                                    modal.classList.add('active');
+                                    
+                                    const handleConfirm = () => {
+                                      modal.classList.remove('active');
+                                      cleanup();
+                                      resolve(true);
+                                    };
+                                    
+                                    const handleCancel = () => {
+                                      modal.classList.remove('active');
+                                      cleanup();
+                                      resolve(false);
+                                    };
+                                    
+                                    const handleOutsideClick = (e) => {
+                                      if (e.target === modal) {
+                                        handleCancel();
+                                      }
+                                    };
+                                    
+                                    const cleanup = () => {
+                                      confirmBtn.removeEventListener('click', handleConfirm);
+                                      cancelBtn.removeEventListener('click', handleCancel);
+                                      modal.removeEventListener('click', handleOutsideClick);
+                                    };
+                                    
+                                    confirmBtn.addEventListener('click', handleConfirm);
+                                    cancelBtn.addEventListener('click', handleCancel);
+                                    modal.addEventListener('click', handleOutsideClick);
+                                  });
+                                }
+
                                 async function checkStatus() {
                                   const password = document.getElementById('adminPassword').value;
                                   
@@ -777,7 +948,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm(`Are you sure you want to reset the counter for "${productName}"?`)) {
+                                  if (!(await customConfirm(`Are you sure you want to reset the counter for "${productName}"?`, '🔄 Reset Counter'))) {
                                     return;
                                   }
                                   
@@ -816,7 +987,7 @@
                                   }
                                   
                                   const action = available ? 'mark all products as available' : 'mark all products as NOT available';
-                                  if (!confirm(`Are you sure you want to ${action}?`)) {
+                                  if (!(await customConfirm(`Are you sure you want to ${action}?`, '📦 Update All Products'))) {
                                     return;
                                   }
                                   
@@ -855,7 +1026,7 @@
                                   }
                                   
                                   const action = available ? 'mark as NOT available' : 'mark as available';
-                                  if (!confirm(`Are you sure you want to ${action} "${productName}"?`)) {
+                                  if (!(await customConfirm(`Are you sure you want to ${action} "${productName}"?`, '📦 Toggle Product'))) {
                                     return;
                                   }
                                   
@@ -895,7 +1066,7 @@
                                   }
                                   
                                   const action = comingSoon ? 'enable Coming Soon mode' : 'disable Coming Soon mode';
-                                  if (!confirm(`Are you sure you want to ${action} for "${productName}"?`)) {
+                                  if (!(await customConfirm(`Are you sure you want to ${action} for "${productName}"?`, '🚧 Toggle Coming Soon'))) {
                                     return;
                                   }
                                   
@@ -934,7 +1105,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('Are you sure you want to reset the timer only? This will reset the 24-hour countdown but keep current slot counts.')) {
+                                  if (!(await customConfirm('Are you sure you want to reset the timer only? This will reset the 24-hour countdown but keep current slot counts.', '⏰ Reset Timer'))) {
                                     return;
                                   }
                                   
@@ -993,7 +1164,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm(`Set timer to ${minutes} minute(s)? This is for TESTING ONLY. The timer will auto-reset slots when it reaches 0.`)) {
+                                  if (!(await customConfirm(`Set timer to ${minutes} minute(s)? This is for TESTING ONLY. The timer will auto-reset slots when it reaches 0.`, '⚠️ Set Test Timer'))) {
                                     return;
                                   }
                                   
@@ -1182,7 +1353,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('⚠️ Are you sure you want to force ALL users to re-login?\n\nThis will clear all saved credentials. Users will need to login once more, then auto-login will work again.')) {
+                                  if (!(await customConfirm('Are you sure you want to force ALL users to re-login?\n\nThis will clear all saved credentials. Users will need to login once more, then auto-login will work again.', '⚠️ Force Re-Login'))) {
                                     return;
                                   }
                                   
@@ -1235,7 +1406,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('Are you sure you want to reset all counters? This will reset all products to 0.')) {
+                                  if (!(await customConfirm('Are you sure you want to reset all counters? This will reset all products to 0.', '🔄 Reset All Counters'))) {
                                     return;
                                   }
                                   
@@ -2160,7 +2331,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm(`Unban user "${username}"?`)) return;
+                                  if (!(await customConfirm(`Unban user "${username}"?`, '✅ Unban User'))) return;
                                   
                                   try {
                                     const response = await fetch(`${BACKEND_URL}/admin/unban-user`, {
@@ -2192,7 +2363,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('Are you sure you want to remove this purchase record?')) {
+                                  if (!(await customConfirm('Are you sure you want to remove this purchase record?', '🗑️ Remove Purchase'))) {
                                     return;
                                   }
                                   
@@ -2225,7 +2396,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('⚠️ Are you sure you want to CLEAR ALL purchase history? This cannot be undone!')) {
+                                  if (!(await customConfirm('Are you sure you want to CLEAR ALL purchase history? This cannot be undone!', '⚠️ DANGER: Clear All'))) {
                                     return;
                                   }
                                   
@@ -2344,7 +2515,7 @@
                                 async function removeCashCode(code) {
                                   const password = document.getElementById('adminPassword').value;
                                   
-                                  if (!confirm(`Remove code "${code}"?`)) {
+                                  if (!(await customConfirm(`Remove code "${code}"?`, '🗑️ Remove Code'))) {
                                     return;
                                   }
 
@@ -2694,7 +2865,7 @@
                                     return;
                                   }
                                   
-                                  if (!confirm(`Remove "${username}" from whitelist?`)) {
+                                  if (!(await customConfirm(`Remove "${username}" from whitelist?`, '🗑️ Remove from Whitelist'))) {
                                     return;
                                   }
 
