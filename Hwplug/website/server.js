@@ -12,11 +12,19 @@ const helmet = require('helmet');
 const fetch = globalThis.fetch || require('node-fetch');
 
 // Discord Bot API URL Configuration
-const DISCORD_BOT_API_URL = process.env.DISCORD_BOT_API_URL || 'http://13.60.26.180:3001';
+const DISCORD_BOT_API_URL = process.env.DISCORD_BOT_API_URL;
+if (!DISCORD_BOT_API_URL) {
+  console.error('❌ DISCORD_BOT_API_URL environment variable is not set');
+  process.exit(1);
+}
 console.log(`🤖 Discord Bot API configured: ${DISCORD_BOT_API_URL}`);
 
 // Homework Plug Official Bot API URL Configuration (for Sparx Reader)
-const HWPLUG_BOT_API_URL = process.env.HWPLUG_BOT_API_URL || 'http://13.60.26.180:3002';
+const HWPLUG_BOT_API_URL = process.env.HWPLUG_BOT_API_URL;
+if (!HWPLUG_BOT_API_URL) {
+  console.error('❌ HWPLUG_BOT_API_URL environment variable is not set');
+  process.exit(1);
+}
 console.log(`🎓 Homework Plug Bot API configured: ${HWPLUG_BOT_API_URL}`);
 
 const app = express();
@@ -2269,7 +2277,7 @@ app.post('/user/logout', (req, res) => {
 app.get('/get-snapchat', (req, res) => {
   res.json({
     success: true,
-    snapchat: process.env.SNAPCHAT_USERNAME || 'homework5003'
+    snapchat: process.env.SNAPCHAT_USERNAME || 'homework5003' // Public support contact
   });
 });
 
@@ -3094,7 +3102,7 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Cash payment notification sent successfully',
-      snapchat: process.env.SNAPCHAT_USERNAME || 'homework5003'
+      snapchat: process.env.SNAPCHAT_USERNAME || 'homework5003' // Public support contact
     });
   } catch (error) {
     console.error('Error submitting cash payment:', error);
