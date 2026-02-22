@@ -13,6 +13,9 @@ Hwplug/discord-bot/
 Hwplug/homework-plug-bot/
 Hwplug/hwplug v1/
 
+# Secret game (keep private)
+secret-game/
+
 # SSH keys
 .ssh/
 *.pem
