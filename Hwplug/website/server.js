@@ -1135,8 +1135,12 @@ app.post('/increment-product-count', (req, res) => {
 // Admin endpoint to reset all counters
 app.post('/admin/reset-counters', async (req, res) => {
   const { password } = req.body;
-  // Simple password protection (you can change this password)
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  // Admin password must be set in environment variables
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1198,7 +1202,11 @@ app.post('/admin/reset-counters', async (req, res) => {
 // Admin endpoint to reset individual product counter
 app.post('/admin/reset-product-counter', async (req, res) => {
   const { password, productName } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1270,7 +1278,11 @@ app.post('/admin/reset-product-counter', async (req, res) => {
 // Admin endpoint to set product availability (all products)
 app.post('/admin/set-product-availability', (req, res) => {
   const { password, available } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1294,7 +1306,11 @@ app.post('/admin/set-product-availability', (req, res) => {
 // Admin endpoint to toggle individual product availability
 app.post('/admin/toggle-product-availability', (req, res) => {
   const { password, productName, available } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1321,7 +1337,11 @@ app.post('/admin/toggle-product-availability', (req, res) => {
 // Admin endpoint to set custom slot count for a product
 app.post('/admin/set-slot-count', (req, res) => {
   const { password, productName, slotCount } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1366,7 +1386,11 @@ app.post('/admin/set-slot-count', (req, res) => {
 // Admin endpoint to set max available slots for a product
 app.post('/admin/set-max-slots', (req, res) => {
   const { password, productName, maxSlots } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1408,7 +1432,11 @@ app.post('/admin/set-max-slots', (req, res) => {
 // Admin endpoint to set extra slot max for a product (Sparx Reader)
 app.post('/admin/set-extra-slot-max', (req, res) => {
   const { password, productName, maxSlots } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1459,7 +1487,11 @@ app.post('/admin/set-extra-slot-max', (req, res) => {
 // Admin endpoint to set extra slot COUNT (for manual adjustments)
 app.post('/admin/set-extra-slot-count', (req, res) => {
   const { password, productName, count } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1510,7 +1542,11 @@ app.post('/admin/set-extra-slot-count', (req, res) => {
 // Admin endpoint to set extra slot BASE PRICE
 app.post('/admin/set-extra-slot-price', (req, res) => {
   const { password, productName, basePrice } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1581,7 +1617,11 @@ app.get('/check-test-mode', (req, res) => {
 // Admin endpoint to toggle test mode
 app.post('/admin/toggle-test-mode', (req, res) => {
   const { password, enabled } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1620,7 +1660,11 @@ app.post('/check-whitelist', (req, res) => {
 // Admin endpoint to toggle whitelist mode
 app.post('/admin/toggle-whitelist-mode', (req, res) => {
   const { password, enabled } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1645,7 +1689,11 @@ app.post('/admin/toggle-whitelist-mode', (req, res) => {
 // Admin endpoint to add user to whitelist
 app.post('/admin/add-to-whitelist', (req, res) => {
   const { password, username } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1683,7 +1731,11 @@ app.post('/admin/add-to-whitelist', (req, res) => {
 // Admin endpoint to remove user from whitelist
 app.post('/admin/remove-from-whitelist', (req, res) => {
   const { password, username } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1722,7 +1774,11 @@ app.post('/admin/remove-from-whitelist', (req, res) => {
 // Note: lastTimerResetTime is declared at the top of the file
 app.post('/admin/reset-timer', (req, res) => {
   const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1753,7 +1809,11 @@ app.post('/admin/reset-timer', (req, res) => {
 // Set test timer (for testing auto-reset functionality)
 app.post('/admin/set-test-timer', (req, res) => {
   const { password, minutes } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1838,7 +1898,11 @@ app.get('/admin/get-queue-settings', (req, res) => {
 // Admin endpoint to set global queue time (wait between ANY orders)
 app.post('/admin/set-global-queue-time', (req, res) => {
   const { password, minutes } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1894,7 +1958,11 @@ app.post('/admin/set-global-queue-time', (req, res) => {
 // Admin endpoint to set same product queue time (wait between SAME product orders)
 app.post('/admin/set-same-product-queue-time', (req, res) => {
   const { password, minutes } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -1958,7 +2026,11 @@ app.post('/admin/set-same-product-queue-time', (req, res) => {
 // Force all users to re-login by incrementing the required version
 app.post('/admin/force-relogin', (req, res) => {
   const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2206,7 +2278,11 @@ app.get('/get-snapchat', (req, res) => {
 // Get all cash payment codes (admin only)
 app.post('/admin/get-cash-codes', (req, res) => {
   const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2222,7 +2298,11 @@ app.post('/admin/get-cash-codes', (req, res) => {
 // Add a new cash payment code (admin only)
 app.post('/admin/add-cash-code', (req, res) => {
   const { password, code } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2255,7 +2335,11 @@ app.post('/admin/add-cash-code', (req, res) => {
 // Remove a cash payment code (admin only)
 app.post('/admin/remove-cash-code', (req, res) => {
   const { password, code } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2288,7 +2372,11 @@ app.post('/admin/remove-cash-code', (req, res) => {
 // Get code usage history (admin only)
 app.post('/admin/get-code-usage', (req, res) => {
   const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2335,7 +2423,11 @@ app.post('/check-ban-status', (req, res) => {
 // Ban a user (admin only)
 app.post('/admin/ban-user', (req, res) => {
   const { password, username, reason } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2373,7 +2465,11 @@ app.post('/admin/ban-user', (req, res) => {
 // Unban a user (admin only)
 app.post('/admin/unban-user', (req, res) => {
   const { password, username } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2406,7 +2502,11 @@ app.post('/admin/unban-user', (req, res) => {
 // Get list of banned users (admin only)
 app.post('/admin/get-banned-users', (req, res) => {
   const { password } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -2422,7 +2522,11 @@ app.post('/admin/get-banned-users', (req, res) => {
 // Update availability schedule (admin only)
 app.post('/admin/update-schedule', (req, res) => {
   const { password, scheduleType, settings } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -3793,7 +3897,11 @@ app.get('/admin/bot-mode', (req, res) => {
 // Admin endpoint: Set bot automation mode
 app.post('/admin/set-bot-mode', (req, res) => {
   const { password, mode } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'hwplug2025';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
   
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ error: 'Unauthorized' });
