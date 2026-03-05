@@ -5598,20 +5598,29 @@ app.post('/api/giveaway/spin', async (req, res) => {
     
     // Calculate the angle for this person's slice
     // The wheel pointer is at the top (12 o'clock = 0 degrees)
-    // Slices are drawn starting from 0 degrees going clockwise
-    // Slice 0: 0° to sliceAngle°, Slice 1: sliceAngle° to 2*sliceAngle°, etc.
+    // Slices are drawn counter-clockwise in canvas: Slice 0 from 0° to sliceAngle°, Slice 1 from sliceAngle° to 2*sliceAngle°
+    // When we rotate the wheel clockwise by X degrees, slices move clockwise
+    // To get slice[i] under the pointer at top, we need to rotate the wheel so that slice[i]'s center aligns with 0°
     const sliceAngle = 360 / remaining.length; // degrees per person
     const targetSliceIndex = randomIndex;
     
-    // Calculate the center angle of the target slice
+    // Calculate the center angle of the target slice in its initial position
     const sliceCenterAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
     
-    // The pointer points DOWN from the top (0 degrees)
-    // When we rotate the wheel by X degrees clockwise, the slice that was at angle X is now at the top
-    // So to get slice[targetSliceIndex] under the pointer, we rotate BY its center angle
-    // Add a small random offset for drama (±20% of slice width)
-    const randomOffset = (Math.random() * 0.4 - 0.2) * sliceAngle; // -20% to +20% of slice
-    const targetAngle = sliceCenterAngle + randomOffset;
+    // To bring this slice to the top (0°), we need to rotate the wheel BACKWARDS by this amount
+    // But since we want clockwise rotation (positive), we calculate: 360° - sliceCenterAngle
+    // This ensures the wheel rotates clockwise and lands correctly
+    // Actually, simpler: we need to rotate so the slice center is at 0°
+    // Since slices are drawn counter-clockwise and wheel rotates clockwise:
+    // To get slice[i] at top, rotate by: 360° - sliceCenterAngle (to go the "long way" clockwise)
+    // But that's confusing. Let's think differently:
+    // If slice 0 center is at 30° and we want it at top (0°), rotate by -30° or +330°
+    // If slice 1 center is at 90° and we want it at top, rotate by -90° or +270°
+    // So: targetAngle = 360° - sliceCenterAngle (to make it positive clockwise rotation)
+    
+    // Add a small random offset for drama (±15% of slice width, landing near edge)
+    const randomOffset = (Math.random() * 0.3 - 0.15) * sliceAngle;
+    const targetAngle = (360 - sliceCenterAngle + randomOffset) % 360;
     
     // Add multiple full rotations for dramatic effect (5-8 full spins)
     const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
