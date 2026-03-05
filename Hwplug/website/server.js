@@ -5767,7 +5767,14 @@ app.post('/api/giveaway/toggle', async (req, res) => {
     if (!mongoConnected) {
       // Use in-memory storage
       inMemoryGiveaway.active = active;
-      console.log(`🎁 Giveaway ${active ? 'ACTIVATED' : 'DEACTIVATED'} (in-memory)`);
+      
+      // If turning OFF, clear winner data
+      if (!active) {
+        inMemoryGiveaway.winner = null;
+        console.log(`🎁 Giveaway DEACTIVATED - Winner cleared (in-memory)`);
+      } else {
+        console.log(`🎁 Giveaway ACTIVATED (in-memory)`);
+      }
       
       // Broadcast status change to all clients
       broadcastToWheelClients({
@@ -5775,7 +5782,9 @@ app.post('/api/giveaway/toggle', async (req, res) => {
         active: active,
         spinDate: inMemoryGiveaway.spinDate,
         wheelVisible: inMemoryGiveaway.wheelVisible,
-        entryCount: inMemoryGiveaway.entries.length
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!inMemoryGiveaway.winner,
+        winner: inMemoryGiveaway.winner
       });
       
       return res.json({ success: true, active: inMemoryGiveaway.active });
@@ -5793,6 +5802,15 @@ app.post('/api/giveaway/toggle', async (req, res) => {
       });
     } else {
       giveaway.active = active;
+      
+      // If turning OFF, clear winner data
+      if (!active) {
+        giveaway.winner = null;
+        console.log(`🎁 Giveaway DEACTIVATED - Winner cleared`);
+      } else {
+        console.log(`🎁 Giveaway ACTIVATED`);
+      }
+      
       giveaway.updatedAt = new Date();
     }
     
@@ -5804,7 +5822,9 @@ app.post('/api/giveaway/toggle', async (req, res) => {
       active: giveaway.active,
       spinDate: giveaway.spinDate,
       wheelVisible: giveaway.wheelVisible || false,
-      entryCount: giveaway.entries.length
+      entryCount: giveaway.entries.length,
+      hasWinner: !!giveaway.winner,
+      winner: giveaway.winner
     });
     
     res.json({ success: true, active: giveaway.active });
@@ -5830,7 +5850,9 @@ app.post('/api/giveaway/set-date', async (req, res) => {
         active: inMemoryGiveaway.active,
         spinDate: spinDate,
         wheelVisible: inMemoryGiveaway.wheelVisible,
-        entryCount: inMemoryGiveaway.entries.length
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!inMemoryGiveaway.winner,
+        winner: inMemoryGiveaway.winner
       });
       
       return res.json({ success: true, spinDate: inMemoryGiveaway.spinDate });
@@ -5858,7 +5880,9 @@ app.post('/api/giveaway/set-date', async (req, res) => {
       active: giveaway.active,
       spinDate: giveaway.spinDate,
       wheelVisible: giveaway.wheelVisible || false,
-      entryCount: giveaway.entries.length
+      entryCount: giveaway.entries.length,
+      hasWinner: !!giveaway.winner,
+      winner: giveaway.winner
     });
     
     res.json({ success: true, spinDate: giveaway.spinDate });
