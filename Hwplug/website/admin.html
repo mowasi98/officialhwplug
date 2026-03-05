@@ -823,46 +823,59 @@
                                   }, 5000);
                                 }
 
-                                // Custom Confirmation Modal
+                                // Custom Confirmation Modal with fallback
                                 function customConfirm(message, title = '⚠️ Confirm Action') {
                                   return new Promise((resolve) => {
-                                    const modal = document.getElementById('confirmModal');
-                                    const modalHeader = document.getElementById('modalHeader');
-                                    const modalBody = document.getElementById('modalBody');
-                                    const confirmBtn = document.getElementById('modalConfirm');
-                                    const cancelBtn = document.getElementById('modalCancel');
-                                    
-                                    modalHeader.textContent = title;
-                                    modalBody.textContent = message;
-                                    modal.classList.add('active');
-                                    
-                                    const handleConfirm = () => {
-                                      modal.classList.remove('active');
-                                      cleanup();
-                                      resolve(true);
-                                    };
-                                    
-                                    const handleCancel = () => {
-                                      modal.classList.remove('active');
-                                      cleanup();
-                                      resolve(false);
-                                    };
-                                    
-                                    const handleOutsideClick = (e) => {
-                                      if (e.target === modal) {
-                                        handleCancel();
+                                    try {
+                                      const modal = document.getElementById('confirmModal');
+                                      const modalHeader = document.getElementById('modalHeader');
+                                      const modalBody = document.getElementById('modalBody');
+                                      const confirmBtn = document.getElementById('modalConfirm');
+                                      const cancelBtn = document.getElementById('modalCancel');
+                                      
+                                      // Fallback to browser confirm if modal elements don't exist
+                                      if (!modal || !modalHeader || !modalBody || !confirmBtn || !cancelBtn) {
+                                        console.warn('Modal elements not found, using browser confirm');
+                                        resolve(window.confirm(message));
+                                        return;
                                       }
-                                    };
-                                    
-                                    const cleanup = () => {
-                                      confirmBtn.removeEventListener('click', handleConfirm);
-                                      cancelBtn.removeEventListener('click', handleCancel);
-                                      modal.removeEventListener('click', handleOutsideClick);
-                                    };
-                                    
-                                    confirmBtn.addEventListener('click', handleConfirm);
-                                    cancelBtn.addEventListener('click', handleCancel);
-                                    modal.addEventListener('click', handleOutsideClick);
+                                      
+                                      modalHeader.textContent = title;
+                                      modalBody.textContent = message;
+                                      modal.classList.add('active');
+                                      
+                                      const handleConfirm = () => {
+                                        modal.classList.remove('active');
+                                        cleanup();
+                                        resolve(true);
+                                      };
+                                      
+                                      const handleCancel = () => {
+                                        modal.classList.remove('active');
+                                        cleanup();
+                                        resolve(false);
+                                      };
+                                      
+                                      const handleOutsideClick = (e) => {
+                                        if (e.target === modal) {
+                                          handleCancel();
+                                        }
+                                      };
+                                      
+                                      const cleanup = () => {
+                                        confirmBtn.removeEventListener('click', handleConfirm);
+                                        cancelBtn.removeEventListener('click', handleCancel);
+                                        modal.removeEventListener('click', handleOutsideClick);
+                                      };
+                                      
+                                      confirmBtn.addEventListener('click', handleConfirm);
+                                      cancelBtn.addEventListener('click', handleCancel);
+                                      modal.addEventListener('click', handleOutsideClick);
+                                    } catch (error) {
+                                      console.error('Error in customConfirm:', error);
+                                      // Fallback to browser confirm
+                                      resolve(window.confirm(message));
+                                    }
                                   });
                                 }
 
@@ -3395,6 +3408,13 @@
                                 
                                 // Load giveaway status on page load
                                 loadGiveawayStatus();
+                                
+                                // Make functions globally accessible for onclick handlers
+                                window.resetProductCounter = resetProductCounter;
+                                window.toggleProductAvailability = toggleProductAvailability;
+                                window.removeFromWhitelist = removeFromWhitelist;
+                                window.resetCounters = resetCounters;
+                                window.resetTimer = resetTimer;
                                 
                               </script>
                             </body>
