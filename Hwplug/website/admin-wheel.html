@@ -188,6 +188,9 @@
         let currentRotation = 0;
         let spinSpeed = 0;
         let targetRotation = 0;
+        let idleSpinning = true; // constant slow spin when not actively spinning
+        let lastIdleTime = performance.now();
+        const IDLE_SPEED = 0.0015; // radians per ms
         
         // WebSocket connection
         let ws;
@@ -479,6 +482,23 @@
         
         // Initialize
         connectWebSocket();
+        
+        // Idle spin loop - constant slow rotation
+        function idleSpinLoop(now) {
+            const delta = now - lastIdleTime;
+            lastIdleTime = now;
+            
+            // Only apply idle spin when not actively spinning
+            if (idleSpinning && !isSpinning) {
+                currentRotation += IDLE_SPEED * delta;
+                drawWheel();
+            }
+            
+            requestAnimationFrame(idleSpinLoop);
+        }
+        
+        // Start idle spin loop
+        requestAnimationFrame(idleSpinLoop);
         
         // Redraw on resize (with debounce for performance)
         let resizeTimeout;

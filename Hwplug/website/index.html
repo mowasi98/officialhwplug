@@ -1549,10 +1549,13 @@
 
     // ========== GIVEAWAY FUNCTIONALITY ==========
     let wheelSocket = null;
-    let wheelRotation = 0;
+    let wheelRotation = 0; // in degrees
     let isSpinning = false;
     let participants = [];
     let eliminated = [];
+    let idleSpinning = false; // for constant slow idle spin
+    let lastIdleTime = performance.now();
+    const IDLE_SPEED = 0.0015; // radians per ms (slow constant spin when idle)
 
     // Check giveaway status and update banner
     async function checkGiveawayStatus() {
@@ -1720,6 +1723,7 @@
       document.body.style.overflow = 'hidden'; // Prevent background scrolling
       connectToWheelSocket();
       fetchWheelData();
+      startIdleSpin(); // Start constant slow spin
     }
 
     // Close live wheel modal
@@ -1727,6 +1731,7 @@
       const modal = document.getElementById('liveWheelModal');
       modal.style.display = 'none';
       document.body.style.overflow = ''; // Restore scrolling
+      stopIdleSpin(); // Stop idle spin
       if (wheelSocket) {
         wheelSocket.close();
         wheelSocket = null;
@@ -1991,6 +1996,7 @@
     function spinWheel(spinData) {
       if (isSpinning) return;
       isSpinning = true;
+      // Idle spin will automatically pause because isSpinning = true
       
       const eliminatedName = spinData.eliminatedName || spinData;
       const targetRotation = spinData.targetRotation || (360 * 5 + Math.random() * 360);
@@ -2353,6 +2359,36 @@
         }
       }, 300);
     });
+    
+    // Idle spin loop - constant slow rotation when not actively spinning
+    function idleSpinLoop(now) {
+      const delta = now - lastIdleTime;
+      lastIdleTime = now;
+      
+      // Only apply idle spin if wheel is visible and not actively spinning
+      if (idleSpinning && !isSpinning) {
+        // Convert radians to degrees
+        const idleRotationDegrees = (IDLE_SPEED * delta * 180) / Math.PI;
+        wheelRotation += idleRotationDegrees;
+        drawWheel();
+      }
+      
+      requestAnimationFrame(idleSpinLoop);
+    }
+    
+    // Start idle spin loop when wheel modal is opened
+    function startIdleSpin() {
+      if (!idleSpinning) {
+        idleSpinning = true;
+        lastIdleTime = performance.now();
+        requestAnimationFrame(idleSpinLoop);
+      }
+    }
+    
+    // Stop idle spin when modal is closed
+    function stopIdleSpin() {
+      idleSpinning = false;
+    }
     // ========== END GIVEAWAY FUNCTIONALITY ==========
 
     // Store the timer reset time from server
