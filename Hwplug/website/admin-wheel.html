@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <title>Admin Wheel Preview - Homework Plug</title>
     <style>
         * {
@@ -99,6 +102,64 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .wheel-container {
+                padding: 20px;
+                border-radius: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .status-text {
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+            
+            #wheelCanvas {
+                max-width: 100%;
+                height: auto;
+                touch-action: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            .close-btn {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .winner-content h2 {
+                font-size: 2rem;
+            }
+            
+            .winner-content {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            
+            .status-text {
+                font-size: 0.8rem;
+            }
+            
+            .winner-content h2 {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -186,25 +247,51 @@
         }
         
         function drawWheel() {
+            if (!canvas) return;
+            
+            // Set canvas size for high DPI displays (Retina, etc.) - RESPONSIVE!
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const radius = Math.min(rect.width, rect.height) / 2 - 20;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             if (participants.length === 0) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#f0f0f0';
+                // Draw empty wheel
                 ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, 300, 0, 2 * Math.PI);
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = '#e0e0e0';
                 ctx.fill();
-                ctx.fillStyle = '#999';
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#666';
                 ctx.font = 'bold 24px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('Waiting for entries...', canvas.width / 2, canvas.height / 2);
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Waiting for entries...', centerX, centerY);
                 return;
             }
             
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = 300;
             const sliceAngle = (2 * Math.PI) / participants.length;
             
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw 3D shadow effect
+            ctx.save();
+            ctx.translate(centerX + 3, centerY + 3);
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fill();
+            ctx.restore();
+            
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(currentRotation);
@@ -215,44 +302,91 @@
                 const startAngle = index * sliceAngle;
                 const endAngle = startAngle + sliceAngle;
                 
-                ctx.fillStyle = colors[index % colors.length];
+                // Draw segment with gradient (like main wheel)
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+                const baseColor = colors[index % colors.length];
+                gradient.addColorStop(0, baseColor);
+                gradient.addColorStop(1, shadeColor(baseColor, -20));
+                
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
                 ctx.arc(0, 0, radius, startAngle, endAngle);
                 ctx.closePath();
+                ctx.fillStyle = gradient;
                 ctx.fill();
                 
+                // Draw white border between segments
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4;
                 ctx.stroke();
                 
+                // Draw text with better shadow
                 ctx.save();
                 ctx.rotate(startAngle + sliceAngle / 2);
-                ctx.textAlign = 'center';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#fff';
                 ctx.font = 'bold 18px Arial';
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                ctx.shadowBlur = 4;
-                ctx.fillText(participant.firstName + ' ' + participant.lastName, radius * 0.65, 0);
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 5;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                ctx.fillText(participant.firstName + ' ' + participant.lastName, radius - 25, 0);
                 ctx.restore();
             });
             
             ctx.restore();
             
-            // Draw center circle
-            ctx.fillStyle = '#6C63FF';
+            // Draw outer rim (3D effect)
             ctx.beginPath();
-            ctx.arc(centerX, centerY, 40, 0, 2 * Math.PI);
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw center circle with 3D effect
+            // Shadow
+            ctx.beginPath();
+            ctx.arc(centerX + 2, centerY + 2, 35, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.fill();
             
-            // Draw pointer
-            ctx.fillStyle = '#FF4757';
+            // Main circle with gradient
+            const centerGradient = ctx.createRadialGradient(centerX - 10, centerY - 10, 0, centerX, centerY, 35);
+            centerGradient.addColorStop(0, '#fff');
+            centerGradient.addColorStop(1, '#ddd');
+            
             ctx.beginPath();
-            ctx.moveTo(centerX, centerY - radius - 20);
-            ctx.lineTo(centerX - 20, centerY - radius - 50);
-            ctx.lineTo(centerX + 20, centerY - radius - 50);
-            ctx.closePath();
+            ctx.arc(centerX, centerY, 35, 0, 2 * Math.PI);
+            ctx.fillStyle = centerGradient;
             ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            
+            // Inner highlight
+            ctx.beginPath();
+            ctx.arc(centerX - 8, centerY - 8, 12, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.fill();
+        }
+        
+        // Helper function to shade colors (for gradient effect)
+        function shadeColor(color, percent) {
+            const num = parseInt(color.replace('#',''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+                (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
+                .toString(16).slice(1);
         }
         
         function spinWheel(spinData) {
@@ -346,9 +480,20 @@
         // Initialize
         connectWebSocket();
         
-        // Redraw on resize
+        // Redraw on resize (with debounce for performance)
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-            drawWheel();
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                drawWheel();
+            }, 250);
+        });
+        
+        // Handle orientation change on mobile devices
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                drawWheel();
+            }, 300);
         });
     </script>
 </body>
