@@ -5608,8 +5608,10 @@ app.post('/api/giveaway/spin', async (req, res) => {
     const targetSliceIndex = randomIndex;
     
     // Calculate target angle (where this slice should end up at the pointer)
-    // Pointer is at top (0 degrees), we want the CENTER of the slice to land there
-    const targetAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
+    // Land on the EDGE/START of the slice (not center) for more dramatic effect
+    // Add small random offset (10-30% into the slice) so it's not exactly on the border
+    const randomOffset = (Math.random() * 0.2 + 0.1) * sliceAngle; // 10-30% into slice
+    const targetAngle = (targetSliceIndex * sliceAngle) + randomOffset;
     
     // Add multiple full rotations for dramatic effect (5-8 full spins)
     const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
