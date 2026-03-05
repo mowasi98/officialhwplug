@@ -1158,7 +1158,7 @@
       <!-- Wheel Container -->
       <div id="wheelContainer" style="position: relative; width: 100%; max-width: 600px; margin: 0 auto 2rem auto; touch-action: none;">
         <canvas id="wheelCanvas" width="600" height="600" style="width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none;"></canvas>
-        <div id="wheelPointer" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #6C63FF; z-index: 10; pointer-events: none;"></div>
+        <div id="wheelPointer" style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 50px solid #FF4757; z-index: 10; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));"></div>
       </div>
       
       <!-- Participants Info -->
@@ -1755,7 +1755,8 @@
           const data = JSON.parse(event.data);
           
           if (data.type === 'spin') {
-            spinWheel(data.eliminatedName);
+            // Pass the full data object with rotation info
+            spinWheel(data);
           } else if (data.type === 'update') {
             // LIVE UPDATE: New person entered or data changed!
             const oldCount = participants.length;
@@ -1836,6 +1837,18 @@
     }
 
     // Draw the wheel on canvas
+    // Helper function to shade colors (for gradient effect)
+    function shadeColor(color, percent) {
+      const num = parseInt(color.replace('#',''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+        (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
+        .toString(16).slice(1);
+    }
+    
     function drawWheel() {
       const canvas = document.getElementById('wheelCanvas');
       if (!canvas) return;
@@ -1878,6 +1891,15 @@
         return;
       }
       
+      // Draw 3D shadow effect (like wheelofnames.com)
+      ctx.save();
+      ctx.translate(centerX + 5, centerY + 5);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.fill();
+      ctx.restore();
+      
       // Draw wheel segments
       const segmentAngle = (2 * Math.PI) / participants.length;
       const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'];
@@ -1890,68 +1912,130 @@
         const startAngle = index * segmentAngle;
         const endAngle = startAngle + segmentAngle;
         
-        // Draw segment
+        // Draw segment with gradient
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        const baseColor = colors[index % colors.length];
+        gradient.addColorStop(0, baseColor);
+        gradient.addColorStop(1, shadeColor(baseColor, -20));
+        
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, startAngle, endAngle);
         ctx.closePath();
-        ctx.fillStyle = colors[index % colors.length];
+        ctx.fillStyle = gradient;
         ctx.fill();
+        
+        // Draw white border between segments
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.stroke();
         
-        // Draw text
+        // Draw text with better shadow
         ctx.save();
         ctx.rotate(startAngle + segmentAngle / 2);
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 16px Arial';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 3;
-        ctx.fillText(participant.firstName + ' ' + participant.lastName, radius - 20, 0);
+        ctx.font = 'bold 18px Arial';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(participant.firstName + ' ' + participant.lastName, radius - 25, 0);
         ctx.restore();
       });
       
       ctx.restore();
       
-      // Draw center circle
+      // Draw outer rim (3D effect)
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI);
-      ctx.fillStyle = '#fff';
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 8;
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Draw center circle with 3D effect
+      // Shadow
+      ctx.beginPath();
+      ctx.arc(centerX + 2, centerY + 2, 35, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fill();
+      
+      // Main circle with gradient
+      const centerGradient = ctx.createRadialGradient(centerX - 10, centerY - 10, 0, centerX, centerY, 35);
+      centerGradient.addColorStop(0, '#fff');
+      centerGradient.addColorStop(1, '#ddd');
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 35, 0, 2 * Math.PI);
+      ctx.fillStyle = centerGradient;
       ctx.fill();
       ctx.strokeStyle = '#333';
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 5;
       ctx.stroke();
+      
+      // Inner highlight
+      ctx.beginPath();
+      ctx.arc(centerX - 8, centerY - 8, 12, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.fill();
     }
 
     // Spin the wheel animation
-    function spinWheel(eliminatedName) {
+    function spinWheel(spinData) {
       if (isSpinning) return;
       isSpinning = true;
+      
+      const eliminatedName = spinData.eliminatedName || spinData;
+      const targetRotation = spinData.targetRotation || (360 * 5 + Math.random() * 360);
       
       // Play spin sound
       playSound('spin');
       
-      const spinDuration = 8000; // 8 seconds
+      const spinDuration = 8000; // 8 seconds (like wheelofnames.com)
       const startTime = Date.now();
       const startRotation = wheelRotation;
-      const totalRotation = 360 * 5 + Math.random() * 360; // 5 full rotations + random
+      
+      // Calculate rotation: we need to rotate TO the target, accounting for current position
+      // The target rotation is absolute, so we calculate the difference
+      const rotationDifference = targetRotation - (wheelRotation % 360);
+      const totalRotation = rotationDifference + (Math.floor(wheelRotation / 360) * 360);
+      
+      // Add tick sound interval
+      let lastTickAngle = 0;
+      const tickInterval = 360 / participants.length; // One tick per slice
       
       function animate() {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / spinDuration, 1);
         
-        // Easing function (ease-out)
+        // Easing function (ease-out cubic) - like wheelofnames.com
         const easeOut = 1 - Math.pow(1 - progress, 3);
+        const oldRotation = wheelRotation;
         wheelRotation = startRotation + totalRotation * easeOut;
+        
+        // Play tick sound as wheel passes each slice
+        const currentAngle = Math.floor(wheelRotation / tickInterval);
+        if (currentAngle !== lastTickAngle && progress < 0.9) {
+          playSound('tick');
+          lastTickAngle = currentAngle;
+        }
         
         drawWheel();
         
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
+          // Ensure we land exactly on target
+          wheelRotation = startRotation + totalRotation;
+          drawWheel();
+          
           isSpinning = false;
           playSound('eliminate');
           
@@ -1959,15 +2043,19 @@
           participants = participants.filter(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
           eliminated.push(eliminatedName);
           updateWheelDisplay();
-          drawWheel();
           
-          // Flash eliminated name
-          document.getElementById('wheelStatusMessage').innerHTML = `<span style="color: #ff4757; font-weight: 900; font-size: 1.5rem;">❌ ${eliminatedName} ELIMINATED!</span>`;
+          // Highlight the eliminated slice briefly before removing
           setTimeout(() => {
-            if (participants.length > 1) {
-              document.getElementById('wheelStatusMessage').textContent = '⏳ Admin will spin again...';
-            }
-          }, 3000);
+            drawWheel();
+            
+            // Flash eliminated name
+            document.getElementById('wheelStatusMessage').innerHTML = `<span style="color: #ff4757; font-weight: 900; font-size: 1.5rem; animation: pulse 0.5s;">❌ ${eliminatedName} ELIMINATED!</span>`;
+            setTimeout(() => {
+              if (participants.length > 1) {
+                document.getElementById('wheelStatusMessage').textContent = '⏳ Admin will spin again...';
+              }
+            }, 3000);
+          }, 500);
         }
       }
       
@@ -2014,6 +2102,14 @@
           gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
           oscillator.start(audioContext.currentTime);
           oscillator.stop(audioContext.currentTime + 0.3);
+        } else if (type === 'tick') {
+          // Tick sound - short click (like wheelofnames.com)
+          oscillator.type = 'square';
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.05);
         } else if (type === 'eliminate') {
           // Elimination sound - descending pitch
           oscillator.frequency.setValueAtTime(600, audioContext.currentTime);

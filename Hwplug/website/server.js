@@ -5601,6 +5601,20 @@ app.post('/api/giveaway/spin', async (req, res) => {
     const eliminated = remaining[randomIndex];
     const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
     
+    // Calculate the angle for this person's slice
+    // The wheel pointer is at the top (12 o'clock position)
+    // We need to calculate how much to rotate so this person lands at the pointer
+    const sliceAngle = 360 / remaining.length; // degrees per person
+    const targetSliceIndex = randomIndex;
+    
+    // Calculate target angle (where this slice should end up at the pointer)
+    // Pointer is at top (0 degrees), we want the CENTER of the slice to land there
+    const targetAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
+    
+    // Add multiple full rotations for dramatic effect (5-8 full spins)
+    const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
+    const totalRotation = (fullRotations * 360) + targetAngle;
+    
     // Add to eliminated list
     if (!giveaway.eliminated) {
       giveaway.eliminated = [];
@@ -5609,15 +5623,21 @@ app.post('/api/giveaway/spin', async (req, res) => {
     giveaway.updatedAt = new Date();
     await giveaway.save();
     
-    // Broadcast spin to all connected clients
+    // Broadcast spin to all connected clients with rotation info
     broadcastToWheelClients({
       type: 'spin',
-      eliminatedName: eliminatedName
+      eliminatedName: eliminatedName,
+      eliminatedIndex: randomIndex,
+      totalParticipants: remaining.length,
+      targetRotation: totalRotation // degrees to rotate
     });
     
     res.json({
       success: true,
       eliminatedName: eliminatedName,
+      eliminatedIndex: randomIndex,
+      totalParticipants: remaining.length,
+      targetRotation: totalRotation,
       remaining: remaining.length - 1
     });
   } catch (error) {
