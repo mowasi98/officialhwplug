@@ -2105,80 +2105,70 @@
         let fontSize = Math.max(9, Math.min(16, 350 / count));
         fontSize = Math.floor(fontSize);
         
-        // Calculate maximum text width based on slice angle (more conservative to prevent overlap)
-        // Use arc length formula: width = radius * angle (in radians)
+        // Calculate maximum text width based on slice angle
         const sliceAngleRad = sliceAngle;
-        const maxWidth = radius * sliceAngleRad * 0.70; // 70% of slice arc length (reduced from 85% for better spacing)
+        const maxWidth = radius * sliceAngleRad * 0.75; // 75% of slice arc length
         
-        // Set font first to measure text
+        // Calculate maximum vertical space available for two lines
+        // Use a portion of the radius for vertical spacing (closer to center = less space)
+        const textRadius = radius * 0.6; // Position text at 60% of radius
+        const maxVerticalSpace = textRadius * 0.4; // Allow 40% of text radius for vertical space
+        const lineSpacing = fontSize * 1.2; // Space between first and last name lines
+        
+        // Prepare first and last name
+        let firstName = participants[i].firstName || '';
+        let lastName = participants[i].lastName || '';
+        
+        // Helper function to shrink font and check if both lines fit
+        function checkIfFits(first, last, fontSize) {
+          ctx.font = `bold ${fontSize}px Arial`;
+          const firstMetrics = ctx.measureText(first);
+          const lastMetrics = ctx.measureText(last);
+          
+          // Check if both lines fit horizontally
+          const fitsWidth = firstMetrics.width <= maxWidth && lastMetrics.width <= maxWidth;
+          
+          // Check if both lines fit vertically (font size + spacing + font size)
+          const totalHeight = fontSize + lineSpacing + fontSize;
+          const fitsHeight = totalHeight <= maxVerticalSpace;
+          
+          return fitsWidth && fitsHeight;
+        }
+        
+        // Shrink font until both lines fit
+        const minFontSize = 7;
+        while (!checkIfFits(firstName, lastName, fontSize) && fontSize > minFontSize) {
+          fontSize -= 0.5;
+        }
+        
+        // If still doesn't fit, truncate names
+        if (!checkIfFits(firstName, lastName, fontSize)) {
+          ctx.font = `bold ${fontSize}px Arial`;
+          
+          // Truncate first name if too wide
+          let firstMetrics = ctx.measureText(firstName);
+          if (firstMetrics.width > maxWidth) {
+            let truncated = firstName;
+            while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 1) {
+              truncated = truncated.substring(0, truncated.length - 1);
+            }
+            firstName = truncated + '...';
+          }
+          
+          // Truncate last name if too wide
+          let lastMetrics = ctx.measureText(lastName);
+          if (lastMetrics.width > maxWidth) {
+            let truncated = lastName;
+            while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 1) {
+              truncated = truncated.substring(0, truncated.length - 1);
+            }
+            lastName = truncated + '...';
+          }
+        }
+        
+        // Set final font
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        // Start with full name
-        let displayName = participants[i].firstName + ' ' + participants[i].lastName;
-        
-        // Helper function to shrink font and measure
-        function shrinkFontAndMeasure(name, startSize) {
-          let currentSize = startSize;
-          const minSize = 7; // Lower minimum for extreme cases
-          ctx.font = `bold ${currentSize}px Arial`;
-          let metrics = ctx.measureText(name);
-          
-          // Shrink font until it fits or hits minimum
-          while (metrics.width > maxWidth && currentSize > minSize) {
-            currentSize -= 0.5; // Shrink by 0.5px for finer control
-            ctx.font = `bold ${currentSize}px Arial`;
-            metrics = ctx.measureText(name);
-          }
-          return { size: currentSize, metrics: metrics };
-        }
-        
-        // Step 1: Try full name with font shrinking
-        let result = shrinkFontAndMeasure(displayName, fontSize);
-        fontSize = result.size;
-        let textMetrics = result.metrics;
-        
-        // Step 2: If still too wide, try "First L." format and shrink again
-        if (textMetrics.width > maxWidth) {
-          displayName = participants[i].firstName + ' ' + participants[i].lastName.charAt(0) + '.';
-          result = shrinkFontAndMeasure(displayName, fontSize);
-          fontSize = result.size;
-          textMetrics = result.metrics;
-        }
-        
-        // Step 3: If still too wide, try just first name and shrink again
-        if (textMetrics.width > maxWidth) {
-          displayName = participants[i].firstName;
-          result = shrinkFontAndMeasure(displayName, fontSize);
-          fontSize = result.size;
-          textMetrics = result.metrics;
-        }
-        
-        // Step 4: If still too wide, truncate first name and shrink again
-        if (textMetrics.width > maxWidth) {
-          // Start with shorter truncation for very long names
-          let maxLength = Math.floor(maxWidth / (fontSize * 0.6)); // Estimate chars that fit
-          maxLength = Math.max(6, Math.min(maxLength, displayName.length)); // Between 6 and full length
-          
-          let truncated = displayName.substring(0, maxLength);
-          result = shrinkFontAndMeasure(truncated, fontSize);
-          fontSize = result.size;
-          textMetrics = result.metrics;
-          
-          // If still too wide, keep truncating
-          while (textMetrics.width > maxWidth && truncated.length > 3) {
-            truncated = truncated.substring(0, truncated.length - 1);
-            result = shrinkFontAndMeasure(truncated, fontSize);
-            fontSize = result.size;
-            textMetrics = result.metrics;
-          }
-          
-          displayName = truncated + (truncated.length < displayName.length ? '...' : '');
-        }
-        
-        // Final font size update
-        ctx.font = `bold ${fontSize}px Arial`;
         
         // Add text shadow for better readability
         ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
@@ -2186,7 +2176,13 @@
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
         
-        ctx.fillText(displayName, 0, 0);
+        // Draw first name on top line (negative Y = up)
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(firstName, 0, -lineSpacing / 2);
+        
+        // Draw last name on bottom line (positive Y = down)
+        ctx.textBaseline = 'top';
+        ctx.fillText(lastName, 0, lineSpacing / 2);
         ctx.restore();
       }
       
