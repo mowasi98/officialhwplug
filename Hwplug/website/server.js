@@ -5724,6 +5724,16 @@ app.post('/api/giveaway/toggle', async (req, res) => {
       // Use in-memory storage
       inMemoryGiveaway.active = active;
       console.log(`🎁 Giveaway ${active ? 'ACTIVATED' : 'DEACTIVATED'} (in-memory)`);
+      
+      // Broadcast status change to all clients
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: active,
+        spinDate: inMemoryGiveaway.spinDate,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        entryCount: inMemoryGiveaway.entries.length
+      });
+      
       return res.json({ success: true, active: inMemoryGiveaway.active });
     }
     
@@ -5744,6 +5754,15 @@ app.post('/api/giveaway/toggle', async (req, res) => {
     
     await giveaway.save();
     
+    // Broadcast status change to all clients
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      wheelVisible: giveaway.wheelVisible || false,
+      entryCount: giveaway.entries.length
+    });
+    
     res.json({ success: true, active: giveaway.active });
   } catch (error) {
     console.error('Error toggling giveaway:', error);
@@ -5760,6 +5779,16 @@ app.post('/api/giveaway/set-date', async (req, res) => {
       // Use in-memory storage
       inMemoryGiveaway.spinDate = spinDate;
       console.log(`🎁 Spin date set to: ${spinDate} (in-memory)`);
+      
+      // Broadcast date change to all clients
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: inMemoryGiveaway.active,
+        spinDate: spinDate,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        entryCount: inMemoryGiveaway.entries.length
+      });
+      
       return res.json({ success: true, spinDate: inMemoryGiveaway.spinDate });
     }
     
@@ -5778,6 +5807,15 @@ app.post('/api/giveaway/set-date', async (req, res) => {
     }
     
     await giveaway.save();
+    
+    // Broadcast date change to all clients
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      wheelVisible: giveaway.wheelVisible || false,
+      entryCount: giveaway.entries.length
+    });
     
     res.json({ success: true, spinDate: giveaway.spinDate });
   } catch (error) {

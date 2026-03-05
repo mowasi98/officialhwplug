@@ -2214,6 +2214,67 @@
                 entryCounter.style.display = 'block';
               }
             }
+          } else if (data.type === 'giveaway_status_change') {
+            // REAL-TIME: Giveaway status changed (admin turned on/off or changed date)
+            console.log('🎁 Giveaway status changed in real-time!', data);
+            
+            const banner = document.getElementById('giveawayBanner');
+            const bannerTitle = document.getElementById('giveawayBannerTitle');
+            const bannerSubtitle = document.getElementById('giveawayBannerSubtitle');
+            const actionBtn = document.getElementById('giveawayActionBtn');
+            const entryCounter = document.getElementById('giveawayEntryCounter');
+            
+            if (data.active) {
+              // Giveaway is now active - show banner
+              banner.style.display = 'block';
+              
+              // Update entry count
+              if (data.entryCount > 0) {
+                entryCounter.textContent = `${data.entryCount} ${data.entryCount === 1 ? 'person has' : 'people have'} entered!`;
+                entryCounter.style.display = 'block';
+              } else {
+                entryCounter.style.display = 'none';
+              }
+              
+              // Check if wheel is visible (live)
+              if (data.wheelVisible) {
+                bannerTitle.innerHTML = '<span class="emoji-gift">🎡</span> WHEEL IS LIVE NOW!';
+                bannerSubtitle.textContent = 'Click to Watch the Spin';
+                actionBtn.textContent = '👁️ Watch Live';
+                actionBtn.onclick = openLiveWheelModal;
+              } else {
+                // Check if user already entered
+                const savedUsername = localStorage.getItem('savedUsername');
+                if (savedUsername) {
+                  fetch(`${BACKEND_URL}/api/giveaway/check-entry?email=${encodeURIComponent(savedUsername)}`)
+                    .then(res => res.json())
+                    .then(entryData => {
+                      if (entryData.entered) {
+                        bannerTitle.innerHTML = '<span class="emoji-gift">✅</span> YOU\'RE ENTERED!';
+                        bannerSubtitle.textContent = `Live Spin: ${data.spinDate}`;
+                        actionBtn.textContent = 'View Entries';
+                        actionBtn.onclick = () => alert(`You're entered as: ${entryData.firstName} ${entryData.lastName}`);
+                      } else {
+                        bannerTitle.innerHTML = '<span class="emoji-gift">🎁</span> WIN FREE HOMEWORK FOR A MONTH!';
+                        bannerSubtitle.textContent = `Enter Now - Live Spin: ${data.spinDate}`;
+                        actionBtn.textContent = 'Enter Giveaway';
+                        actionBtn.onclick = openGiveawayEntryModal;
+                      }
+                    });
+                } else {
+                  bannerTitle.innerHTML = '<span class="emoji-gift">🎁</span> WIN FREE HOMEWORK FOR A MONTH!';
+                  bannerSubtitle.textContent = `Enter Now - Live Spin: ${data.spinDate}`;
+                  actionBtn.textContent = 'Enter Giveaway';
+                  actionBtn.onclick = openGiveawayEntryModal;
+                }
+              }
+            } else {
+              // Giveaway is now inactive - hide banner
+              banner.style.display = 'none';
+            }
+          } else if (data.type === 'visibility') {
+            // Wheel visibility changed - update banner
+            checkGiveawayStatus();
           }
         };
         
@@ -2234,12 +2295,33 @@
       }
     }
     
-    // Connect if giveaway is active
-    setTimeout(() => {
-      if (document.getElementById('giveawayBanner').style.display !== 'none') {
-        connectMainPageSocket();
+    // Connect WebSocket immediately for real-time updates (always connected)
+    function connectMainPageSocket() {
+      const wsUrl = BACKEND_URL.replace('http', 'ws').replace('https', 'wss') + '/wheel-socket';
+      
+      try {
+        mainPageSocket = new WebSocket(wsUrl);
+        
+        mainPageSocket.onopen = () => {
+          console.log('✅ Connected to real-time giveaway updates');
+          mainPageSocket.send(JSON.stringify({ type: 'subscribe', channel: 'main' }));
+        };
+        
+        mainPageSocket.onerror = () => {
+          console.log('Main page socket error - will retry');
+        };
+        
+        mainPageSocket.onclose = () => {
+          console.log('Main page socket closed - reconnecting in 5s');
+          setTimeout(connectMainPageSocket, 5000);
+        };
+      } catch (error) {
+        console.log('Main page socket connection failed');
       }
-    }, 2000);
+    }
+    
+    // Connect immediately on page load
+    setTimeout(connectMainPageSocket, 1000);
     
     // Redraw wheel on window resize (for orientation changes on mobile)
     let resizeTimeout;
