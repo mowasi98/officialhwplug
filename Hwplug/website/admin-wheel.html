@@ -178,8 +178,8 @@
     
     <script>
         const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3000'
-            : 'https://hwplug-backend-v2.onrender.com';
+            ? 'http://localhost:10000'
+            : 'https://test2-adsw.onrender.com';
         
         const canvas = document.getElementById('wheelCanvas');
         const ctx = canvas.getContext('2d');
@@ -196,11 +196,11 @@
         let ws;
         
         function connectWebSocket() {
-            const wsUrl = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+            const wsUrl = BACKEND_URL.replace('http', 'ws').replace('https', 'wss') + '/wheel-socket';
             ws = new WebSocket(wsUrl);
             
             ws.onopen = () => {
-                console.log('Connected to wheel updates');
+                console.log('✅ Admin wheel connected to live updates');
                 ws.send(JSON.stringify({ type: 'subscribe', channel: 'wheel' }));
                 fetchWheelData();
             };
