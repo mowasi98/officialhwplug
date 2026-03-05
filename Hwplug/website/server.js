@@ -5587,33 +5587,9 @@ app.post('/api/giveaway/spin', async (req, res) => {
       return res.json({ success: false, message: `Need at least ${minRequired} people to start! Currently: ${remaining.length}` });
     }
     
-    if (remaining.length === 1) {
-      // We have a winner!
-      const winner = remaining[0];
-      giveaway.winner = {
-        firstName: winner.firstName,
-        lastName: winner.lastName
-      };
-      await giveaway.save();
-      
-      // Broadcast winner to all connected clients
-      broadcastToWheelClients({
-        type: 'winner',
-        winner: {
-          firstName: winner.firstName,
-          lastName: winner.lastName
-        }
-      });
-      
-      return res.json({
-        success: true,
-        winner: true,
-        winnerData: {
-          firstName: winner.firstName,
-          lastName: winner.lastName
-        }
-      });
-    }
+    // Removed: Don't auto-declare winner if only 1 person left
+    // Let them be eliminated by the spin instead
+    // Winner is only declared when going from 2 people to 1 person
     
     // Randomly select someone to eliminate
     const randomIndex = Math.floor(Math.random() * remaining.length);
@@ -5648,12 +5624,13 @@ app.post('/api/giveaway/spin', async (req, res) => {
     giveaway.eliminated.push(eliminatedName);
     giveaway.updatedAt = new Date();
     
-    // Check if this elimination results in a winner (only 1 person left)
+    // Check if this elimination results in a winner
+    // Winner is declared when we go from 2 people to 1 person (not 1 to 0)
     const remainingAfterSpin = remaining.length - 1;
     const isWinner = remainingAfterSpin === 1;
     
     if (isWinner) {
-      // Find the winner (the person who wasn't eliminated)
+      // Find the winner (the person who wasn't eliminated this round)
       const winner = remaining.find(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
       giveaway.winner = {
         firstName: winner.firstName,
