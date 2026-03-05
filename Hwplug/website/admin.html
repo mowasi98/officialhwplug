@@ -673,15 +673,15 @@
                                   <!-- Confirmation Modal -->
                                   <div id="confirmModal" class="modal-overlay">
                                     <div class="modal-box" style="max-width: 500px;">
-                                      <div class="modal-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);">
+                                      <div id="modalHeader" class="modal-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);">
                                         ⚠️ Confirm Action
                                       </div>
-                                      <div class="modal-body" style="text-align: center; padding: 2rem;">
-                                        <p id="confirmMessage" style="font-size: 1.1rem; color: #333; margin: 0;"></p>
+                                      <div id="modalBody" class="modal-body" style="text-align: center; padding: 2rem; font-size: 1.1rem; color: #333;">
+                                        <!-- Message will be inserted here -->
                                       </div>
                                       <div class="modal-buttons">
-                                        <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal(false)">Cancel</button>
-                                        <button class="modal-btn modal-btn-confirm" onclick="closeConfirmModal(true)" style="background: #ff4757;">Confirm</button>
+                                        <button id="modalCancel" class="modal-btn modal-btn-cancel">Cancel</button>
+                                        <button id="modalConfirm" class="modal-btn modal-btn-confirm" style="background: #ff4757;">Confirm</button>
                                       </div>
                                     </div>
                                   </div>

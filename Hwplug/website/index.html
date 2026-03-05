@@ -2101,41 +2101,46 @@
         ctx.fillStyle = '#fff';
         
         // Calculate dynamic font size based on number of participants
-        // More people = smaller font, but minimum 10px
-        let fontSize = Math.max(10, Math.min(18, 400 / count));
+        // More people = smaller font, but minimum 9px
+        let fontSize = Math.max(9, Math.min(16, 350 / count));
         fontSize = Math.floor(fontSize);
         
-        // Format name intelligently based on available space
-        let displayName = participants[i].firstName + ' ' + participants[i].lastName;
-        const maxWidth = radius * 0.5; // Maximum text width (half the radius)
+        // Calculate maximum text width based on slice angle (more aggressive)
+        // Use arc length formula: width = radius * angle (in radians)
+        const sliceAngleRad = sliceAngle;
+        const maxWidth = radius * sliceAngleRad * 0.85; // 85% of slice arc length
         
-        // If many people, use shorter format
-        if (count > 15) {
-          // Use "First L." format for crowded wheels
-          displayName = participants[i].firstName + ' ' + participants[i].lastName.charAt(0) + '.';
-        } else if (count > 10) {
-          // Use full name but truncate if too long
-          const fullName = participants[i].firstName + ' ' + participants[i].lastName;
-          if (fullName.length > 15) {
-            displayName = participants[i].firstName + ' ' + participants[i].lastName.substring(0, 8) + '...';
-          }
-        }
-        
-        // Set font
+        // Set font first to measure text
         ctx.font = `bold ${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Measure text and adjust if still too wide
-        const textMetrics = ctx.measureText(displayName);
-        if (textMetrics.width > maxWidth && count <= 15) {
-          // Try first name + last initial
+        // Start with full name
+        let displayName = participants[i].firstName + ' ' + participants[i].lastName;
+        
+        // Always measure and truncate if needed (regardless of count)
+        let textMetrics = ctx.measureText(displayName);
+        
+        // Strategy 1: If too wide and count > 8, use "First L." format
+        if (textMetrics.width > maxWidth && count > 8) {
           displayName = participants[i].firstName + ' ' + participants[i].lastName.charAt(0) + '.';
-          const newMetrics = ctx.measureText(displayName);
-          if (newMetrics.width > maxWidth) {
-            // Still too wide, use just first name
-            displayName = participants[i].firstName;
+          textMetrics = ctx.measureText(displayName);
+        }
+        
+        // Strategy 2: If still too wide, try just first name
+        if (textMetrics.width > maxWidth) {
+          displayName = participants[i].firstName;
+          textMetrics = ctx.measureText(displayName);
+        }
+        
+        // Strategy 3: If first name is still too long, truncate it
+        if (textMetrics.width > maxWidth && displayName.length > 8) {
+          // Truncate first name to fit
+          let truncated = displayName.substring(0, 8);
+          while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 1) {
+            truncated = truncated.substring(0, truncated.length - 1);
           }
+          displayName = truncated + '...';
         }
         
         // Add text shadow for better readability
