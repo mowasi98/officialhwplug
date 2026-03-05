@@ -2231,12 +2231,8 @@
         winnerDisplay.style.opacity = '1';
       }, 100);
       
-      // MASSIVE confetti explosion!
+      // Optimized confetti - single burst is enough!
       createConfetti();
-      
-      // Additional confetti bursts
-      setTimeout(() => createConfetti(), 1000);
-      setTimeout(() => createConfetti(), 2000);
     }
     
     // Show winner popup from banner (when clicking "Check Winner" button)
@@ -2310,121 +2306,95 @@
 
     // Create confetti animation
     function createConfetti() {
-      const colors = ['#FFD700', '#FF1744', '#6C63FF', '#00E676', '#FF6B6B', '#4ECDC4', '#FFA07A', '#F7DC6F', '#E91E63', '#00BCD4'];
-      const emojis = ['🎉', '🎊', '⭐', '✨', '🌟', '💫', '🎁', '🏆'];
-      const confettiCount = 300; // MORE CONFETTI!
+      const colors = ['#FFD700', '#FF1744', '#6C63FF', '#00E676', '#FF6B6B', '#4ECDC4', '#FFA07A', '#F7DC6F'];
+      const emojis = ['🎉', '🎊', '⭐', '✨'];
+      const confettiCount = 150; // Reduced from 300 for better performance
+      
+      // Use CSS animations instead of JS for better performance
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes confettiFall {
+          to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        .confetti-piece {
+          position: fixed;
+          animation: confettiFall 3s ease-out forwards;
+          will-change: transform, opacity;
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Batch DOM updates for better performance
+      const fragment = document.createDocumentFragment();
       
       for (let i = 0; i < confettiCount; i++) {
-        setTimeout(() => {
-          const confetti = document.createElement('div');
-          const isEmoji = Math.random() > 0.7; // 30% chance of emoji
-          
-          confetti.style.position = 'fixed';
-          confetti.style.left = Math.random() * 100 + '%';
-          confetti.style.top = '-20px';
-          confetti.style.opacity = '1';
-          confetti.style.zIndex = '10001';
-          confetti.style.pointerEvents = 'none';
-          
-          if (isEmoji) {
-            // Emoji confetti
-            confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-            confetti.style.fontSize = (15 + Math.random() * 25) + 'px';
-          } else {
-            // Regular confetti
-            confetti.style.width = (8 + Math.random() * 8) + 'px';
-            confetti.style.height = (8 + Math.random() * 8) + 'px';
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-          }
-          
-          const rotation = Math.random() * 360;
-          const xMovement = (Math.random() - 0.5) * 200; // Side-to-side movement
-          confetti.style.transform = `rotate(${rotation}deg)`;
-          
-          document.body.appendChild(confetti);
-          
-          const duration = 3000 + Math.random() * 3000;
-          const startTime = Date.now();
-          
-          function fall() {
-            const elapsed = Date.now() - startTime;
-            const progress = elapsed / duration;
-            
-            if (progress < 1) {
-              const currentTop = (progress * 120);
-              const currentLeft = parseFloat(confetti.style.left) + (xMovement * progress * 0.01);
-              const currentRotation = rotation + (progress * 720); // Spin while falling
-              
-              confetti.style.top = currentTop + '%';
-              confetti.style.left = currentLeft + '%';
-              confetti.style.transform = `rotate(${currentRotation}deg) scale(${1 - progress * 0.5})`;
-              confetti.style.opacity = 1 - progress;
-              requestAnimationFrame(fall);
-            } else {
-              confetti.remove();
-            }
-          }
-          
-          fall();
-        }, i * 15); // Faster spawn rate
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti-piece';
+        const isEmoji = Math.random() > 0.8; // 20% chance of emoji (reduced from 30%)
+        
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.top = '-20px';
+        confetti.style.zIndex = '10001';
+        confetti.style.pointerEvents = 'none';
+        confetti.style.animationDelay = (i * 10) + 'ms';
+        confetti.style.animationDuration = (2.5 + Math.random() * 1.5) + 's';
+        
+        if (isEmoji) {
+          confetti.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+          confetti.style.fontSize = (18 + Math.random() * 15) + 'px';
+        } else {
+          confetti.style.width = (6 + Math.random() * 6) + 'px';
+          confetti.style.height = (6 + Math.random() * 6) + 'px';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+        }
+        
+        fragment.appendChild(confetti);
+        
+        // Auto-remove after animation
+        setTimeout(() => confetti.remove(), 4000);
       }
       
-      // Create continuous confetti bursts for 5 seconds
-      let burstCount = 0;
-      const burstInterval = setInterval(() => {
-        if (burstCount >= 3) {
-          clearInterval(burstInterval);
-          return;
+      // Single DOM append for all confetti (much faster!)
+      document.body.appendChild(fragment);
+      
+      // Simplified burst effect (reduced from 3 bursts to 1)
+      setTimeout(() => {
+        const burstFragment = document.createDocumentFragment();
+        for (let i = 0; i < 30; i++) { // Reduced from 50
+          const confetti = document.createElement('div');
+          confetti.style.cssText = `
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            left: 50%;
+            top: 50%;
+            border-radius: 50%;
+            z-index: 10001;
+            pointer-events: none;
+            animation: burstOut 1s ease-out forwards;
+          `;
+          burstFragment.appendChild(confetti);
+          setTimeout(() => confetti.remove(), 1000);
         }
-        
-        // Mini burst
-        for (let i = 0; i < 50; i++) {
-          setTimeout(() => {
-            const confetti = document.createElement('div');
-            confetti.style.position = 'fixed';
-            confetti.style.width = '12px';
-            confetti.style.height = '12px';
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.left = (40 + Math.random() * 20) + '%';
-            confetti.style.top = '50%';
-            confetti.style.opacity = '1';
-            confetti.style.zIndex = '10001';
-            confetti.style.pointerEvents = 'none';
-            confetti.style.borderRadius = '50%';
-            confetti.style.boxShadow = '0 0 10px rgba(255,215,0,0.8)';
-            document.body.appendChild(confetti);
-            
-            const angle = Math.random() * Math.PI * 2;
-            const velocity = 5 + Math.random() * 10;
-            const vx = Math.cos(angle) * velocity;
-            const vy = Math.sin(angle) * velocity;
-            
-            let x = parseFloat(confetti.style.left);
-            let y = parseFloat(confetti.style.top);
-            let opacity = 1;
-            
-            function explode() {
-              x += vx * 0.5;
-              y += vy * 0.5;
-              opacity -= 0.02;
-              
-              if (opacity > 0) {
-                confetti.style.left = x + '%';
-                confetti.style.top = y + '%';
-                confetti.style.opacity = opacity;
-                requestAnimationFrame(explode);
-              } else {
-                confetti.remove();
-              }
+        document.body.appendChild(burstFragment);
+      }, 500);
+      
+      // Add burst animation
+      if (!document.getElementById('burstStyle')) {
+        const burstStyle = document.createElement('style');
+        burstStyle.id = 'burstStyle';
+        burstStyle.textContent = `
+          @keyframes burstOut {
+            to {
+              transform: translate(${Math.random() * 400 - 200}px, ${Math.random() * 400 - 200}px) scale(0);
+              opacity: 0;
             }
-            
-            explode();
-          }, i * 10);
-        }
-        
-        burstCount++;
-      }, 1500);
+          }
+        `;
+        document.head.appendChild(burstStyle);
+      }
     }
 
     // Check giveaway status on load and every 30 seconds
