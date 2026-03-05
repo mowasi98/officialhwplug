@@ -5597,30 +5597,32 @@ app.post('/api/giveaway/spin', async (req, res) => {
     const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
     
     // Calculate the angle for this person's slice
-    // The wheel pointer is at the top (12 o'clock = 0 degrees)
-    // Slices are drawn counter-clockwise in canvas: Slice 0 from 0° to sliceAngle°, Slice 1 from sliceAngle° to 2*sliceAngle°
-    // When we rotate the wheel clockwise by X degrees, slices move clockwise
-    // To get slice[i] under the pointer at top, we need to rotate the wheel so that slice[i]'s center aligns with 0°
+    // CANVAS COORDINATE SYSTEM:
+    // - In HTML5 canvas, 0° = 3 o'clock (right), angles increase counter-clockwise
+    // - 90° = 6 o'clock (bottom), 180° = 9 o'clock (left), 270° = 12 o'clock (TOP)
+    // - The pointer is at the TOP of the canvas = 270°
+    // - Slice[i] is drawn from (i * sliceAngle) to ((i+1) * sliceAngle)
+    // - When we ctx.rotate(wheelRotation), positive rotation moves slices clockwise
+    //
+    // FORMULA:
+    // - Slice[i] center is at: (i * sliceAngle) + (sliceAngle / 2)
+    // - To get slice[i] under the pointer at 270°: wheelRotation = (270 - sliceCenterAngle + 360) % 360
+    // - This ensures: (sliceCenterAngle + wheelRotation) % 360 = 270
+    
     const sliceAngle = 360 / remaining.length; // degrees per person
     const targetSliceIndex = randomIndex;
     
-    // Calculate the center angle of the target slice in its initial position
+    // Calculate the center angle of the target slice in its initial position (canvas coordinates)
     const sliceCenterAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
     
-    // To bring this slice to the top (0°), we need to rotate the wheel BACKWARDS by this amount
-    // But since we want clockwise rotation (positive), we calculate: 360° - sliceCenterAngle
-    // This ensures the wheel rotates clockwise and lands correctly
-    // Actually, simpler: we need to rotate so the slice center is at 0°
-    // Since slices are drawn counter-clockwise and wheel rotates clockwise:
-    // To get slice[i] at top, rotate by: 360° - sliceCenterAngle (to go the "long way" clockwise)
-    // But that's confusing. Let's think differently:
-    // If slice 0 center is at 30° and we want it at top (0°), rotate by -30° or +330°
-    // If slice 1 center is at 90° and we want it at top, rotate by -90° or +270°
-    // So: targetAngle = 360° - sliceCenterAngle (to make it positive clockwise rotation)
+    // Calculate rotation needed to bring this slice to 270° (where the pointer is)
+    // Formula: (sliceCenterAngle + wheelRotation) % 360 = 270
+    // Therefore: wheelRotation = (270 - sliceCenterAngle + 360) % 360
+    const baseRotation = (270 - sliceCenterAngle + 360) % 360;
     
-    // Add a small random offset for drama (±15% of slice width, landing near edge)
-    const randomOffset = (Math.random() * 0.3 - 0.15) * sliceAngle;
-    const targetAngle = (360 - sliceCenterAngle + randomOffset) % 360;
+    // Add a small random offset for drama (±10% of slice width)
+    const randomOffset = (Math.random() * 0.2 - 0.1) * sliceAngle;
+    const targetAngle = (baseRotation + randomOffset + 360) % 360;
     
     // Add multiple full rotations for dramatic effect (5-8 full spins)
     const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
