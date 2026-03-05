@@ -324,10 +324,10 @@
                 let fontSize = Math.max(9, Math.min(16, 350 / count));
                 fontSize = Math.floor(fontSize);
                 
-                // Calculate maximum text width based on slice angle (more aggressive)
+                // Calculate maximum text width based on slice angle (more conservative to prevent overlap)
                 // Use arc length formula: width = radius * angle (in radians)
                 const sliceAngleRad = sliceAngle;
-                const maxWidth = radius * sliceAngleRad * 0.85; // 85% of slice arc length
+                const maxWidth = radius * sliceAngleRad * 0.70; // 70% of slice arc length (reduced from 85% for better spacing)
                 
                 // Set font first to measure text
                 ctx.font = `bold ${fontSize}px Arial`;
@@ -337,46 +337,67 @@
                 // Start with full name
                 let displayName = participants[i].firstName + ' ' + participants[i].lastName;
                 
-                // NEW: Dynamic font shrinking - try to fit text by reducing font size first
-                // This keeps more of the name visible instead of truncating
-                let currentFontSize = fontSize;
-                const minFontSize = 8; // Absolute minimum font size
-                let textMetrics = ctx.measureText(displayName);
-                
-                // Try shrinking font size if text is too wide
-                while (textMetrics.width > maxWidth && currentFontSize > minFontSize) {
-                  currentFontSize -= 1;
-                  ctx.font = `bold ${currentFontSize}px Arial`;
-                  textMetrics = ctx.measureText(displayName);
+                // Helper function to shrink font and measure
+                function shrinkFontAndMeasure(name, startSize) {
+                  let currentSize = startSize;
+                  const minSize = 7; // Lower minimum for extreme cases
+                  ctx.font = `bold ${currentSize}px Arial`;
+                  let metrics = ctx.measureText(name);
+                  
+                  // Shrink font until it fits or hits minimum
+                  while (metrics.width > maxWidth && currentSize > minSize) {
+                    currentSize -= 0.5; // Shrink by 0.5px for finer control
+                    ctx.font = `bold ${currentSize}px Arial`;
+                    metrics = ctx.measureText(name);
+                  }
+                  return { size: currentSize, metrics: metrics };
                 }
                 
-                // Update fontSize to the shrunk size (if it was reduced)
-                fontSize = currentFontSize;
+                // Step 1: Try full name with font shrinking
+                let result = shrinkFontAndMeasure(displayName, fontSize);
+                fontSize = result.size;
+                let textMetrics = result.metrics;
                 
-                // Always measure and truncate if needed (regardless of count)
-                // This is the fallback if font shrinking wasn't enough
-                
-                // Strategy 1: If too wide and count > 8, use "First L." format
-                if (textMetrics.width > maxWidth && count > 8) {
+                // Step 2: If still too wide, try "First L." format and shrink again
+                if (textMetrics.width > maxWidth) {
                   displayName = participants[i].firstName + ' ' + participants[i].lastName.charAt(0) + '.';
-                  textMetrics = ctx.measureText(displayName);
+                  result = shrinkFontAndMeasure(displayName, fontSize);
+                  fontSize = result.size;
+                  textMetrics = result.metrics;
                 }
                 
-                // Strategy 2: If still too wide, try just first name
+                // Step 3: If still too wide, try just first name and shrink again
                 if (textMetrics.width > maxWidth) {
                   displayName = participants[i].firstName;
-                  textMetrics = ctx.measureText(displayName);
+                  result = shrinkFontAndMeasure(displayName, fontSize);
+                  fontSize = result.size;
+                  textMetrics = result.metrics;
                 }
                 
-                // Strategy 3: If first name is still too long, truncate it
-                if (textMetrics.width > maxWidth && displayName.length > 8) {
-                  // Truncate first name to fit
-                  let truncated = displayName.substring(0, 8);
-                  while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 1) {
+                // Step 4: If still too wide, truncate first name and shrink again
+                if (textMetrics.width > maxWidth) {
+                  // Start with shorter truncation for very long names
+                  let maxLength = Math.floor(maxWidth / (fontSize * 0.6)); // Estimate chars that fit
+                  maxLength = Math.max(6, Math.min(maxLength, displayName.length)); // Between 6 and full length
+                  
+                  let truncated = displayName.substring(0, maxLength);
+                  result = shrinkFontAndMeasure(truncated, fontSize);
+                  fontSize = result.size;
+                  textMetrics = result.metrics;
+                  
+                  // If still too wide, keep truncating
+                  while (textMetrics.width > maxWidth && truncated.length > 3) {
                     truncated = truncated.substring(0, truncated.length - 1);
+                    result = shrinkFontAndMeasure(truncated, fontSize);
+                    fontSize = result.size;
+                    textMetrics = result.metrics;
                   }
-                  displayName = truncated + '...';
+                  
+                  displayName = truncated + (truncated.length < displayName.length ? '...' : '');
                 }
+                
+                // Final font size update
+                ctx.font = `bold ${fontSize}px Arial`;
                 
                 // Add text shadow for better readability
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
