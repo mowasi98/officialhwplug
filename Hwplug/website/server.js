@@ -5350,7 +5350,7 @@ app.get('/api/giveaway/status', async (req, res) => {
         minParticipants: inMemoryGiveaway.minParticipants || 15,
         isSpinDay: isSpinDay,
         entryCount: inMemoryGiveaway.entries.length,
-        hasWinner: !!inMemoryGiveaway.winner,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
         winner: inMemoryGiveaway.winner || null
       });
     }
@@ -5372,7 +5372,7 @@ app.get('/api/giveaway/status', async (req, res) => {
       minParticipants: giveaway.minParticipants || 15,
       isSpinDay: isSpinDay,
       entryCount: giveaway.entries.length,
-      hasWinner: !!giveaway.winner,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
       winner: giveaway.winner || null
     });
   } catch (error) {
@@ -5783,7 +5783,7 @@ app.post('/api/giveaway/toggle', async (req, res) => {
         spinDate: inMemoryGiveaway.spinDate,
         wheelVisible: inMemoryGiveaway.wheelVisible,
         entryCount: inMemoryGiveaway.entries.length,
-        hasWinner: !!inMemoryGiveaway.winner,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
         winner: inMemoryGiveaway.winner
       });
       
@@ -5823,7 +5823,7 @@ app.post('/api/giveaway/toggle', async (req, res) => {
       spinDate: giveaway.spinDate,
       wheelVisible: giveaway.wheelVisible || false,
       entryCount: giveaway.entries.length,
-      hasWinner: !!giveaway.winner,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
       winner: giveaway.winner
     });
     
@@ -5851,7 +5851,7 @@ app.post('/api/giveaway/set-date', async (req, res) => {
         spinDate: spinDate,
         wheelVisible: inMemoryGiveaway.wheelVisible,
         entryCount: inMemoryGiveaway.entries.length,
-        hasWinner: !!inMemoryGiveaway.winner,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
         winner: inMemoryGiveaway.winner
       });
       
@@ -5881,7 +5881,7 @@ app.post('/api/giveaway/set-date', async (req, res) => {
       spinDate: giveaway.spinDate,
       wheelVisible: giveaway.wheelVisible || false,
       entryCount: giveaway.entries.length,
-      hasWinner: !!giveaway.winner,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
       winner: giveaway.winner
     });
     
