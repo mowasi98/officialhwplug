@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Wheel Preview - Homework Plug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .wheel-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #6C63FF;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+        }
+        
+        #wheelCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .close-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #6C63FF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #5a52d5;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 99, 255, 0.4);
+        }
+        
+        .winner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .winner-content {
+            text-align: center;
+            color: white;
+            padding: 40px;
+        }
+        
+        .winner-content h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="wheel-container">
+        <h1>🎡 Admin Wheel Preview</h1>
+        <p class="status-text" id="statusText">Loading wheel...</p>
+        <canvas id="wheelCanvas" width="700" height="700"></canvas>
+        <button class="close-btn" onclick="window.close()">❌ Close Window</button>
+    </div>
+    
+    <div class="winner-overlay" id="winnerOverlay">
+        <div class="winner-content">
+            <h2 id="winnerText"></h2>
+        </div>
+    </div>
+    
+    <script>
+        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3000'
+            : 'https://hwplug-backend-v2.onrender.com';
+        
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        let participants = [];
+        let isSpinning = false;
+        let currentRotation = 0;
+        let spinSpeed = 0;
+        let targetRotation = 0;
+        
+        // WebSocket connection
+        let ws;
+        
+        function connectWebSocket() {
+            const wsUrl = BACKEND_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('Connected to wheel updates');
+                ws.send(JSON.stringify({ type: 'subscribe', channel: 'wheel' }));
+                fetchWheelData();
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'spin') {
+                    spinWheel(data.eliminated);
+                } else if (data.type === 'update') {
+                    participants = data.participants;
+                    drawWheel();
+                } else if (data.type === 'winner') {
+                    showWinner(data.winner);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket closed, reconnecting...');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        async function fetchWheelData() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/giveaway/participants`);
+                const data = await response.json();
+                participants = data.participants;
+                drawWheel();
+                
+                if (participants.length === 0) {
+                    document.getElementById('statusText').textContent = 'No entries yet';
+                } else if (participants.length === 1) {
+                    document.getElementById('statusText').textContent = `${participants.length} person entered`;
+                } else {
+                    document.getElementById('statusText').textContent = `${participants.length} people entered`;
+                }
+            } catch (error) {
+                console.error('Error fetching wheel data:', error);
+                document.getElementById('statusText').textContent = 'Error loading wheel';
+            }
+        }
+        
+        function drawWheel() {
+            if (participants.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#f0f0f0';
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 300, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#999';
+                ctx.font = 'bold 24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Waiting for entries...', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 300;
+            const sliceAngle = (2 * Math.PI) / participants.length;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentRotation);
+            
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'];
+            
+            participants.forEach((participant, index) => {
+                const startAngle = index * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+                
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                ctx.save();
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 18px Arial';
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(participant.firstName + ' ' + participant.lastName, radius * 0.65, 0);
+                ctx.restore();
+            });
+            
+            ctx.restore();
+            
+            // Draw center circle
+            ctx.fillStyle = '#6C63FF';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 40, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw pointer
+            ctx.fillStyle = '#FF4757';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - radius - 20);
+            ctx.lineTo(centerX - 20, centerY - radius - 50);
+            ctx.lineTo(centerX + 20, centerY - radius - 50);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function spinWheel(eliminatedPerson) {
+            if (isSpinning) return;
+            
+            isSpinning = true;
+            const spins = 5 + Math.random() * 3;
+            targetRotation = currentRotation + (spins * 2 * Math.PI);
+            spinSpeed = 0.3;
+            
+            playSpinSound();
+            animateSpin();
+        }
+        
+        function animateSpin() {
+            if (Math.abs(targetRotation - currentRotation) > 0.01) {
+                currentRotation += (targetRotation - currentRotation) * 0.05;
+                drawWheel();
+                requestAnimationFrame(animateSpin);
+            } else {
+                currentRotation = targetRotation;
+                isSpinning = false;
+                drawWheel();
+                playStopSound();
+            }
+        }
+        
+        function showWinner(winner) {
+            const overlay = document.getElementById('winnerOverlay');
+            const winnerText = document.getElementById('winnerText');
+            
+            winnerText.textContent = `🎉 ${winner.firstName} ${winner.lastName} WINS! 🎉`;
+            overlay.style.display = 'flex';
+            
+            playWinSound();
+            createConfetti();
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 5000);
+        }
+        
+        function playSpinSound() {
+            // Placeholder for spin sound
+            console.log('Playing spin sound');
+        }
+        
+        function playStopSound() {
+            // Placeholder for stop sound
+            console.log('Playing stop sound');
+        }
+        
+        function playWinSound() {
+            // Placeholder for win sound
+            console.log('Playing win sound');
+        }
+        
+        function createConfetti() {
+            // Placeholder for confetti animation
+            console.log('Creating confetti');
+        }
+        
+        // Initialize
+        connectWebSocket();
+        
+        // Redraw on resize
+        window.addEventListener('resize', () => {
+            drawWheel();
+        });
+    </script>
+</body>
+</html>

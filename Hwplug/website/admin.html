@@ -617,12 +617,30 @@
                                       </div>
                                     </div>
                                     
+                                    <!-- Show/Hide Wheel Controls -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.8rem 0; font-weight: 600;">Public Wheel Visibility:</p>
+                                      <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                        <button class="btn" id="showWheelBtn" style="background: #28a745; color: #fff; font-weight: 700; touch-action: manipulation;">
+                                          👁️ SHOW WHEEL (Make Live)
+                                        </button>
+                                        <button class="btn" id="hideWheelBtn" style="background: #dc3545; color: #fff; font-weight: 700; touch-action: manipulation;">
+                                          🚫 HIDE WHEEL
+                                        </button>
+                                      </div>
+                                      <p style="font-size: 0.75rem; color: rgba(255,255,255,0.9); margin: 0.8rem 0 0 0;">When shown, everyone can watch the wheel live on the website</p>
+                                      <div id="wheelVisibilityStatus" style="margin-top: 0.8rem; padding: 0.5rem; background: rgba(255,255,255,0.2); border-radius: 6px; font-weight: 600; color: #fff;"></div>
+                                    </div>
+                                    
                                     <!-- Spin Controls -->
                                     <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
-                                      <button class="btn" id="spinWheelBtn" style="background: #fff; color: #ff4757; font-weight: 900; font-size: 1.3rem; padding: 1.2rem 2.5rem; touch-action: manipulation; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                                      <button class="btn" id="spinWheelBtn" style="background: #fff; color: #6C63FF; font-weight: 900; font-size: 1.3rem; padding: 1.2rem 2.5rem; touch-action: manipulation; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
                                         🎡 SPIN THE WHEEL NOW
                                       </button>
-                                      <p style="font-size: 0.85rem; color: #fff; margin: 1rem 0 0 0;">Click to eliminate one random person</p>
+                                      <p style="font-size: 0.85rem; color: #fff; margin: 1rem 0 0.5rem 0;">Click to eliminate one random person</p>
+                                      <button class="btn" id="viewAdminWheelBtn" style="background: rgba(255,255,255,0.9); color: #6C63FF; font-weight: 700; margin-top: 0.5rem; touch-action: manipulation;">
+                                        👀 VIEW WHEEL (Admin Preview)
+                                      </button>
                                       <div id="spinResult" style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 6px; display: none;">
                                         <p style="color: #fff; font-weight: 700; margin: 0; font-size: 1.1rem;"></p>
                                       </div>
@@ -2976,6 +2994,16 @@
                                     const entriesResponse = await fetch(`${BACKEND_URL}/api/giveaway/entries`);
                                     const entriesData = await entriesResponse.json();
                                     document.getElementById('giveawayEntryCount').textContent = entriesData.entries.length;
+                                    
+                                    // Update wheel visibility status
+                                    const wheelVisibilityEl = document.getElementById('wheelVisibilityStatus');
+                                    if (data.wheelVisible) {
+                                      wheelVisibilityEl.textContent = '✅ Wheel is LIVE - Everyone can watch!';
+                                      wheelVisibilityEl.style.background = '#28a745';
+                                    } else {
+                                      wheelVisibilityEl.textContent = '🚫 Wheel is HIDDEN - Only you can see it';
+                                      wheelVisibilityEl.style.background = '#dc3545';
+                                    }
                                   } catch (error) {
                                     console.error('Error loading giveaway status:', error);
                                   }
@@ -3196,12 +3224,83 @@
                                   }
                                 }
                                 
+                                // Show wheel to public
+                                async function showWheelToPublic() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-wheel-visibility`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ visible: true })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      document.getElementById('wheelVisibilityStatus').textContent = '✅ Wheel is LIVE - Everyone can watch!';
+                                      document.getElementById('wheelVisibilityStatus').style.background = '#28a745';
+                                      showMessage('Wheel is now visible to everyone!', 'success');
+                                    } else {
+                                      showMessage('Failed to show wheel', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error showing wheel:', error);
+                                    showMessage('Error showing wheel: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                // Hide wheel from public
+                                async function hideWheelFromPublic() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-wheel-visibility`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ visible: false })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      document.getElementById('wheelVisibilityStatus').textContent = '🚫 Wheel is HIDDEN - Only you can see it';
+                                      document.getElementById('wheelVisibilityStatus').style.background = '#dc3545';
+                                      showMessage('Wheel is now hidden from public', 'success');
+                                    } else {
+                                      showMessage('Failed to hide wheel', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error hiding wheel:', error);
+                                    showMessage('Error hiding wheel: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                // View wheel in admin panel
+                                function viewAdminWheel() {
+                                  // Open the same wheel modal that users see
+                                  window.open('/admin-wheel.html', '_blank', 'width=1200,height=800');
+                                }
+                                
                                 // Add event listeners for giveaway controls
                                 document.getElementById('toggleGiveawayBtn')?.addEventListener('click', toggleGiveaway);
                                 document.getElementById('setSpinDateBtn')?.addEventListener('click', setSpinDate);
                                 document.getElementById('viewEntriesBtn')?.addEventListener('click', viewEntries);
                                 document.getElementById('spinWheelBtn')?.addEventListener('click', spinWheel);
                                 document.getElementById('resetGiveawayBtn')?.addEventListener('click', resetGiveaway);
+                                document.getElementById('showWheelBtn')?.addEventListener('click', showWheelToPublic);
+                                document.getElementById('hideWheelBtn')?.addEventListener('click', hideWheelFromPublic);
+                                document.getElementById('viewAdminWheelBtn')?.addEventListener('click', viewAdminWheel);
                                 
                                 // Load giveaway status on page load
                                 loadGiveawayStatus();

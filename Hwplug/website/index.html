@@ -1582,11 +1582,17 @@
           const checkEntry = await fetch(`${BACKEND_URL}/api/giveaway/check-entry?email=${encodeURIComponent(savedUsername)}`);
           const entryData = await checkEntry.json();
           
-          if (data.isSpinDay) {
-            // It's spin day!
-            bannerTitle.innerHTML = '<span class="emoji-gift">🎡</span> SPIN THE WHEEL STARTING SOON!';
-            bannerSubtitle.textContent = 'Click to Watch Live';
-            actionBtn.textContent = 'Watch Live';
+          if (data.isSpinDay || data.wheelVisible) {
+            // It's spin day or wheel is live!
+            if (data.wheelVisible) {
+              bannerTitle.innerHTML = '<span class="emoji-gift">🎡</span> WHEEL IS LIVE NOW!';
+              bannerSubtitle.textContent = 'Click to Watch the Spin';
+              actionBtn.textContent = '👁️ Watch Live';
+            } else {
+              bannerTitle.innerHTML = '<span class="emoji-gift">🎡</span> SPIN THE WHEEL STARTING SOON!';
+              bannerSubtitle.textContent = 'Click to Watch Live';
+              actionBtn.textContent = 'Watch Live';
+            }
             actionBtn.onclick = openLiveWheelModal;
           } else if (entryData.entered) {
             // User already entered
@@ -1695,7 +1701,20 @@
     }
 
     // Open live wheel modal
-    function openLiveWheelModal() {
+    async function openLiveWheelModal() {
+      // Check if wheel is visible to public
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/giveaway/status`);
+        const data = await response.json();
+        
+        if (!data.wheelVisible) {
+          showError('The wheel is not live yet! The admin will make it visible when ready.');
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking wheel visibility:', error);
+      }
+      
       const modal = document.getElementById('liveWheelModal');
       modal.style.display = 'flex';
       document.body.style.overflow = 'hidden'; // Prevent background scrolling
@@ -1760,6 +1779,15 @@
             }
           } else if (data.type === 'winner') {
             showWinner(data.winner);
+          } else if (data.type === 'visibility') {
+            // Wheel visibility changed
+            if (!data.visible) {
+              // Wheel was hidden by admin
+              closeLiveWheelModal();
+              showError('The admin has hidden the wheel.');
+            }
+            // Update banner to reflect visibility
+            checkGiveawayStatus();
           }
         };
         

@@ -383,6 +383,7 @@ mongoose.connect(MONGODB_URI, {
 // In-memory storage fallback for giveaway when MongoDB is not available
 let inMemoryGiveaway = {
   active: false,
+  wheelVisible: false,
   spinDate: '',
   entries: [],
   eliminated: [],
@@ -411,6 +412,7 @@ const DataModel = mongoose.model('Data', DataSchema);
 // Giveaway Schema
 const GiveawaySchema = new mongoose.Schema({
   active: { type: Boolean, default: false },
+  wheelVisible: { type: Boolean, default: false },
   spinDate: { type: String, default: '' },
   entries: [{
     firstName: String,
@@ -5342,6 +5344,7 @@ app.get('/api/giveaway/status', async (req, res) => {
       
       return res.json({
         active: inMemoryGiveaway.active,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
         spinDate: inMemoryGiveaway.spinDate,
         isSpinDay: isSpinDay,
         entryCount: inMemoryGiveaway.entries.length
@@ -5351,7 +5354,7 @@ app.get('/api/giveaway/status', async (req, res) => {
     let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
     
     if (!giveaway) {
-      return res.json({ active: false });
+      return res.json({ active: false, wheelVisible: false });
     }
     
     // Check if today is spin day
@@ -5360,6 +5363,7 @@ app.get('/api/giveaway/status', async (req, res) => {
     
     res.json({
       active: giveaway.active,
+      wheelVisible: giveaway.wheelVisible || false,
       spinDate: giveaway.spinDate,
       isSpinDay: isSpinDay,
       entryCount: giveaway.entries.length
@@ -5643,6 +5647,55 @@ app.get('/api/giveaway/entries', async (req, res) => {
 });
 
 // Admin: Toggle giveaway active status
+// Set wheel visibility (show/hide to public)
+app.post('/api/giveaway/set-wheel-visibility', async (req, res) => {
+  try {
+    const { visible } = req.body;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.wheelVisible = visible;
+      console.log(`🎡 Wheel visibility set to: ${visible ? 'VISIBLE' : 'HIDDEN'} (in-memory)`);
+      
+      // Broadcast to all connected clients
+      broadcastToWheelClients({
+        type: 'visibility',
+        visible: visible
+      });
+      
+      return res.json({ success: true, visible: inMemoryGiveaway.wheelVisible });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        wheelVisible: visible,
+        spinDate: '',
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.wheelVisible = visible;
+    }
+    
+    await giveaway.save();
+    console.log(`🎡 Wheel visibility set to: ${visible ? 'VISIBLE' : 'HIDDEN'}`);
+    
+    // Broadcast to all connected clients
+    broadcastToWheelClients({
+      type: 'visibility',
+      visible: visible
+    });
+    
+    res.json({ success: true, visible: giveaway.wheelVisible });
+  } catch (error) {
+    console.error('Error setting wheel visibility:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.post('/api/giveaway/toggle', async (req, res) => {
   try {
     const { active } = req.body;
