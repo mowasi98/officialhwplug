@@ -5624,21 +5624,19 @@ app.post('/api/giveaway/spin', async (req, res) => {
     // Calculate the angle for this person's slice
     // The wheel pointer is at the top (12 o'clock = 0 degrees)
     // Slices are drawn starting from 0 degrees going clockwise
-    // When wheel rotates, we rotate the canvas, so slice 0 starts at wheelRotation degrees
+    // Slice 0: 0° to sliceAngle°, Slice 1: sliceAngle° to 2*sliceAngle°, etc.
     const sliceAngle = 360 / remaining.length; // degrees per person
     const targetSliceIndex = randomIndex;
     
-    // To make slice[targetSliceIndex] land at the pointer (top = 0 degrees):
-    // We need to rotate so that the START of that slice is at 0 degrees
-    // Since wheel rotates clockwise, we need to rotate by (360 - sliceStart)
-    // But we want to land INSIDE the slice (not on edge), so add offset
-    const randomOffset = (Math.random() * 0.3 + 0.2) * sliceAngle; // 20-50% into slice
-    const sliceStartAngle = targetSliceIndex * sliceAngle;
+    // Calculate the center angle of the target slice
+    const sliceCenterAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
     
-    // Calculate how much to rotate to put this slice at the top pointer
-    // We want: (sliceStartAngle + randomOffset) to end up at 0 degrees (top)
-    // So we need to rotate by: 360 - (sliceStartAngle + randomOffset)
-    const targetAngle = 360 - (sliceStartAngle + randomOffset);
+    // The pointer points DOWN from the top (0 degrees)
+    // When we rotate the wheel by X degrees clockwise, the slice that was at angle X is now at the top
+    // So to get slice[targetSliceIndex] under the pointer, we rotate BY its center angle
+    // Add a small random offset for drama (±20% of slice width)
+    const randomOffset = (Math.random() * 0.4 - 0.2) * sliceAngle; // -20% to +20% of slice
+    const targetAngle = sliceCenterAngle + randomOffset;
     
     // Add multiple full rotations for dramatic effect (5-8 full spins)
     const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
