@@ -5621,6 +5621,21 @@ app.post('/api/giveaway/spin', async (req, res) => {
     }
     giveaway.eliminated.push(eliminatedName);
     giveaway.updatedAt = new Date();
+    
+    // Check if this elimination results in a winner (only 1 person left)
+    const remainingAfterSpin = remaining.length - 1;
+    const isWinner = remainingAfterSpin === 1;
+    
+    if (isWinner) {
+      // Find the winner (the person who wasn't eliminated)
+      const winner = remaining.find(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
+      giveaway.winner = {
+        firstName: winner.firstName,
+        lastName: winner.lastName,
+        email: winner.email
+      };
+    }
+    
     await giveaway.save();
     
     // Broadcast spin to all connected clients with rotation info
@@ -5629,7 +5644,9 @@ app.post('/api/giveaway/spin', async (req, res) => {
       eliminatedName: eliminatedName,
       eliminatedIndex: randomIndex,
       totalParticipants: remaining.length,
-      targetRotation: totalRotation // degrees to rotate
+      targetRotation: totalRotation, // degrees to rotate
+      isWinner: isWinner,
+      winner: isWinner ? giveaway.winner : null
     });
     
     res.json({
@@ -5638,7 +5655,9 @@ app.post('/api/giveaway/spin', async (req, res) => {
       eliminatedIndex: randomIndex,
       totalParticipants: remaining.length,
       targetRotation: totalRotation,
-      remaining: remaining.length - 1
+      remaining: remainingAfterSpin,
+      isWinner: isWinner,
+      winnerData: isWinner ? giveaway.winner : null
     });
   } catch (error) {
     console.error('Error spinning wheel:', error);

@@ -2048,13 +2048,24 @@
           setTimeout(() => {
             drawWheel();
             
-            // Flash eliminated name
-            document.getElementById('wheelStatusMessage').innerHTML = `<span style="color: #ff4757; font-weight: 900; font-size: 1.5rem; animation: pulse 0.5s;">❌ ${eliminatedName} ELIMINATED!</span>`;
-            setTimeout(() => {
-              if (participants.length > 1) {
-                document.getElementById('wheelStatusMessage').textContent = '⏳ Admin will spin again...';
-              }
-            }, 3000);
+            // Check if this was the final elimination (we have a winner!)
+            if (spinData.isWinner && spinData.winner) {
+              // Flash eliminated name first
+              document.getElementById('wheelStatusMessage').innerHTML = `<span style="color: #ff4757; font-weight: 900; font-size: 1.5rem; animation: pulse 0.5s;">❌ ${eliminatedName} ELIMINATED!</span>`;
+              
+              // Then show winner after 2 seconds
+              setTimeout(() => {
+                showWinner(spinData.winner);
+              }, 2000);
+            } else {
+              // Flash eliminated name
+              document.getElementById('wheelStatusMessage').innerHTML = `<span style="color: #ff4757; font-weight: 900; font-size: 1.5rem; animation: pulse 0.5s;">❌ ${eliminatedName} ELIMINATED!</span>`;
+              setTimeout(() => {
+                if (participants.length > 1) {
+                  document.getElementById('wheelStatusMessage').textContent = '⏳ Admin will spin again...';
+                }
+              }, 3000);
+            }
           }, 500);
         }
       }

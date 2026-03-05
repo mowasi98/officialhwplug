@@ -145,7 +145,8 @@
                 const data = JSON.parse(event.data);
                 
                 if (data.type === 'spin') {
-                    spinWheel(data.eliminated);
+                    // Pass full data for synchronized spinning
+                    spinWheel(data);
                 } else if (data.type === 'update') {
                     participants = data.participants;
                     drawWheel();
@@ -254,29 +255,57 @@
             ctx.fill();
         }
         
-        function spinWheel(eliminatedPerson) {
+        function spinWheel(spinData) {
             if (isSpinning) return;
-            
             isSpinning = true;
-            const spins = 5 + Math.random() * 3;
-            targetRotation = currentRotation + (spins * 2 * Math.PI);
-            spinSpeed = 0.3;
+            
+            const eliminatedName = spinData.eliminatedName || spinData;
+            const targetRotationDegrees = spinData.targetRotation || (360 * 5 + Math.random() * 360);
+            
+            // Convert degrees to radians for canvas rotation
+            const targetRotationRadians = (targetRotationDegrees * Math.PI) / 180;
+            targetRotation = targetRotationRadians;
             
             playSpinSound();
-            animateSpin();
-        }
-        
-        function animateSpin() {
-            if (Math.abs(targetRotation - currentRotation) > 0.01) {
-                currentRotation += (targetRotation - currentRotation) * 0.05;
+            
+            const spinDuration = 8000; // 8 seconds - synchronized with main wheel
+            const startTime = Date.now();
+            const startRotation = currentRotation;
+            const totalRotation = targetRotation - startRotation;
+            
+            function animateSpin() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / spinDuration, 1);
+                
+                // Ease-out cubic (same as main wheel)
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                currentRotation = startRotation + totalRotation * easeOut;
+                
                 drawWheel();
-                requestAnimationFrame(animateSpin);
-            } else {
-                currentRotation = targetRotation;
-                isSpinning = false;
-                drawWheel();
-                playStopSound();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateSpin);
+                } else {
+                    currentRotation = targetRotation;
+                    isSpinning = false;
+                    drawWheel();
+                    playStopSound();
+                    
+                    // Remove eliminated participant
+                    participants = participants.filter(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
+                    
+                    // Check if we have a winner
+                    if (spinData.isWinner && spinData.winner) {
+                        setTimeout(() => {
+                            showWinner(spinData.winner);
+                        }, 2000);
+                    }
+                    
+                    drawWheel();
+                }
             }
+            
+            animateSpin();
         }
         
         function showWinner(winner) {
