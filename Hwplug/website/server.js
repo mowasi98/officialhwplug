@@ -5911,15 +5911,58 @@ app.post('/api/giveaway/set-min-participants', async (req, res) => {
 // Admin: Reset giveaway
 app.post('/api/giveaway/reset', async (req, res) => {
   try {
+    if (!mongoConnected) {
+      // Reset in-memory storage
+      inMemoryGiveaway = {
+        active: false,
+        wheelVisible: false,
+        spinDate: '',
+        minParticipants: 15,
+        entries: [],
+        eliminated: [],
+        winner: null
+      };
+      
+      console.log('🎁 Giveaway RESET (in-memory)');
+      
+      // Broadcast reset to all clients
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: false,
+        spinDate: '',
+        wheelVisible: false,
+        entryCount: 0,
+        hasWinner: false,
+        winner: null
+      });
+      
+      return res.json({ success: true, message: 'Giveaway reset successfully' });
+    }
+    
     const giveaway = new GiveawayModel({
       active: false,
+      wheelVisible: false,
       spinDate: '',
+      minParticipants: 15,
       entries: [],
       eliminated: [],
       winner: null
     });
     
     await giveaway.save();
+    
+    console.log('🎁 Giveaway RESET');
+    
+    // Broadcast reset to all clients
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: false,
+      spinDate: '',
+      wheelVisible: false,
+      entryCount: 0,
+      hasWinner: false,
+      winner: null
+    });
     
     res.json({ success: true, message: 'Giveaway reset successfully' });
   } catch (error) {

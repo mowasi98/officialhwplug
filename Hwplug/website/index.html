@@ -2486,8 +2486,14 @@
                 entryCounter.style.display = 'none';
               }
               
-              // Check if wheel is visible (live)
-              if (data.wheelVisible) {
+              // Check if we have a winner
+              if (data.hasWinner && data.winner) {
+                bannerTitle.innerHTML = '<span class="emoji-gift">🎉</span> WE HAVE A WINNER!';
+                bannerSubtitle.textContent = 'Click to see who won';
+                actionBtn.textContent = '🏆 Check Winner';
+                actionBtn.onclick = () => showWinnerFromBanner(data.winner);
+              } else if (data.wheelVisible) {
+                // Wheel is visible (live)
                 bannerTitle.innerHTML = '<span class="emoji-gift">🎡</span> WHEEL IS LIVE NOW!';
                 bannerSubtitle.textContent = 'Click to Watch the Spin';
                 actionBtn.textContent = '👁️ Watch Live';
