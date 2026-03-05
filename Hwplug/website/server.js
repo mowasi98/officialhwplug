@@ -5912,24 +5912,29 @@ app.post('/api/giveaway/set-min-participants', async (req, res) => {
 app.post('/api/giveaway/reset', async (req, res) => {
   try {
     if (!mongoConnected) {
-      // Reset in-memory storage
+      // Get current active state before resetting
+      const wasActive = inMemoryGiveaway.active;
+      const currentSpinDate = inMemoryGiveaway.spinDate;
+      const currentMinParticipants = inMemoryGiveaway.minParticipants || 15;
+      
+      // Reset in-memory storage BUT keep it active if it was active
       inMemoryGiveaway = {
-        active: false,
+        active: wasActive, // Keep the same active state
         wheelVisible: false,
-        spinDate: '',
-        minParticipants: 15,
+        spinDate: currentSpinDate, // Keep the spin date
+        minParticipants: currentMinParticipants,
         entries: [],
         eliminated: [],
         winner: null
       };
       
-      console.log('🎁 Giveaway RESET (in-memory)');
+      console.log('🎁 Giveaway RESET (in-memory) - Cleared all entries and winner');
       
       // Broadcast reset to all clients
       broadcastToWheelClients({
         type: 'giveaway_status_change',
-        active: false,
-        spinDate: '',
+        active: wasActive,
+        spinDate: currentSpinDate,
         wheelVisible: false,
         entryCount: 0,
         hasWinner: false,
@@ -5939,11 +5944,17 @@ app.post('/api/giveaway/reset', async (req, res) => {
       return res.json({ success: true, message: 'Giveaway reset successfully' });
     }
     
+    // Get the current giveaway to preserve active state and spin date
+    let currentGiveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    const wasActive = currentGiveaway ? currentGiveaway.active : false;
+    const currentSpinDate = currentGiveaway ? currentGiveaway.spinDate : '';
+    const currentMinParticipants = currentGiveaway ? currentGiveaway.minParticipants : 15;
+    
     const giveaway = new GiveawayModel({
-      active: false,
+      active: wasActive, // Keep the same active state
       wheelVisible: false,
-      spinDate: '',
-      minParticipants: 15,
+      spinDate: currentSpinDate, // Keep the spin date
+      minParticipants: currentMinParticipants,
       entries: [],
       eliminated: [],
       winner: null
@@ -5951,13 +5962,13 @@ app.post('/api/giveaway/reset', async (req, res) => {
     
     await giveaway.save();
     
-    console.log('🎁 Giveaway RESET');
+    console.log('🎁 Giveaway RESET - Cleared all entries and winner');
     
     // Broadcast reset to all clients
     broadcastToWheelClients({
       type: 'giveaway_status_change',
-      active: false,
-      spinDate: '',
+      active: wasActive,
+      spinDate: currentSpinDate,
       wheelVisible: false,
       entryCount: 0,
       hasWinner: false,
