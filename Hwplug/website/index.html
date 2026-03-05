@@ -1713,13 +1713,13 @@
           } else if (entryData.entered) {
             // User already entered
             bannerTitle.innerHTML = '<span class="emoji-gift">✅</span> YOU\'RE ENTERED!';
-            bannerSubtitle.textContent = `Live Spin: ${data.spinDate}`;
+            bannerSubtitle.textContent = data.spinDate ? `Live Spin: ${data.spinDate}` : 'Good luck!';
             actionBtn.textContent = 'View Entries';
             actionBtn.onclick = openViewEntriesModal;
           } else {
             // User can enter
             bannerTitle.innerHTML = '<span class="emoji-gift">🎁</span> WIN FREE HOMEWORK FOR A MONTH!';
-            bannerSubtitle.textContent = `Enter Now - Live Spin: ${data.spinDate}`;
+            bannerSubtitle.textContent = data.spinDate ? `Enter Now - Live Spin: ${data.spinDate}` : 'Enter Now for a Chance to Win!';
             actionBtn.textContent = 'Enter Giveaway';
             actionBtn.onclick = openGiveawayEntryModal;
           }
@@ -2480,19 +2480,19 @@
                     .then(entryData => {
                       if (entryData.entered) {
                         bannerTitle.innerHTML = '<span class="emoji-gift">✅</span> YOU\'RE ENTERED!';
-                        bannerSubtitle.textContent = `Live Spin: ${data.spinDate}`;
+                        bannerSubtitle.textContent = data.spinDate ? `Live Spin: ${data.spinDate}` : 'Good luck!';
                         actionBtn.textContent = 'View Entries';
                         actionBtn.onclick = openViewEntriesModal;
                       } else {
                         bannerTitle.innerHTML = '<span class="emoji-gift">🎁</span> WIN FREE HOMEWORK FOR A MONTH!';
-                        bannerSubtitle.textContent = `Enter Now - Live Spin: ${data.spinDate}`;
+                        bannerSubtitle.textContent = data.spinDate ? `Enter Now - Live Spin: ${data.spinDate}` : 'Enter Now for a Chance to Win!';
                         actionBtn.textContent = 'Enter Giveaway';
                         actionBtn.onclick = openGiveawayEntryModal;
                       }
                     });
                 } else {
                   bannerTitle.innerHTML = '<span class="emoji-gift">🎁</span> WIN FREE HOMEWORK FOR A MONTH!';
-                  bannerSubtitle.textContent = `Enter Now - Live Spin: ${data.spinDate}`;
+                  bannerSubtitle.textContent = data.spinDate ? `Enter Now - Live Spin: ${data.spinDate}` : 'Enter Now for a Chance to Win!';
                   actionBtn.textContent = 'Enter Giveaway';
                   actionBtn.onclick = openGiveawayEntryModal;
                 }
