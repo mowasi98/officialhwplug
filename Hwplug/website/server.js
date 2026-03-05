@@ -5418,6 +5418,11 @@ app.post('/api/giveaway/enter', async (req, res) => {
         return res.json({ success: false, message: 'You have already entered!' });
       }
       
+      // Check max entries (30 people max)
+      if (inMemoryGiveaway.entries.length >= 30) {
+        return res.json({ success: false, message: 'Giveaway is full! Maximum 30 entries reached.' });
+      }
+      
       inMemoryGiveaway.entries.push({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -5456,6 +5461,11 @@ app.post('/api/giveaway/enter', async (req, res) => {
     const alreadyEntered = giveaway.entries.find(e => e.email === email);
     if (alreadyEntered) {
       return res.json({ success: false, message: 'You have already entered!' });
+    }
+    
+    // Check max entries (30 people max)
+    if (giveaway.entries.length >= 30) {
+      return res.json({ success: false, message: 'Giveaway is full! Maximum 30 entries reached.' });
     }
     
     // Add entry
@@ -5562,6 +5572,11 @@ app.post('/api/giveaway/spin', async (req, res) => {
     
     if (remaining.length === 0) {
       return res.json({ success: false, message: 'No participants left' });
+    }
+    
+    // Check minimum participants (15 people minimum)
+    if (remaining.length < 15 && eliminatedNames.length === 0) {
+      return res.json({ success: false, message: `Need at least 15 people to start! Currently: ${remaining.length}` });
     }
     
     if (remaining.length === 1) {
