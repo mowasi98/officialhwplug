@@ -312,16 +312,58 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
-                // Draw text
+                // Draw text with smart formatting
                 ctx.save();
                 ctx.rotate(startAngle + sliceAngle / 2);
                 ctx.translate(radius * 0.65, 0);
                 ctx.rotate(Math.PI / 2);
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px Arial';
+                
+                // Calculate dynamic font size based on number of participants
+                // More people = smaller font, but minimum 10px
+                let fontSize = Math.max(10, Math.min(18, 400 / count));
+                fontSize = Math.floor(fontSize);
+                
+                // Format name intelligently based on available space
+                let displayName = participants[i].firstName + ' ' + participants[i].lastName;
+                const maxWidth = radius * 0.5; // Maximum text width (half the radius)
+                
+                // If many people, use shorter format
+                if (count > 15) {
+                  // Use "First L." format for crowded wheels
+                  displayName = participants[i].firstName + ' ' + participants[i].lastName.charAt(0) + '.';
+                } else if (count > 10) {
+                  // Use full name but truncate if too long
+                  const fullName = participants[i].firstName + ' ' + participants[i].lastName;
+                  if (fullName.length > 15) {
+                    displayName = participants[i].firstName + ' ' + participants[i].lastName.substring(0, 8) + '...';
+                  }
+                }
+                
+                // Set font
+                ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(participants[i].firstName + ' ' + participants[i].lastName, 0, 0);
+                
+                // Measure text and adjust if still too wide
+                const textMetrics = ctx.measureText(displayName);
+                if (textMetrics.width > maxWidth && count <= 15) {
+                  // Try first name + last initial
+                  displayName = participants[i].firstName + ' ' + participants[i].lastName.charAt(0) + '.';
+                  const newMetrics = ctx.measureText(displayName);
+                  if (newMetrics.width > maxWidth) {
+                    // Still too wide, use just first name
+                    displayName = participants[i].firstName;
+                  }
+                }
+                
+                // Add text shadow for better readability
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 3;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                
+                ctx.fillText(displayName, 0, 0);
                 ctx.restore();
             }
             
