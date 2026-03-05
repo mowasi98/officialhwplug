@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const helmet = require('helmet');
+const WebSocket = require('ws');
 
 // Fetch support (built-in in Node 18+, fallback for older versions)
 const fetch = globalThis.fetch || require('node-fetch');
@@ -17,7 +18,7 @@ if (!DISCORD_BOT_API_URL) {
   console.error('❌ DISCORD_BOT_API_URL environment variable is not set');
   process.exit(1);
 }
-console.log(`🤖 Discord Bot API configured: ${DISCORD_BOT_API_URL}`);
+console.log(`🤖 Sparksbot API configured: ${DISCORD_BOT_API_URL}`);
 
 // Homework Plug Official Bot API URL Configuration (for Sparx Reader)
 const HWPLUG_BOT_API_URL = process.env.HWPLUG_BOT_API_URL;
@@ -365,15 +366,28 @@ app.use(generalLimiter);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hwplug';
 console.log('🔌 Connecting to MongoDB...');
 
+let mongoConnected = false;
+
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
   console.log('✅ MongoDB connected successfully');
+  mongoConnected = true;
 }).catch(err => {
   console.error('❌ MongoDB connection error:', err);
   console.error('⚠️  Server will continue with in-memory storage (data will not persist)');
+  mongoConnected = false;
 });
+
+// In-memory storage fallback for giveaway when MongoDB is not available
+let inMemoryGiveaway = {
+  active: false,
+  spinDate: '',
+  entries: [],
+  eliminated: [],
+  winner: null
+};
 
 // MongoDB Schema for persistent data
 const DataSchema = new mongoose.Schema({
@@ -393,6 +407,28 @@ const DataSchema = new mongoose.Schema({
 });
 
 const DataModel = mongoose.model('Data', DataSchema);
+
+// Giveaway Schema
+const GiveawaySchema = new mongoose.Schema({
+  active: { type: Boolean, default: false },
+  spinDate: { type: String, default: '' },
+  entries: [{
+    firstName: String,
+    lastName: String,
+    email: String,
+    enteredAt: { type: Date, default: Date.now }
+  }],
+  eliminated: [String], // Array of eliminated names
+  winner: {
+    firstName: String,
+    lastName: String,
+    email: String
+  },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const GiveawayModel = mongoose.model('Giveaway', GiveawaySchema);
 
 // Daily purchase limit tracking (5 per product per day)
 let dailyLimits = {
@@ -3755,9 +3791,9 @@ async function sendCashPaymentNotification(data) {
                 <div style="display: inline-block;">
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue & Do NOW</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">👤 I'll Do It</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 🤖 Sparksbot | 🧠 SEN AI</p>
               </div>
               ` : `
               <!-- Email Confirmation Mode with Skip Queue & REDO -->
@@ -3765,12 +3801,12 @@ async function sendCashPaymentNotification(data) {
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
                   ${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Discord Bot</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">👤 I'll Do It</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Discord Bot | ⚡ Skip Queue | 🔄 REDO | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 🧠 SEN AI</p>
               </div>
               `) : ''}
 
@@ -3913,9 +3949,9 @@ async function sendLoginDetailsNotification(data) {
                 <div style="display: inline-block;">
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue & Do NOW</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">👤 I'll Do It</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 🤖 Sparksbot | 🧠 SEN AI</p>
               </div>
               ` : `
               <!-- Email Confirmation Mode with Skip Queue & REDO -->
@@ -3923,12 +3959,12 @@ async function sendLoginDetailsNotification(data) {
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
                   ${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Discord Bot</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">👤 I'll Do It</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Discord Bot | ⚡ Skip Queue | 🔄 REDO | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 👤 Manual</p>
               </div>
               `) : `
               <!-- No Buttons -->
@@ -4577,6 +4613,196 @@ app.get('/process-order-skip-queue', async (req, res) => {
   }
 });
 
+// Email Button Endpoint: Sen AI (clicked from email)
+app.get('/process-order-senai', async (req, res) => {
+  const { orderId } = req.query;
+  
+  console.log(`🧠 EMAIL BUTTON: Sen AI clicked - Order ID: ${orderId}`);
+  
+  if (!orderId) {
+    return res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Error - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Error</h1>
+          <p>Missing order ID</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  // Check if order exists
+  if (!pendingOrders[orderId]) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Order Not Found - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>⚠️ Order Not Found</h1>
+          <p>This order has already been processed or doesn't exist.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  // Check if already processed
+  if (pendingOrders[orderId].processed) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Already Processed - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #ffc107; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>⚠️ Already Processed</h1>
+          <p>This order has already been handled.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  const order = pendingOrders[orderId];
+  
+  // Mark as processed
+  pendingOrders[orderId].processed = true;
+  pendingOrders[orderId].processedAt = new Date().toISOString();
+  pendingOrders[orderId].processedBy = 'senai';
+  
+  console.log(`🧠 EMAIL BUTTON: Triggering Sen AI for order: ${orderId}`);
+  console.log(`   Product: ${order.productName}`);
+  console.log(`   Username: ${order.username}`);
+  
+  // Trigger Sen AI bot
+  try {
+    console.log(`📡 EMAIL BUTTON: Calling Sen AI API: ${DISCORD_BOT_API_URL}/submit-senai`);
+    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
+      body: JSON.stringify({
+        productName: order.productName,
+        username: order.username,
+        password: order.password,
+        loginType: order.loginType || 'Normal',
+        school: order.school
+      })
+    });
+    
+    console.log(`📥 EMAIL BUTTON: Sen AI API response status: ${botResponse.status}`);
+    const botResult = await botResponse.json();
+    console.log(`📥 EMAIL BUTTON: Sen AI API response:`, botResult);
+    
+    if (botResult.success) {
+      console.log(`✅ EMAIL BUTTON: Sen AI successfully triggered!`);
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Sen AI Started - hwplug</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            h1 { color: #00bcd4; }
+            .info { background: #e0f7fa; padding: 15px; border-radius: 8px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>✅ Sen AI Started!</h1>
+            <div style="font-size: 64px; margin: 20px 0;">🧠</div>
+            <p><strong>Sen AI is now doing the homework!</strong></p>
+            <div class="info">
+              <p><strong>Product:</strong> ${order.productName}</p>
+              <p><strong>Username:</strong> ${order.username}</p>
+              <p><strong>School:</strong> ${order.school || 'N/A'}</p>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    } else {
+      console.error(`❌ EMAIL BUTTON: Sen AI trigger failed: ${botResult.error}`);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Sen AI Error - hwplug</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            h1 { color: #d9534f; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>❌ Sen AI Error</h1>
+            <p>${botResult.error || 'Failed to start Sen AI'}</p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">Please try again or contact support.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+  } catch (error) {
+    console.error(`❌ EMAIL BUTTON: Error calling Sen AI:`, error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Connection Error - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Connection Error</h1>
+          <p>Could not connect to Sen AI server.</p>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">Error: ${error.message}</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
 // Email Button Endpoint: I'll Do It (clicked from email)
 app.get('/process-order-manual', (req, res) => {
   const { orderId } = req.query;
@@ -5104,6 +5330,422 @@ app.get('/manual-process-page', async (req, res) => {
   }
 });
 
+// ========== GIVEAWAY API ENDPOINTS ==========
+
+// Get giveaway status
+app.get('/api/giveaway/status', async (req, res) => {
+  try {
+    if (!mongoConnected) {
+      // Use in-memory storage
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const isSpinDay = inMemoryGiveaway.spinDate && today.includes(inMemoryGiveaway.spinDate.split(',')[1]?.trim());
+      
+      return res.json({
+        active: inMemoryGiveaway.active,
+        spinDate: inMemoryGiveaway.spinDate,
+        isSpinDay: isSpinDay,
+        entryCount: inMemoryGiveaway.entries.length
+      });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ active: false });
+    }
+    
+    // Check if today is spin day
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const isSpinDay = giveaway.spinDate && today.includes(giveaway.spinDate.split(',')[1]?.trim());
+    
+    res.json({
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      isSpinDay: isSpinDay,
+      entryCount: giveaway.entries.length
+    });
+  } catch (error) {
+    console.error('Error getting giveaway status:', error);
+    res.status(500).json({ error: 'Failed to get giveaway status' });
+  }
+});
+
+// Check if user already entered
+app.get('/api/giveaway/check-entry', async (req, res) => {
+  try {
+    const { email } = req.query;
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ entered: false });
+    }
+    
+    const entry = giveaway.entries.find(e => e.email === email);
+    
+    if (entry) {
+      res.json({
+        entered: true,
+        firstName: entry.firstName,
+        lastName: entry.lastName,
+        snapchat: entry.snapchat
+      });
+    } else {
+      res.json({ entered: false });
+    }
+  } catch (error) {
+    console.error('Error checking entry:', error);
+    res.status(500).json({ error: 'Failed to check entry' });
+  }
+});
+
+// Submit giveaway entry
+app.post('/api/giveaway/enter', async (req, res) => {
+  try {
+    const { firstName, lastName, email } = req.body;
+    
+    if (!firstName || !lastName || !email) {
+      return res.json({ success: false, message: 'All fields are required' });
+    }
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      const alreadyEntered = inMemoryGiveaway.entries.find(e => e.email === email);
+      if (alreadyEntered) {
+        return res.json({ success: false, message: 'You have already entered!' });
+      }
+      
+      inMemoryGiveaway.entries.push({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        enteredAt: new Date()
+      });
+      
+      console.log(`🎁 New entry: ${firstName} ${lastName} (in-memory)`);
+      
+      // Broadcast to wheel viewers
+      const eliminatedNames = inMemoryGiveaway.eliminated || [];
+      const participants = inMemoryGiveaway.entries.filter(entry => {
+        const fullName = `${entry.firstName} ${entry.lastName}`;
+        return !eliminatedNames.includes(fullName);
+      });
+      
+      broadcastToWheelClients({
+        type: 'update',
+        participants: participants.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName
+        })),
+        eliminated: eliminatedNames
+      });
+      
+      return res.json({ success: true, message: 'Entry submitted successfully!' });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway || !giveaway.active) {
+      return res.json({ success: false, message: 'Giveaway is not active' });
+    }
+    
+    // Check if user already entered
+    const alreadyEntered = giveaway.entries.find(e => e.email === email);
+    if (alreadyEntered) {
+      return res.json({ success: false, message: 'You have already entered!' });
+    }
+    
+    // Add entry
+    giveaway.entries.push({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      enteredAt: new Date()
+    });
+    
+    giveaway.updatedAt = new Date();
+    await giveaway.save();
+    
+    // Broadcast new entry to all connected wheel viewers (LIVE UPDATE!)
+    const eliminatedNames = giveaway.eliminated || [];
+    const participants = giveaway.entries.filter(entry => {
+      const fullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(fullName);
+    });
+    
+    broadcastToWheelClients({
+      type: 'update',
+      participants: participants.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName
+      })),
+      eliminated: eliminatedNames
+    });
+    
+    console.log(`🎁 New entry: ${firstName} ${lastName} - Broadcasting to ${wheelClients.length} viewers`);
+    
+    // Send email notification to admin
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: 'hwplug <noreply@hwplug.store>',
+        to: process.env.YOUR_EMAIL,
+        subject: `🎁 New Giveaway Entry: ${firstName} ${lastName}`,
+        html: `
+          <h2>New Giveaway Entry!</h2>
+          <p><strong>Name:</strong> ${firstName} ${lastName}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          <hr>
+          <p><strong>Total Entries:</strong> ${giveaway.entries.length}</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Error sending entry notification email:', emailError);
+    }
+    
+    res.json({ success: true, message: 'Entry submitted successfully!' });
+  } catch (error) {
+    console.error('Error submitting entry:', error);
+    res.status(500).json({ success: false, message: 'Failed to submit entry' });
+  }
+});
+
+// Get participants for wheel
+app.get('/api/giveaway/participants', async (req, res) => {
+  try {
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ participants: [], eliminated: [] });
+    }
+    
+    // Get non-eliminated participants
+    const eliminatedNames = giveaway.eliminated || [];
+    const participants = giveaway.entries.filter(entry => {
+      const fullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(fullName);
+    });
+    
+    res.json({
+      participants: participants.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        snapchat: p.snapchat
+      })),
+      eliminated: eliminatedNames
+    });
+  } catch (error) {
+    console.error('Error getting participants:', error);
+    res.status(500).json({ error: 'Failed to get participants' });
+  }
+});
+
+// Admin: Spin the wheel (eliminate one person)
+app.post('/api/giveaway/spin', async (req, res) => {
+  try {
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ success: false, message: 'No active giveaway' });
+    }
+    
+    // Get remaining participants
+    const eliminatedNames = giveaway.eliminated || [];
+    const remaining = giveaway.entries.filter(entry => {
+      const fullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(fullName);
+    });
+    
+    if (remaining.length === 0) {
+      return res.json({ success: false, message: 'No participants left' });
+    }
+    
+    if (remaining.length === 1) {
+      // We have a winner!
+      const winner = remaining[0];
+      giveaway.winner = {
+        firstName: winner.firstName,
+        lastName: winner.lastName,
+        snapchat: winner.snapchat,
+        email: winner.email
+      };
+      await giveaway.save();
+      
+      // Broadcast winner to all connected clients
+      broadcastToWheelClients({
+        type: 'winner',
+        winner: {
+          firstName: winner.firstName,
+          lastName: winner.lastName,
+          snapchat: winner.snapchat
+        }
+      });
+      
+      return res.json({
+        success: true,
+        winner: true,
+        winnerData: {
+          firstName: winner.firstName,
+          lastName: winner.lastName,
+          snapchat: winner.snapchat
+        }
+      });
+    }
+    
+    // Randomly select someone to eliminate
+    const randomIndex = Math.floor(Math.random() * remaining.length);
+    const eliminated = remaining[randomIndex];
+    const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
+    
+    // Add to eliminated list
+    if (!giveaway.eliminated) {
+      giveaway.eliminated = [];
+    }
+    giveaway.eliminated.push(eliminatedName);
+    giveaway.updatedAt = new Date();
+    await giveaway.save();
+    
+    // Broadcast spin to all connected clients
+    broadcastToWheelClients({
+      type: 'spin',
+      eliminatedName: eliminatedName
+    });
+    
+    res.json({
+      success: true,
+      eliminatedName: eliminatedName,
+      remaining: remaining.length - 1
+    });
+  } catch (error) {
+    console.error('Error spinning wheel:', error);
+    res.status(500).json({ success: false, message: 'Failed to spin wheel' });
+  }
+});
+
+// Admin: Get all giveaway entries
+app.get('/api/giveaway/entries', async (req, res) => {
+  try {
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ entries: [] });
+    }
+    
+    res.json({
+      entries: giveaway.entries,
+      eliminated: giveaway.eliminated || [],
+      winner: giveaway.winner || null
+    });
+  } catch (error) {
+    console.error('Error getting entries:', error);
+    res.status(500).json({ error: 'Failed to get entries' });
+  }
+});
+
+// Admin: Toggle giveaway active status
+app.post('/api/giveaway/toggle', async (req, res) => {
+  try {
+    const { active } = req.body;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.active = active;
+      console.log(`🎁 Giveaway ${active ? 'ACTIVATED' : 'DEACTIVATED'} (in-memory)`);
+      return res.json({ success: true, active: inMemoryGiveaway.active });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      // Create new giveaway
+      giveaway = new GiveawayModel({
+        active: active,
+        spinDate: '',
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.active = active;
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    res.json({ success: true, active: giveaway.active });
+  } catch (error) {
+    console.error('Error toggling giveaway:', error);
+    res.status(500).json({ success: false, error: 'Failed to toggle giveaway' });
+  }
+});
+
+// Admin: Set spin date
+app.post('/api/giveaway/set-date', async (req, res) => {
+  try {
+    const { spinDate } = req.body;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.spinDate = spinDate;
+      console.log(`🎁 Spin date set to: ${spinDate} (in-memory)`);
+      return res.json({ success: true, spinDate: inMemoryGiveaway.spinDate });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        spinDate: spinDate,
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.spinDate = spinDate;
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    res.json({ success: true, spinDate: giveaway.spinDate });
+  } catch (error) {
+    console.error('Error setting spin date:', error);
+    res.status(500).json({ success: false, error: 'Failed to set spin date' });
+  }
+});
+
+// Admin: Reset giveaway
+app.post('/api/giveaway/reset', async (req, res) => {
+  try {
+    const giveaway = new GiveawayModel({
+      active: false,
+      spinDate: '',
+      entries: [],
+      eliminated: [],
+      winner: null
+    });
+    
+    await giveaway.save();
+    
+    res.json({ success: true, message: 'Giveaway reset successfully' });
+  } catch (error) {
+    console.error('Error resetting giveaway:', error);
+    res.status(500).json({ success: false, error: 'Failed to reset giveaway' });
+  }
+});
+
+// WebSocket clients for wheel updates
+let wheelClients = [];
+
+function broadcastToWheelClients(data) {
+  wheelClients.forEach(client => {
+    if (client.readyState === 1) { // OPEN
+      client.send(JSON.stringify(data));
+    }
+  });
+}
+
+// ========== END GIVEAWAY API ENDPOINTS ==========
+
 // Root route - serve index.html
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
@@ -5111,7 +5753,7 @@ app.get('/', (req, res) => {
 
 // Port binding for Render
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`🚀 SERVER STARTED SUCCESSFULLY`);
   console.log(`${'='.repeat(60)}`);
@@ -5119,8 +5761,47 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Backend URL: ${process.env.BACKEND_URL || 'Not set'}`);
   console.log(`📧 Email configured: ${process.env.YOUR_EMAIL ? 'Yes ✅' : 'No ❌'}`);
   console.log(`💳 Stripe configured: ${process.env.STRIPE_SECRET_KEY ? 'Yes ✅' : 'No ❌'}`);
-  console.log(`🤖 Discord Bot API: ${DISCORD_BOT_API_URL}`);
+  console.log(`🤖 Sparksbot API: ${DISCORD_BOT_API_URL}`);
   console.log(`🎛️ Bot Automation Mode: ${botAutomationMode.toUpperCase()}`);
   console.log(`   └─ ${botAutomationMode === 'auto' ? '🤖 Auto-trigger bot on purchase' : '📧 Email confirmation required'}`);
   console.log(`${'='.repeat(60)}\n`);
 });
+
+// WebSocket Server for Giveaway Wheel
+const wss = new WebSocket.Server({ server, path: '/wheel-socket' });
+
+wss.on('connection', (ws) => {
+  console.log('🎡 New wheel viewer connected');
+  wheelClients.push(ws);
+  
+  // Send current state to new client
+  GiveawayModel.findOne().sort({ createdAt: -1 }).then(giveaway => {
+    if (giveaway) {
+      const eliminatedNames = giveaway.eliminated || [];
+      const participants = giveaway.entries.filter(entry => {
+        const fullName = `${entry.firstName} ${entry.lastName}`;
+        return !eliminatedNames.includes(fullName);
+      });
+      
+      ws.send(JSON.stringify({
+        type: 'update',
+        participants: participants.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName
+        })),
+        eliminated: eliminatedNames
+      }));
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('🎡 Wheel viewer disconnected');
+    wheelClients = wheelClients.filter(client => client !== ws);
+  });
+  
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
+
+console.log('🎡 WebSocket server initialized for giveaway wheel');
