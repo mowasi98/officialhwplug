@@ -166,7 +166,11 @@
     <div class="wheel-container">
         <h1>🎡 Admin Wheel Preview</h1>
         <p class="status-text" id="statusText">Loading wheel...</p>
-        <canvas id="wheelCanvas" width="700" height="700"></canvas>
+        <div style="position: relative; width: 100%; max-width: 700px; margin: 0 auto;">
+            <canvas id="wheelCanvas" width="700" height="700" style="width: 100%; height: auto; display: block;"></canvas>
+            <!-- Pointer (white triangle at top) -->
+            <div style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 50px solid #fff; z-index: 10; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));"></div>
+        </div>
         <button class="close-btn" onclick="window.close()">❌ Close Window</button>
     </div>
     
