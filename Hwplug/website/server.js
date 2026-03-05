@@ -5350,7 +5350,9 @@ app.get('/api/giveaway/status', async (req, res) => {
         spinDate: inMemoryGiveaway.spinDate,
         minParticipants: inMemoryGiveaway.minParticipants || 15,
         isSpinDay: isSpinDay,
-        entryCount: inMemoryGiveaway.entries.length
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!inMemoryGiveaway.winner,
+        winner: inMemoryGiveaway.winner || null
       });
     }
     
@@ -5370,7 +5372,9 @@ app.get('/api/giveaway/status', async (req, res) => {
       spinDate: giveaway.spinDate,
       minParticipants: giveaway.minParticipants || 15,
       isSpinDay: isSpinDay,
-      entryCount: giveaway.entries.length
+      entryCount: giveaway.entries.length,
+      hasWinner: !!giveaway.winner,
+      winner: giveaway.winner || null
     });
   } catch (error) {
     console.error('Error getting giveaway status:', error);

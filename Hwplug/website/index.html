@@ -1608,7 +1608,13 @@
           const checkEntry = await fetch(`${BACKEND_URL}/api/giveaway/check-entry?email=${encodeURIComponent(savedUsername)}`);
           const entryData = await checkEntry.json();
           
-          if (data.isSpinDay || data.wheelVisible) {
+          if (data.hasWinner) {
+            // We have a winner! Show "Check Winner" button
+            bannerTitle.innerHTML = '<span class="emoji-gift">🎉</span> WE HAVE A WINNER!';
+            bannerSubtitle.textContent = 'Click to see who won';
+            actionBtn.textContent = '🏆 Check Winner';
+            actionBtn.onclick = () => showWinnerFromBanner(data.winner);
+          } else if (data.isSpinDay || data.wheelVisible) {
             // It's spin day or wheel is live!
             if (data.wheelVisible) {
               bannerTitle.innerHTML = '<span class="emoji-gift">🎡</span> WHEEL IS LIVE NOW!';
@@ -1871,6 +1877,8 @@
             }
           } else if (data.type === 'winner') {
             showWinner(data.winner);
+            // Update banner to show "Check Winner" button
+            checkGiveawayStatus();
           } else if (data.type === 'visibility') {
             // Wheel visibility changed
             if (!data.visible) {
@@ -2110,6 +2118,19 @@
       
       // Confetti animation
       createConfetti();
+    }
+    
+    // Show winner popup from banner (when clicking "Check Winner" button)
+    function showWinnerFromBanner(winner) {
+      if (!winner) return;
+      
+      // Open the wheel modal first
+      openLiveWheelModal();
+      
+      // Wait a moment for modal to open, then show winner
+      setTimeout(() => {
+        showWinner(winner);
+      }, 300);
     }
 
     // Play sound effects (with better browser compatibility)
