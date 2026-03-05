@@ -2118,8 +2118,24 @@
         // Start with full name
         let displayName = participants[i].firstName + ' ' + participants[i].lastName;
         
-        // Always measure and truncate if needed (regardless of count)
+        // NEW: Dynamic font shrinking - try to fit text by reducing font size first
+        // This keeps more of the name visible instead of truncating
+        let currentFontSize = fontSize;
+        const minFontSize = 8; // Absolute minimum font size
         let textMetrics = ctx.measureText(displayName);
+        
+        // Try shrinking font size if text is too wide
+        while (textMetrics.width > maxWidth && currentFontSize > minFontSize) {
+          currentFontSize -= 1;
+          ctx.font = `bold ${currentFontSize}px Arial`;
+          textMetrics = ctx.measureText(displayName);
+        }
+        
+        // Update fontSize to the shrunk size (if it was reduced)
+        fontSize = currentFontSize;
+        
+        // Always measure and truncate if needed (regardless of count)
+        // This is the fallback if font shrinking wasn't enough
         
         // Strategy 1: If too wide and count > 8, use "First L." format
         if (textMetrics.width > maxWidth && count > 8) {
