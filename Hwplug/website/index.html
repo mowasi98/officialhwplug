@@ -1842,23 +1842,11 @@
     }
 
     // Draw the wheel on canvas
-    // Helper function to shade colors (for gradient effect)
-    function shadeColor(color, percent) {
-      const num = parseInt(color.replace('#',''), 16);
-      const amt = Math.round(2.55 * percent);
-      const R = (num >> 16) + amt;
-      const G = (num >> 8 & 0x00FF) + amt;
-      const B = (num & 0x0000FF) + amt;
-      return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
-        (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
-        .toString(16).slice(1);
-    }
-    
     function drawWheel() {
       const canvas = document.getElementById('wheelCanvas');
       if (!canvas) return;
       
-      const ctx = canvas.getContext('2d', { alpha: false });
+      const ctx = canvas.getContext('2d');
       if (!ctx) {
         console.error('Canvas context not supported');
         return;
@@ -1875,7 +1863,7 @@
       const centerY = rect.height / 2;
       const radius = Math.min(rect.width, rect.height) / 2 - 20;
       
-      // Clear canvas
+      // Clear canvas (transparent background, no black)
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       if (participants.length === 0) {
@@ -1896,100 +1884,44 @@
         return;
       }
       
-      // Draw 3D shadow effect (like wheelofnames.com)
-      ctx.save();
-      ctx.translate(centerX + 5, centerY + 5);
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(0,0,0,0.2)';
-      ctx.fill();
-      ctx.restore();
-      
-      // Draw wheel segments
-      const segmentAngle = (2 * Math.PI) / participants.length;
-      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'];
+      // Draw wheel segments (simple, clean style from your example)
+      const count = participants.length;
+      const sliceAngle = (2 * Math.PI) / count;
+      const colors = ['#f94144', '#f3722c', '#f8961e', '#f9844a', '#f9c74f', '#90be6d', '#43aa8b', '#577590'];
       
       ctx.save();
       ctx.translate(centerX, centerY);
       ctx.rotate(wheelRotation * Math.PI / 180);
       
-      participants.forEach((participant, index) => {
-        const startAngle = index * segmentAngle;
-        const endAngle = startAngle + segmentAngle;
+      for (let i = 0; i < count; i++) {
+        const startAngle = i * sliceAngle;
+        const endAngle = startAngle + sliceAngle;
         
-        // Draw segment with gradient
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
-        const baseColor = colors[index % colors.length];
-        gradient.addColorStop(0, baseColor);
-        gradient.addColorStop(1, shadeColor(baseColor, -20));
-        
+        // Draw slice
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, startAngle, endAngle);
         ctx.closePath();
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = colors[i % colors.length];
         ctx.fill();
-        
-        // Draw white border between segments
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
         ctx.stroke();
         
-        // Draw text with better shadow
+        // Draw text
         ctx.save();
-        ctx.rotate(startAngle + segmentAngle / 2);
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.translate(radius * 0.65, 0);
+        ctx.rotate(Math.PI / 2);
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 18px Arial';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 5;
-        ctx.shadowOffsetX = 2;
-        ctx.shadowOffsetY = 2;
-        ctx.fillText(participant.firstName + ' ' + participant.lastName, radius - 25, 0);
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(participants[i].firstName + ' ' + participants[i].lastName, 0, 0);
         ctx.restore();
-      });
+      }
       
       ctx.restore();
-      
-      // Draw outer rim (3D effect)
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 8;
-      ctx.stroke();
-      
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      
-      // Draw center circle with 3D effect
-      // Shadow
-      ctx.beginPath();
-      ctx.arc(centerX + 2, centerY + 2, 35, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fill();
-      
-      // Main circle with gradient
-      const centerGradient = ctx.createRadialGradient(centerX - 10, centerY - 10, 0, centerX, centerY, 35);
-      centerGradient.addColorStop(0, '#fff');
-      centerGradient.addColorStop(1, '#ddd');
-      
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 35, 0, 2 * Math.PI);
-      ctx.fillStyle = centerGradient;
-      ctx.fill();
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 5;
-      ctx.stroke();
-      
-      // Inner highlight
-      ctx.beginPath();
-      ctx.arc(centerX - 8, centerY - 8, 12, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fill();
     }
 
     // Spin the wheel animation
