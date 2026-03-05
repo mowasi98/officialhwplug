@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const helmet = require('helmet');
+const WebSocket = require('ws');
 
 // Fetch support (built-in in Node 18+, fallback for older versions)
 const fetch = globalThis.fetch || require('node-fetch');
@@ -365,15 +366,30 @@ app.use(generalLimiter);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hwplug';
 console.log('🔌 Connecting to MongoDB...');
 
+let mongoConnected = false;
+
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
   console.log('✅ MongoDB connected successfully');
+  mongoConnected = true;
 }).catch(err => {
   console.error('❌ MongoDB connection error:', err);
   console.error('⚠️  Server will continue with in-memory storage (data will not persist)');
+  mongoConnected = false;
 });
+
+// In-memory storage fallback for giveaway when MongoDB is not available
+let inMemoryGiveaway = {
+  active: false,
+  wheelVisible: false,
+  spinDate: '',
+  minParticipants: 15,
+  entries: [],
+  eliminated: [],
+  winner: null
+};
 
 // MongoDB Schema for persistent data
 const DataSchema = new mongoose.Schema({
@@ -393,6 +409,29 @@ const DataSchema = new mongoose.Schema({
 });
 
 const DataModel = mongoose.model('Data', DataSchema);
+
+// Giveaway Schema
+const GiveawaySchema = new mongoose.Schema({
+  active: { type: Boolean, default: false },
+  wheelVisible: { type: Boolean, default: false },
+  spinDate: { type: String, default: '' },
+  minParticipants: { type: Number, default: 15 }, // Minimum participants to start (1-15)
+  entries: [{
+    firstName: String,
+    lastName: String,
+    email: String,
+    enteredAt: { type: Date, default: Date.now }
+  }],
+  eliminated: [String], // Array of eliminated names
+  winner: {
+    firstName: String,
+    lastName: String
+  },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const GiveawayModel = mongoose.model('Giveaway', GiveawaySchema);
 
 // Daily purchase limit tracking (5 per product per day)
 let dailyLimits = {
@@ -5294,6 +5333,669 @@ app.get('/manual-process-page', async (req, res) => {
   }
 });
 
+// ========== GIVEAWAY API ENDPOINTS ==========
+
+// Get giveaway status
+app.get('/api/giveaway/status', async (req, res) => {
+  try {
+    if (!mongoConnected) {
+      // Use in-memory storage
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      const isSpinDay = inMemoryGiveaway.spinDate && today.includes(inMemoryGiveaway.spinDate.split(',')[1]?.trim());
+      
+      return res.json({
+        active: inMemoryGiveaway.active,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        spinDate: inMemoryGiveaway.spinDate,
+        minParticipants: inMemoryGiveaway.minParticipants || 15,
+        isSpinDay: isSpinDay,
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
+        winner: inMemoryGiveaway.winner || null
+      });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ active: false, wheelVisible: false });
+    }
+    
+    // Check if today is spin day
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const isSpinDay = giveaway.spinDate && today.includes(giveaway.spinDate.split(',')[1]?.trim());
+    
+    res.json({
+      active: giveaway.active,
+      wheelVisible: giveaway.wheelVisible || false,
+      spinDate: giveaway.spinDate,
+      minParticipants: giveaway.minParticipants || 15,
+      isSpinDay: isSpinDay,
+      entryCount: giveaway.entries.length,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
+      winner: giveaway.winner || null
+    });
+  } catch (error) {
+    console.error('Error getting giveaway status:', error);
+    res.status(500).json({ error: 'Failed to get giveaway status' });
+  }
+});
+
+// Check if user already entered
+app.get('/api/giveaway/check-entry', async (req, res) => {
+  try {
+    const { email } = req.query;
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ entered: false });
+    }
+    
+    const entry = giveaway.entries.find(e => e.email === email);
+    
+    if (entry) {
+      res.json({
+        entered: true,
+        firstName: entry.firstName,
+        lastName: entry.lastName,
+        snapchat: entry.snapchat
+      });
+    } else {
+      res.json({ entered: false });
+    }
+  } catch (error) {
+    console.error('Error checking entry:', error);
+    res.status(500).json({ error: 'Failed to check entry' });
+  }
+});
+
+// Submit giveaway entry
+app.post('/api/giveaway/enter', async (req, res) => {
+  try {
+    const { firstName, lastName, email } = req.body;
+    
+    if (!firstName || !lastName || !email) {
+      return res.json({ success: false, message: 'All fields are required' });
+    }
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      const alreadyEntered = inMemoryGiveaway.entries.find(e => e.email === email);
+      if (alreadyEntered) {
+        return res.json({ success: false, message: 'You have already entered!' });
+      }
+      
+      // Check max entries (30 people max)
+      if (inMemoryGiveaway.entries.length >= 30) {
+        return res.json({ success: false, message: 'Giveaway is full! Maximum 30 entries reached.' });
+      }
+      
+      inMemoryGiveaway.entries.push({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        enteredAt: new Date()
+      });
+      
+      console.log(`🎁 New entry: ${firstName} ${lastName} (in-memory)`);
+      
+      // Broadcast to wheel viewers
+      const eliminatedNames = inMemoryGiveaway.eliminated || [];
+      const participants = inMemoryGiveaway.entries.filter(entry => {
+        const fullName = `${entry.firstName} ${entry.lastName}`;
+        return !eliminatedNames.includes(fullName);
+      });
+      
+      broadcastToWheelClients({
+        type: 'update',
+        participants: participants.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName
+        })),
+        eliminated: eliminatedNames
+      });
+      
+      return res.json({ success: true, message: 'Entry submitted successfully!' });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway || !giveaway.active) {
+      return res.json({ success: false, message: 'Giveaway is not active' });
+    }
+    
+    // Check if user already entered
+    const alreadyEntered = giveaway.entries.find(e => e.email === email);
+    if (alreadyEntered) {
+      return res.json({ success: false, message: 'You have already entered!' });
+    }
+    
+    // Check max entries (30 people max)
+    if (giveaway.entries.length >= 30) {
+      return res.json({ success: false, message: 'Giveaway is full! Maximum 30 entries reached.' });
+    }
+    
+    // Add entry
+    giveaway.entries.push({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      enteredAt: new Date()
+    });
+    
+    giveaway.updatedAt = new Date();
+    await giveaway.save();
+    
+    // Broadcast new entry to all connected wheel viewers (LIVE UPDATE!)
+    const eliminatedNames = giveaway.eliminated || [];
+    const participants = giveaway.entries.filter(entry => {
+      const fullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(fullName);
+    });
+    
+    broadcastToWheelClients({
+      type: 'update',
+      participants: participants.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName
+      })),
+      eliminated: eliminatedNames
+    });
+    
+    console.log(`🎁 New entry: ${firstName} ${lastName} - Broadcasting to ${wheelClients.length} viewers`);
+    
+    // Send email notification to admin
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: 'hwplug <noreply@hwplug.store>',
+        to: process.env.YOUR_EMAIL,
+        subject: `🎁 New Giveaway Entry: ${firstName} ${lastName}`,
+        html: `
+          <h2>New Giveaway Entry!</h2>
+          <p><strong>Name:</strong> ${firstName} ${lastName}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          <hr>
+          <p><strong>Total Entries:</strong> ${giveaway.entries.length}</p>
+        `
+      });
+    } catch (emailError) {
+      console.error('Error sending entry notification email:', emailError);
+    }
+    
+    res.json({ success: true, message: 'Entry submitted successfully!' });
+  } catch (error) {
+    console.error('Error submitting entry:', error);
+    res.status(500).json({ success: false, message: 'Failed to submit entry' });
+  }
+});
+
+// Get participants for wheel
+app.get('/api/giveaway/participants', async (req, res) => {
+  try {
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ participants: [], eliminated: [] });
+    }
+    
+    // Get non-eliminated participants
+    const eliminatedNames = giveaway.eliminated || [];
+    const participants = giveaway.entries.filter(entry => {
+      const fullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(fullName);
+    });
+    
+    res.json({
+      participants: participants.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        snapchat: p.snapchat
+      })),
+      eliminated: eliminatedNames
+    });
+  } catch (error) {
+    console.error('Error getting participants:', error);
+    res.status(500).json({ error: 'Failed to get participants' });
+  }
+});
+
+// Admin: Spin the wheel (eliminate one person)
+app.post('/api/giveaway/spin', async (req, res) => {
+  try {
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ success: false, message: 'No active giveaway' });
+    }
+    
+    // Get remaining participants
+    const eliminatedNames = giveaway.eliminated || [];
+    const remaining = giveaway.entries.filter(entry => {
+      const fullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(fullName);
+    });
+    
+    if (remaining.length === 0) {
+      return res.json({ success: false, message: 'No participants left' });
+    }
+    
+    // Check minimum participants (dynamic minimum)
+    const minRequired = giveaway.minParticipants || 15;
+    if (remaining.length < minRequired && eliminatedNames.length === 0) {
+      return res.json({ success: false, message: `Need at least ${minRequired} people to start! Currently: ${remaining.length}` });
+    }
+    
+    // Removed: Don't auto-declare winner if only 1 person left
+    // Let them be eliminated by the spin instead
+    // Winner is only declared when going from 2 people to 1 person
+    
+    // Randomly select someone to eliminate
+    const randomIndex = Math.floor(Math.random() * remaining.length);
+    const eliminated = remaining[randomIndex];
+    const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
+    
+    // Calculate the angle for this person's slice
+    // The wheel pointer is at the top (12 o'clock = 0 degrees)
+    // Slices are drawn starting from 0 degrees going clockwise
+    // Slice 0: 0° to sliceAngle°, Slice 1: sliceAngle° to 2*sliceAngle°, etc.
+    const sliceAngle = 360 / remaining.length; // degrees per person
+    const targetSliceIndex = randomIndex;
+    
+    // Calculate the center angle of the target slice
+    const sliceCenterAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
+    
+    // The pointer points DOWN from the top (0 degrees)
+    // When we rotate the wheel by X degrees clockwise, the slice that was at angle X is now at the top
+    // So to get slice[targetSliceIndex] under the pointer, we rotate BY its center angle
+    // Add a small random offset for drama (±20% of slice width)
+    const randomOffset = (Math.random() * 0.4 - 0.2) * sliceAngle; // -20% to +20% of slice
+    const targetAngle = sliceCenterAngle + randomOffset;
+    
+    // Add multiple full rotations for dramatic effect (5-8 full spins)
+    const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
+    const totalRotation = (fullRotations * 360) + targetAngle;
+    
+    // Add to eliminated list
+    if (!giveaway.eliminated) {
+      giveaway.eliminated = [];
+    }
+    giveaway.eliminated.push(eliminatedName);
+    giveaway.updatedAt = new Date();
+    
+    // Check if this elimination results in a winner
+    // Winner is declared when we go from 2 people to 1 person (not 1 to 0)
+    const remainingAfterSpin = remaining.length - 1;
+    const isWinner = remainingAfterSpin === 1;
+    
+    if (isWinner) {
+      // Find the winner (the person who wasn't eliminated this round)
+      const winner = remaining.find(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
+      giveaway.winner = {
+        firstName: winner.firstName,
+        lastName: winner.lastName
+      };
+    }
+    
+    await giveaway.save();
+    
+    // Broadcast spin to all connected clients with rotation info
+    broadcastToWheelClients({
+      type: 'spin',
+      eliminatedName: eliminatedName,
+      eliminatedIndex: randomIndex,
+      totalParticipants: remaining.length,
+      targetRotation: totalRotation, // degrees to rotate
+      isWinner: isWinner,
+      winner: isWinner ? giveaway.winner : null
+    });
+    
+    res.json({
+      success: true,
+      eliminatedName: eliminatedName,
+      eliminatedIndex: randomIndex,
+      totalParticipants: remaining.length,
+      targetRotation: totalRotation,
+      remaining: remainingAfterSpin,
+      isWinner: isWinner,
+      winnerData: isWinner ? giveaway.winner : null
+    });
+  } catch (error) {
+    console.error('Error spinning wheel:', error);
+    res.status(500).json({ success: false, message: 'Failed to spin wheel' });
+  }
+});
+
+// Admin: Get all giveaway entries
+app.get('/api/giveaway/entries', async (req, res) => {
+  try {
+    const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ entries: [] });
+    }
+    
+    res.json({
+      entries: giveaway.entries,
+      eliminated: giveaway.eliminated || [],
+      winner: giveaway.winner || null
+    });
+  } catch (error) {
+    console.error('Error getting entries:', error);
+    res.status(500).json({ error: 'Failed to get entries' });
+  }
+});
+
+// Admin: Toggle giveaway active status
+// Set wheel visibility (show/hide to public)
+app.post('/api/giveaway/set-wheel-visibility', async (req, res) => {
+  try {
+    const { visible } = req.body;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.wheelVisible = visible;
+      console.log(`🎡 Wheel visibility set to: ${visible ? 'VISIBLE' : 'HIDDEN'} (in-memory)`);
+      
+      // Broadcast to all connected clients
+      broadcastToWheelClients({
+        type: 'visibility',
+        visible: visible
+      });
+      
+      return res.json({ success: true, visible: inMemoryGiveaway.wheelVisible });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        wheelVisible: visible,
+        spinDate: '',
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.wheelVisible = visible;
+    }
+    
+    await giveaway.save();
+    console.log(`🎡 Wheel visibility set to: ${visible ? 'VISIBLE' : 'HIDDEN'}`);
+    
+    // Broadcast to all connected clients
+    broadcastToWheelClients({
+      type: 'visibility',
+      visible: visible
+    });
+    
+    res.json({ success: true, visible: giveaway.wheelVisible });
+  } catch (error) {
+    console.error('Error setting wheel visibility:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/giveaway/toggle', async (req, res) => {
+  try {
+    const { active } = req.body;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.active = active;
+      
+      // If turning OFF, clear winner data
+      if (!active) {
+        inMemoryGiveaway.winner = null;
+        console.log(`🎁 Giveaway DEACTIVATED - Winner cleared (in-memory)`);
+      } else {
+        console.log(`🎁 Giveaway ACTIVATED (in-memory)`);
+      }
+      
+      // Broadcast status change to all clients
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: active,
+        spinDate: inMemoryGiveaway.spinDate,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
+        winner: inMemoryGiveaway.winner
+      });
+      
+      return res.json({ success: true, active: inMemoryGiveaway.active });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      // Create new giveaway
+      giveaway = new GiveawayModel({
+        active: active,
+        spinDate: '',
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.active = active;
+      
+      // If turning OFF, clear winner data
+      if (!active) {
+        giveaway.winner = null;
+        console.log(`🎁 Giveaway DEACTIVATED - Winner cleared`);
+      } else {
+        console.log(`🎁 Giveaway ACTIVATED`);
+      }
+      
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    // Broadcast status change to all clients
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      wheelVisible: giveaway.wheelVisible || false,
+      entryCount: giveaway.entries.length,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
+      winner: giveaway.winner
+    });
+    
+    res.json({ success: true, active: giveaway.active });
+  } catch (error) {
+    console.error('Error toggling giveaway:', error);
+    res.status(500).json({ success: false, error: 'Failed to toggle giveaway' });
+  }
+});
+
+// Admin: Set spin date
+app.post('/api/giveaway/set-date', async (req, res) => {
+  try {
+    const { spinDate } = req.body;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.spinDate = spinDate;
+      console.log(`🎁 Spin date set to: ${spinDate} (in-memory)`);
+      
+      // Broadcast date change to all clients
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: inMemoryGiveaway.active,
+        spinDate: spinDate,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
+        winner: inMemoryGiveaway.winner
+      });
+      
+      return res.json({ success: true, spinDate: inMemoryGiveaway.spinDate });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        spinDate: spinDate,
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.spinDate = spinDate;
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    // Broadcast date change to all clients
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      wheelVisible: giveaway.wheelVisible || false,
+      entryCount: giveaway.entries.length,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
+      winner: giveaway.winner
+    });
+    
+    res.json({ success: true, spinDate: giveaway.spinDate });
+  } catch (error) {
+    console.error('Error setting spin date:', error);
+    res.status(500).json({ success: false, error: 'Failed to set spin date' });
+  }
+});
+
+// Set minimum participants
+app.post('/api/giveaway/set-min-participants', async (req, res) => {
+  try {
+    const { minParticipants } = req.body;
+    
+    // Validate range (1-15)
+    if (minParticipants < 1 || minParticipants > 15) {
+      return res.json({ success: false, message: 'Minimum must be between 1 and 15' });
+    }
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.minParticipants = minParticipants;
+      console.log(`🎁 Minimum participants set to: ${minParticipants} (in-memory)`);
+      return res.json({ success: true, minParticipants: inMemoryGiveaway.minParticipants });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        minParticipants: minParticipants,
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.minParticipants = minParticipants;
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    res.json({ success: true, minParticipants: giveaway.minParticipants });
+  } catch (error) {
+    console.error('Error setting minimum participants:', error);
+    res.status(500).json({ success: false, error: 'Failed to set minimum participants' });
+  }
+});
+
+// Admin: Reset giveaway
+app.post('/api/giveaway/reset', async (req, res) => {
+  try {
+    if (!mongoConnected) {
+      // Get current active state before resetting
+      const wasActive = inMemoryGiveaway.active;
+      const currentSpinDate = inMemoryGiveaway.spinDate;
+      const currentMinParticipants = inMemoryGiveaway.minParticipants || 15;
+      
+      // Reset in-memory storage BUT keep it active if it was active
+      inMemoryGiveaway = {
+        active: wasActive, // Keep the same active state
+        wheelVisible: false,
+        spinDate: currentSpinDate, // Keep the spin date
+        minParticipants: currentMinParticipants,
+        entries: [],
+        eliminated: [],
+        winner: null
+      };
+      
+      console.log('🎁 Giveaway RESET (in-memory) - Cleared all entries and winner');
+      
+      // Broadcast reset to all clients
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: wasActive,
+        spinDate: currentSpinDate,
+        wheelVisible: false,
+        entryCount: 0,
+        hasWinner: false,
+        winner: null
+      });
+      
+      return res.json({ success: true, message: 'Giveaway reset successfully' });
+    }
+    
+    // Get the current giveaway to preserve active state and spin date
+    let currentGiveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    const wasActive = currentGiveaway ? currentGiveaway.active : false;
+    const currentSpinDate = currentGiveaway ? currentGiveaway.spinDate : '';
+    const currentMinParticipants = currentGiveaway ? currentGiveaway.minParticipants : 15;
+    
+    const giveaway = new GiveawayModel({
+      active: wasActive, // Keep the same active state
+      wheelVisible: false,
+      spinDate: currentSpinDate, // Keep the spin date
+      minParticipants: currentMinParticipants,
+      entries: [],
+      eliminated: [],
+      winner: null
+    });
+    
+    await giveaway.save();
+    
+    console.log('🎁 Giveaway RESET - Cleared all entries and winner');
+    
+    // Broadcast reset to all clients
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: wasActive,
+      spinDate: currentSpinDate,
+      wheelVisible: false,
+      entryCount: 0,
+      hasWinner: false,
+      winner: null
+    });
+    
+    res.json({ success: true, message: 'Giveaway reset successfully' });
+  } catch (error) {
+    console.error('Error resetting giveaway:', error);
+    res.status(500).json({ success: false, error: 'Failed to reset giveaway' });
+  }
+});
+
+// WebSocket clients for wheel updates
+let wheelClients = [];
+
+function broadcastToWheelClients(data) {
+  wheelClients.forEach(client => {
+    if (client.readyState === 1) { // OPEN
+      client.send(JSON.stringify(data));
+    }
+  });
+}
+
+// ========== END GIVEAWAY API ENDPOINTS ==========
+
 // Root route - serve index.html
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
@@ -5301,7 +6003,7 @@ app.get('/', (req, res) => {
 
 // Port binding for Render
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`🚀 SERVER STARTED SUCCESSFULLY`);
   console.log(`${'='.repeat(60)}`);
@@ -5314,3 +6016,42 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   └─ ${botAutomationMode === 'auto' ? '🤖 Auto-trigger bot on purchase' : '📧 Email confirmation required'}`);
   console.log(`${'='.repeat(60)}\n`);
 });
+
+// WebSocket Server for Giveaway Wheel
+const wss = new WebSocket.Server({ server, path: '/wheel-socket' });
+
+wss.on('connection', (ws) => {
+  console.log('🎡 New wheel viewer connected');
+  wheelClients.push(ws);
+  
+  // Send current state to new client
+  GiveawayModel.findOne().sort({ createdAt: -1 }).then(giveaway => {
+    if (giveaway) {
+      const eliminatedNames = giveaway.eliminated || [];
+      const participants = giveaway.entries.filter(entry => {
+        const fullName = `${entry.firstName} ${entry.lastName}`;
+        return !eliminatedNames.includes(fullName);
+      });
+      
+      ws.send(JSON.stringify({
+        type: 'update',
+        participants: participants.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName
+        })),
+        eliminated: eliminatedNames
+      }));
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('🎡 Wheel viewer disconnected');
+    wheelClients = wheelClients.filter(client => client !== ws);
+  });
+  
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+});
+
+console.log('🎡 WebSocket server initialized for giveaway wheel');

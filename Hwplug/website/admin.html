@@ -429,17 +429,6 @@
                             </head>
                             <body>
                               <!-- Custom Confirmation Modal -->
-                              <div id="confirmModal" class="modal-overlay">
-                                <div class="modal-box">
-                                  <div class="modal-header" id="modalHeader">⚠️ Confirm Action</div>
-                                  <div class="modal-body" id="modalBody">Are you sure you want to proceed?</div>
-                                  <div class="modal-buttons">
-                                    <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
-                                    <button class="modal-btn modal-btn-confirm" id="modalConfirm">Confirm</button>
-                                  </div>
-                                </div>
-                              </div>
-                              
                               <div class="admin-container">
                                 <h1>🔐 Admin Panel - <img src="plug-logo.png" alt="Plug Logo" style="height: 1em; vertical-align: middle; margin: 0 0.3em;">hwplug</h1>
                                 
@@ -580,6 +569,123 @@
                                     <div id="forceReloginStatus" style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(255,255,255,0.9); border-radius: 8px; display: none; color: #333;"></div>
                                   </div>
                                   
+                                  <!-- Giveaway Controls Section -->
+                                  <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 50%, #ffa07a 100%); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 3px solid #ff4757; box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);">
+                                    <h3 style="margin: 0 0 0.5rem 0; color: #fff; font-size: 1.4rem;">🎁 GIVEAWAY CONTROLS</h3>
+                                    <p style="font-size: 0.9rem; color: #fff; margin-bottom: 1rem;">Manage the spin the wheel giveaway:</p>
+                                    
+                                    <!-- Toggle Giveaway Active -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                        <button class="btn" id="toggleGiveawayBtn" style="background: #fff; color: #ff4757; font-weight: 700; touch-action: manipulation;">
+                                          <span id="giveawayButtonText">☐ Giveaway Active</span>
+                                        </button>
+                                        <span id="giveawayStatus" style="color: #fff; font-weight: 600; padding: 0.5rem 1rem; background: rgba(255,255,255,0.2); border-radius: 6px;">Status: Inactive</span>
+                                      </div>
+                                      <p style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin: 0;">Toggle to show/hide giveaway banner on website</p>
+                                    </div>
+                                    
+                                    <!-- Set Spin Date -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.5rem 0; font-weight: 600;">📅 Spin Date:</p>
+                                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                                        <input type="date" id="giveawaySpinDatePicker" style="flex: 1; min-width: 200px; padding: 0.6rem; border: 2px solid #fff; border-radius: 6px; font-size: 1rem; background: #fff; color: #333; cursor: pointer;">
+                                        <button class="btn" id="setSpinDateBtn" style="background: #fff; color: #ff4757; font-weight: 700; touch-action: manipulation;">Set Date</button>
+                                      </div>
+                                      <p style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;">Pick a date from the calendar - it will be formatted automatically</p>
+                                    </div>
+                                    
+                                    <!-- Minimum Participants -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.5rem 0; font-weight: 600;">👥 Minimum Participants to Start:</p>
+                                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                                        <input type="number" id="minParticipantsInput" min="1" max="15" value="15" style="width: 80px; padding: 0.6rem; border: 2px solid #fff; border-radius: 6px; font-size: 1rem; font-weight: 700; text-align: center;">
+                                        <button class="btn" id="setMinParticipantsBtn" style="background: #fff; color: #ff4757; font-weight: 700; touch-action: manipulation;">Set Minimum</button>
+                                        <span style="color: #fff; font-size: 0.85rem;">(Range: 1-15)</span>
+                                      </div>
+                                      <p style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;">Spin button won't work until this many people enter</p>
+                                    </div>
+                                    
+                                    <!-- Current Entries -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.5rem 0; font-weight: 600;">🎯 Current Entries:</p>
+                                      <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <div style="background: #fff; color: #ff4757; padding: 0.8rem 1.5rem; border-radius: 8px; font-size: 1.5rem; font-weight: 900;">
+                                          <span id="giveawayEntryCount">0</span> people
+                                        </div>
+                                        <button class="btn" id="viewEntriesBtn" style="background: #fff; color: #ff4757; font-weight: 700; touch-action: manipulation;">VIEW ALL ENTRIES</button>
+                                      </div>
+                                    </div>
+                                    
+                                    <!-- Show/Hide Wheel Controls -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.8rem 0; font-weight: 600;">Public Wheel Visibility:</p>
+                                      <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                                        <button class="btn" id="showWheelBtn" style="background: #28a745; color: #fff; font-weight: 700; touch-action: manipulation;">
+                                          👁️ SHOW WHEEL (Make Live)
+                                        </button>
+                                        <button class="btn" id="hideWheelBtn" style="background: #dc3545; color: #fff; font-weight: 700; touch-action: manipulation;">
+                                          🚫 HIDE WHEEL
+                                        </button>
+                                      </div>
+                                      <p style="font-size: 0.75rem; color: rgba(255,255,255,0.9); margin: 0.8rem 0 0 0;">When shown, everyone can watch the wheel live on the website</p>
+                                      <div id="wheelVisibilityStatus" style="margin-top: 0.8rem; padding: 0.5rem; background: rgba(255,255,255,0.2); border-radius: 6px; font-weight: 600; color: #fff;"></div>
+                                    </div>
+                                    
+                                    <!-- Spin Controls -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+                                      <button class="btn" id="spinWheelBtn" style="background: #fff; color: #6C63FF; font-weight: 900; font-size: 1.3rem; padding: 1.2rem 2.5rem; touch-action: manipulation; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                                        🎡 SPIN THE WHEEL NOW
+                                      </button>
+                                      <p style="font-size: 0.85rem; color: #fff; margin: 1rem 0 0.5rem 0;">Click to eliminate one random person</p>
+                                      <button class="btn" id="viewAdminWheelBtn" style="background: rgba(255,255,255,0.9); color: #6C63FF; font-weight: 700; margin-top: 0.5rem; touch-action: manipulation;">
+                                        👀 VIEW WHEEL (Admin Preview)
+                                      </button>
+                                      <div id="spinResult" style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.2); border-radius: 6px; display: none;">
+                                        <p style="color: #fff; font-weight: 700; margin: 0; font-size: 1.1rem;"></p>
+                                      </div>
+                                    </div>
+                                    
+                                    <!-- Reset Giveaway -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px;">
+                                      <button class="btn" id="resetGiveawayBtn" style="background: #fff; color: #ff4757; font-weight: 700; touch-action: manipulation;">
+                                        🔄 RESET GIVEAWAY
+                                      </button>
+                                      <p style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;">⚠️ Clear all entries and start fresh</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <!-- Entries Modal -->
+                                  <div id="entriesModal" class="modal-overlay">
+                                    <div class="modal-box" style="max-width: 700px;">
+                                      <div class="modal-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);">
+                                        🎁 Giveaway Entries
+                                      </div>
+                                      <div class="modal-body" style="max-height: 500px; overflow-y: auto; text-align: left;">
+                                        <div id="entriesListContainer"></div>
+                                      </div>
+                                      <div class="modal-buttons">
+                                        <button class="modal-btn modal-btn-cancel" onclick="closeEntriesModal()">Close</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <!-- Confirmation Modal -->
+                                  <div id="confirmModal" class="modal-overlay">
+                                    <div class="modal-box" style="max-width: 500px;">
+                                      <div class="modal-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);">
+                                        ⚠️ Confirm Action
+                                      </div>
+                                      <div class="modal-body" style="text-align: center; padding: 2rem;">
+                                        <p id="confirmMessage" style="font-size: 1.1rem; color: #333; margin: 0;"></p>
+                                      </div>
+                                      <div class="modal-buttons">
+                                        <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal(false)">Cancel</button>
+                                        <button class="modal-btn modal-btn-confirm" onclick="closeConfirmModal(true)" style="background: #ff4757;">Confirm</button>
+                                      </div>
+                                    </div>
+                                  </div>
+
                                   <div class="availability-section">
                                     <h3 style="margin-top: 0; color: #856404;">🌐 Global Availability Controls</h3>
                                     <p style="color: #856404; margin-bottom: 1rem;">Mark all products as available or not available</p>
@@ -2889,6 +2995,407 @@
                                     showMessage('Error removing from whitelist: ' + error.message, 'error');
                                   }
                                 }
+
+                                // ====== GIVEAWAY MANAGEMENT FUNCTIONS ======
+                                
+                                // Load giveaway status on page load
+                                async function loadGiveawayStatus() {
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/status`);
+                                    const data = await response.json();
+                                    
+                                    updateGiveawayUI(data.active);
+                                    
+                                    // Load entries count
+                                    const entriesResponse = await fetch(`${BACKEND_URL}/api/giveaway/entries`);
+                                    const entriesData = await entriesResponse.json();
+                                    document.getElementById('giveawayEntryCount').textContent = entriesData.entries.length;
+                                    
+                                    // Update minimum participants input
+                                    if (data.minParticipants) {
+                                      document.getElementById('minParticipantsInput').value = data.minParticipants;
+                                    }
+                                    
+                                    // Update wheel visibility status
+                                    const wheelVisibilityEl = document.getElementById('wheelVisibilityStatus');
+                                    if (data.wheelVisible) {
+                                      wheelVisibilityEl.textContent = '✅ Wheel is LIVE - Everyone can watch!';
+                                      wheelVisibilityEl.style.background = '#28a745';
+                                    } else {
+                                      wheelVisibilityEl.textContent = '🚫 Wheel is HIDDEN - Only you can see it';
+                                      wheelVisibilityEl.style.background = '#dc3545';
+                                    }
+                                  } catch (error) {
+                                    console.error('Error loading giveaway status:', error);
+                                  }
+                                }
+                                
+                                function updateGiveawayUI(isActive) {
+                                  const buttonText = document.getElementById('giveawayButtonText');
+                                  const status = document.getElementById('giveawayStatus');
+                                  
+                                  if (isActive) {
+                                    buttonText.textContent = '☑ Giveaway Active';
+                                    status.textContent = 'Status: ✅ Active';
+                                    status.style.background = '#fff';
+                                    status.style.color = '#28a745';
+                                  } else {
+                                    buttonText.textContent = '☐ Giveaway Active';
+                                    status.textContent = 'Status: ⭕ Inactive';
+                                    status.style.background = 'rgba(255,255,255,0.2)';
+                                    status.style.color = '#fff';
+                                  }
+                                }
+                                
+                                async function toggleGiveaway() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const statusResponse = await fetch(`${BACKEND_URL}/api/giveaway/status`);
+                                    const statusData = await statusResponse.json();
+                                    const newStatus = !statusData.active;
+                                    
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/toggle`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ active: newStatus })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      updateGiveawayUI(data.active);
+                                      showMessage(`Giveaway is now ${data.active ? 'ACTIVE' : 'INACTIVE'}`, 'success');
+                                    } else {
+                                      showMessage('Failed to toggle giveaway', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error toggling giveaway:', error);
+                                    showMessage('Error toggling giveaway: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                async function setMinParticipants() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  const minParticipants = parseInt(document.getElementById('minParticipantsInput').value);
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  if (isNaN(minParticipants) || minParticipants < 1 || minParticipants > 15) {
+                                    showMessage('Minimum must be between 1 and 15', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-min-participants`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ minParticipants })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage(`Minimum participants set to: ${data.minParticipants}`, 'success');
+                                    } else {
+                                      showMessage(data.message || 'Failed to set minimum participants', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error setting minimum participants:', error);
+                                    showMessage('Error setting minimum participants: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                async function setSpinDate() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  const datePickerValue = document.getElementById('giveawaySpinDatePicker').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  if (!datePickerValue) {
+                                    showMessage('Please select a date from the calendar', 'error');
+                                    return;
+                                  }
+                                  
+                                  // Format the date nicely: "Friday, March 13th"
+                                  const date = new Date(datePickerValue + 'T00:00:00');
+                                  const options = { weekday: 'long', month: 'long', day: 'numeric' };
+                                  let formattedDate = date.toLocaleDateString('en-US', options);
+                                  
+                                  // Add ordinal suffix (st, nd, rd, th)
+                                  const day = date.getDate();
+                                  const suffix = (day % 10 === 1 && day !== 11) ? 'st' :
+                                                 (day % 10 === 2 && day !== 12) ? 'nd' :
+                                                 (day % 10 === 3 && day !== 13) ? 'rd' : 'th';
+                                  formattedDate = formattedDate.replace(/\d+/, day + suffix);
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-date`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ spinDate: formattedDate })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage(`Spin date set to: ${data.spinDate}`, 'success');
+                                    } else {
+                                      showMessage('Failed to set spin date', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error setting spin date:', error);
+                                    showMessage('Error setting spin date: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                async function viewEntries() {
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/entries`);
+                                    const data = await response.json();
+                                    
+                                    const container = document.getElementById('entriesListContainer');
+                                    
+                                    if (data.entries.length === 0) {
+                                      container.innerHTML = '<p style="text-align: center; color: #999;">No entries yet</p>';
+                                    } else {
+                                      let html = '<div style="margin-bottom: 1rem;">';
+                                      html += `<p style="font-weight: 600; margin-bottom: 0.5rem;">Total Entries: ${data.entries.length}</p>`;
+                                      html += '</div>';
+                                      
+                                      data.entries.forEach((entry, index) => {
+                                        const isEliminated = data.eliminated.includes(`${entry.firstName} ${entry.lastName}`);
+                                        const isWinner = data.winner && data.winner.email === entry.email;
+                                        
+                                        html += `
+                                          <div style="padding: 0.8rem; margin-bottom: 0.5rem; background: ${isWinner ? '#d4edda' : isEliminated ? '#f8d7da' : '#f8f9fa'}; border-radius: 6px; border-left: 4px solid ${isWinner ? '#28a745' : isEliminated ? '#dc3545' : '#6c757d'};">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                              <div>
+                                                <strong>${entry.firstName} ${entry.lastName}</strong>
+                                                ${isWinner ? '<span style="color: #28a745; font-weight: 900; margin-left: 0.5rem;">🎉 WINNER!</span>' : ''}
+                                                ${isEliminated && !isWinner ? '<span style="color: #dc3545; font-weight: 700; margin-left: 0.5rem;">❌ Eliminated</span>' : ''}
+                                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.3rem;">
+                                                  📧 ${entry.email}<br>
+                                                  ⏰ ${new Date(entry.enteredAt).toLocaleString()}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        `;
+                                      });
+                                      
+                                      container.innerHTML = html;
+                                    }
+                                    
+                                    document.getElementById('entriesModal').classList.add('active');
+                                  } catch (error) {
+                                    console.error('Error viewing entries:', error);
+                                    showMessage('Error loading entries: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                function closeEntriesModal() {
+                                  document.getElementById('entriesModal').classList.remove('active');
+                                }
+                                
+                                // Custom confirmation modal
+                                let confirmCallback = null;
+                                
+                                function showConfirm(message) {
+                                  return new Promise((resolve) => {
+                                    confirmCallback = resolve;
+                                    document.getElementById('confirmMessage').textContent = message;
+                                    document.getElementById('confirmModal').classList.add('active');
+                                  });
+                                }
+                                
+                                function closeConfirmModal(confirmed) {
+                                  document.getElementById('confirmModal').classList.remove('active');
+                                  if (confirmCallback) {
+                                    confirmCallback(confirmed);
+                                    confirmCallback = null;
+                                  }
+                                }
+                                
+                                async function spinWheel() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  // Show custom confirmation modal
+                                  const confirmed = await showConfirm('Are you sure you want to spin the wheel? This will eliminate one random person.');
+                                  if (!confirmed) {
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/spin`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' }
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      const resultDiv = document.getElementById('spinResult');
+                                      const resultText = resultDiv.querySelector('p');
+                                      
+                                      if (data.winner) {
+                                        resultText.textContent = `🎉 WINNER: ${data.winnerData.firstName} ${data.winnerData.lastName}!`;
+                                        resultDiv.style.background = 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)';
+                                        resultDiv.style.display = 'block';
+                                        showMessage(`🎉 We have a WINNER: ${data.winnerData.firstName} ${data.winnerData.lastName}!`, 'success');
+                                      } else {
+                                        resultText.textContent = `❌ Eliminated: ${data.eliminatedName} (${data.remaining} remaining)`;
+                                        resultDiv.style.background = 'rgba(255,255,255,0.2)';
+                                        resultDiv.style.display = 'block';
+                                        showMessage(`Eliminated: ${data.eliminatedName}`, 'success');
+                                      }
+                                      
+                                      // Refresh entry count
+                                      loadGiveawayStatus();
+                                    } else {
+                                      showMessage(data.message || 'Failed to spin wheel', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error spinning wheel:', error);
+                                    showMessage('Error spinning wheel: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                async function resetGiveaway() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  // Show custom confirmation modal
+                                  const confirmed = await showConfirm('⚠️ Are you sure you want to RESET the giveaway? This will clear ALL entries and cannot be undone!');
+                                  if (!confirmed) {
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/reset`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' }
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage('Giveaway reset successfully!', 'success');
+                                      document.getElementById('giveawayEntryCount').textContent = '0';
+                                      document.getElementById('giveawaySpinDate').value = '';
+                                      document.getElementById('spinResult').style.display = 'none';
+                                      updateGiveawayUI(false);
+                                    } else {
+                                      showMessage('Failed to reset giveaway', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error resetting giveaway:', error);
+                                    showMessage('Error resetting giveaway: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                // Show wheel to public
+                                async function showWheelToPublic() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-wheel-visibility`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ visible: true })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      document.getElementById('wheelVisibilityStatus').textContent = '✅ Wheel is LIVE - Everyone can watch!';
+                                      document.getElementById('wheelVisibilityStatus').style.background = '#28a745';
+                                      showMessage('Wheel is now visible to everyone!', 'success');
+                                    } else {
+                                      showMessage('Failed to show wheel', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error showing wheel:', error);
+                                    showMessage('Error showing wheel: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                // Hide wheel from public
+                                async function hideWheelFromPublic() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-wheel-visibility`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ visible: false })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      document.getElementById('wheelVisibilityStatus').textContent = '🚫 Wheel is HIDDEN - Only you can see it';
+                                      document.getElementById('wheelVisibilityStatus').style.background = '#dc3545';
+                                      showMessage('Wheel is now hidden from public', 'success');
+                                    } else {
+                                      showMessage('Failed to hide wheel', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error hiding wheel:', error);
+                                    showMessage('Error hiding wheel: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                // View wheel in admin panel
+                                function viewAdminWheel() {
+                                  // Open the same wheel modal that users see
+                                  window.open('/admin-wheel.html', '_blank', 'width=1200,height=800');
+                                }
+                                
+                                // Add event listeners for giveaway controls
+                                document.getElementById('toggleGiveawayBtn')?.addEventListener('click', toggleGiveaway);
+                                document.getElementById('setMinParticipantsBtn')?.addEventListener('click', setMinParticipants);
+                                document.getElementById('setSpinDateBtn')?.addEventListener('click', setSpinDate);
+                                document.getElementById('viewEntriesBtn')?.addEventListener('click', viewEntries);
+                                document.getElementById('spinWheelBtn')?.addEventListener('click', spinWheel);
+                                document.getElementById('resetGiveawayBtn')?.addEventListener('click', resetGiveaway);
+                                document.getElementById('showWheelBtn')?.addEventListener('click', showWheelToPublic);
+                                document.getElementById('hideWheelBtn')?.addEventListener('click', hideWheelFromPublic);
+                                document.getElementById('viewAdminWheelBtn')?.addEventListener('click', viewAdminWheel);
+                                
+                                // Load giveaway status on page load
+                                loadGiveawayStatus();
+                                
                               </script>
                             </body>
                             </html>
