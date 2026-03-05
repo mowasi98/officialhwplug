@@ -5602,16 +5602,23 @@ app.post('/api/giveaway/spin', async (req, res) => {
     const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
     
     // Calculate the angle for this person's slice
-    // The wheel pointer is at the top (12 o'clock position)
-    // We need to calculate how much to rotate so this person lands at the pointer
+    // The wheel pointer is at the top (12 o'clock = 0 degrees)
+    // Slices are drawn starting from 0 degrees going clockwise
+    // When wheel rotates, we rotate the canvas, so slice 0 starts at wheelRotation degrees
     const sliceAngle = 360 / remaining.length; // degrees per person
     const targetSliceIndex = randomIndex;
     
-    // Calculate target angle (where this slice should end up at the pointer)
-    // Land on the EDGE/START of the slice (not center) for more dramatic effect
-    // Add small random offset (10-30% into the slice) so it's not exactly on the border
-    const randomOffset = (Math.random() * 0.2 + 0.1) * sliceAngle; // 10-30% into slice
-    const targetAngle = (targetSliceIndex * sliceAngle) + randomOffset;
+    // To make slice[targetSliceIndex] land at the pointer (top = 0 degrees):
+    // We need to rotate so that the START of that slice is at 0 degrees
+    // Since wheel rotates clockwise, we need to rotate by (360 - sliceStart)
+    // But we want to land INSIDE the slice (not on edge), so add offset
+    const randomOffset = (Math.random() * 0.3 + 0.2) * sliceAngle; // 20-50% into slice
+    const sliceStartAngle = targetSliceIndex * sliceAngle;
+    
+    // Calculate how much to rotate to put this slice at the top pointer
+    // We want: (sliceStartAngle + randomOffset) to end up at 0 degrees (top)
+    // So we need to rotate by: 360 - (sliceStartAngle + randomOffset)
+    const targetAngle = 360 - (sliceStartAngle + randomOffset);
     
     // Add multiple full rotations for dramatic effect (5-8 full spins)
     const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
