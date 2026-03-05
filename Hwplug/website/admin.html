@@ -595,6 +595,17 @@
                                       <p style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;">This date will be shown on the website</p>
                                     </div>
                                     
+                                    <!-- Minimum Participants -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.5rem 0; font-weight: 600;">👥 Minimum Participants to Start:</p>
+                                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                                        <input type="number" id="minParticipantsInput" min="1" max="15" value="15" style="width: 80px; padding: 0.6rem; border: 2px solid #fff; border-radius: 6px; font-size: 1rem; font-weight: 700; text-align: center;">
+                                        <button class="btn" id="setMinParticipantsBtn" style="background: #fff; color: #ff4757; font-weight: 700; touch-action: manipulation;">Set Minimum</button>
+                                        <span style="color: #fff; font-size: 0.85rem;">(Range: 1-15)</span>
+                                      </div>
+                                      <p style="font-size: 0.8rem; color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;">Spin button won't work until this many people enter</p>
+                                    </div>
+                                    
                                     <!-- Current Entries -->
                                     <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
                                       <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.5rem 0; font-weight: 600;">🎯 Current Entries:</p>
@@ -3000,6 +3011,11 @@
                                     const entriesData = await entriesResponse.json();
                                     document.getElementById('giveawayEntryCount').textContent = entriesData.entries.length;
                                     
+                                    // Update minimum participants input
+                                    if (data.minParticipants) {
+                                      document.getElementById('minParticipantsInput').value = data.minParticipants;
+                                    }
+                                    
                                     // Update wheel visibility status
                                     const wheelVisibilityEl = document.getElementById('wheelVisibilityStatus');
                                     if (data.wheelVisible) {
@@ -3061,6 +3077,40 @@
                                   } catch (error) {
                                     console.error('Error toggling giveaway:', error);
                                     showMessage('Error toggling giveaway: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                async function setMinParticipants() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  const minParticipants = parseInt(document.getElementById('minParticipantsInput').value);
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  if (isNaN(minParticipants) || minParticipants < 1 || minParticipants > 15) {
+                                    showMessage('Minimum must be between 1 and 15', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/set-min-participants`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ minParticipants })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage(`Minimum participants set to: ${data.minParticipants}`, 'success');
+                                    } else {
+                                      showMessage(data.message || 'Failed to set minimum participants', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error setting minimum participants:', error);
+                                    showMessage('Error setting minimum participants: ' + error.message, 'error');
                                   }
                                 }
                                 
@@ -3322,6 +3372,7 @@
                                 
                                 // Add event listeners for giveaway controls
                                 document.getElementById('toggleGiveawayBtn')?.addEventListener('click', toggleGiveaway);
+                                document.getElementById('setMinParticipantsBtn')?.addEventListener('click', setMinParticipants);
                                 document.getElementById('setSpinDateBtn')?.addEventListener('click', setSpinDate);
                                 document.getElementById('viewEntriesBtn')?.addEventListener('click', viewEntries);
                                 document.getElementById('spinWheelBtn')?.addEventListener('click', spinWheel);

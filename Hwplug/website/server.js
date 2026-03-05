@@ -385,6 +385,7 @@ let inMemoryGiveaway = {
   active: false,
   wheelVisible: false,
   spinDate: '',
+  minParticipants: 15,
   entries: [],
   eliminated: [],
   winner: null
@@ -414,6 +415,7 @@ const GiveawaySchema = new mongoose.Schema({
   active: { type: Boolean, default: false },
   wheelVisible: { type: Boolean, default: false },
   spinDate: { type: String, default: '' },
+  minParticipants: { type: Number, default: 15 }, // Minimum participants to start (1-15)
   entries: [{
     firstName: String,
     lastName: String,
@@ -5346,6 +5348,7 @@ app.get('/api/giveaway/status', async (req, res) => {
         active: inMemoryGiveaway.active,
         wheelVisible: inMemoryGiveaway.wheelVisible,
         spinDate: inMemoryGiveaway.spinDate,
+        minParticipants: inMemoryGiveaway.minParticipants || 15,
         isSpinDay: isSpinDay,
         entryCount: inMemoryGiveaway.entries.length
       });
@@ -5365,6 +5368,7 @@ app.get('/api/giveaway/status', async (req, res) => {
       active: giveaway.active,
       wheelVisible: giveaway.wheelVisible || false,
       spinDate: giveaway.spinDate,
+      minParticipants: giveaway.minParticipants || 15,
       isSpinDay: isSpinDay,
       entryCount: giveaway.entries.length
     });
@@ -5574,9 +5578,10 @@ app.post('/api/giveaway/spin', async (req, res) => {
       return res.json({ success: false, message: 'No participants left' });
     }
     
-    // Check minimum participants (15 people minimum)
-    if (remaining.length < 15 && eliminatedNames.length === 0) {
-      return res.json({ success: false, message: `Need at least 15 people to start! Currently: ${remaining.length}` });
+    // Check minimum participants (dynamic minimum)
+    const minRequired = giveaway.minParticipants || 15;
+    if (remaining.length < minRequired && eliminatedNames.length === 0) {
+      return res.json({ success: false, message: `Need at least ${minRequired} people to start! Currently: ${remaining.length}` });
     }
     
     if (remaining.length === 1) {
@@ -5864,6 +5869,46 @@ app.post('/api/giveaway/set-date', async (req, res) => {
   } catch (error) {
     console.error('Error setting spin date:', error);
     res.status(500).json({ success: false, error: 'Failed to set spin date' });
+  }
+});
+
+// Set minimum participants
+app.post('/api/giveaway/set-min-participants', async (req, res) => {
+  try {
+    const { minParticipants } = req.body;
+    
+    // Validate range (1-15)
+    if (minParticipants < 1 || minParticipants > 15) {
+      return res.json({ success: false, message: 'Minimum must be between 1 and 15' });
+    }
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.minParticipants = minParticipants;
+      console.log(`🎁 Minimum participants set to: ${minParticipants} (in-memory)`);
+      return res.json({ success: true, minParticipants: inMemoryGiveaway.minParticipants });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        minParticipants: minParticipants,
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.minParticipants = minParticipants;
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    res.json({ success: true, minParticipants: giveaway.minParticipants });
+  } catch (error) {
+    console.error('Error setting minimum participants:', error);
+    res.status(500).json({ success: false, error: 'Failed to set minimum participants' });
   }
 });
 
