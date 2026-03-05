@@ -669,6 +669,22 @@
                                       </div>
                                     </div>
                                   </div>
+                                  
+                                  <!-- Confirmation Modal -->
+                                  <div id="confirmModal" class="modal-overlay">
+                                    <div class="modal-box" style="max-width: 500px;">
+                                      <div class="modal-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);">
+                                        ⚠️ Confirm Action
+                                      </div>
+                                      <div class="modal-body" style="text-align: center; padding: 2rem;">
+                                        <p id="confirmMessage" style="font-size: 1.1rem; color: #333; margin: 0;"></p>
+                                      </div>
+                                      <div class="modal-buttons">
+                                        <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal(false)">Cancel</button>
+                                        <button class="modal-btn modal-btn-confirm" onclick="closeConfirmModal(true)" style="background: #ff4757;">Confirm</button>
+                                      </div>
+                                    </div>
+                                  </div>
 
                                   <div class="availability-section">
                                     <h3 style="margin-top: 0; color: #856404;">🌐 Global Availability Controls</h3>
@@ -3142,6 +3158,25 @@
                                   document.getElementById('entriesModal').classList.remove('active');
                                 }
                                 
+                                // Custom confirmation modal
+                                let confirmCallback = null;
+                                
+                                function showConfirm(message) {
+                                  return new Promise((resolve) => {
+                                    confirmCallback = resolve;
+                                    document.getElementById('confirmMessage').textContent = message;
+                                    document.getElementById('confirmModal').classList.add('active');
+                                  });
+                                }
+                                
+                                function closeConfirmModal(confirmed) {
+                                  document.getElementById('confirmModal').classList.remove('active');
+                                  if (confirmCallback) {
+                                    confirmCallback(confirmed);
+                                    confirmCallback = null;
+                                  }
+                                }
+                                
                                 async function spinWheel() {
                                   const password = document.getElementById('adminPassword').value;
                                   
@@ -3150,7 +3185,9 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('Are you sure you want to spin the wheel? This will eliminate one random person.')) {
+                                  // Show custom confirmation modal
+                                  const confirmed = await showConfirm('Are you sure you want to spin the wheel? This will eliminate one random person.');
+                                  if (!confirmed) {
                                     return;
                                   }
                                   
@@ -3197,7 +3234,9 @@
                                     return;
                                   }
                                   
-                                  if (!confirm('⚠️ Are you sure you want to RESET the giveaway? This will clear ALL entries and cannot be undone!')) {
+                                  // Show custom confirmation modal
+                                  const confirmed = await showConfirm('⚠️ Are you sure you want to RESET the giveaway? This will clear ALL entries and cannot be undone!');
+                                  if (!confirmed) {
                                     return;
                                   }
                                   
