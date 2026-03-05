@@ -425,8 +425,7 @@ const GiveawaySchema = new mongoose.Schema({
   eliminated: [String], // Array of eliminated names
   winner: {
     firstName: String,
-    lastName: String,
-    email: String
+    lastName: String
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
@@ -5593,9 +5592,7 @@ app.post('/api/giveaway/spin', async (req, res) => {
       const winner = remaining[0];
       giveaway.winner = {
         firstName: winner.firstName,
-        lastName: winner.lastName,
-        snapchat: winner.snapchat,
-        email: winner.email
+        lastName: winner.lastName
       };
       await giveaway.save();
       
@@ -5604,8 +5601,7 @@ app.post('/api/giveaway/spin', async (req, res) => {
         type: 'winner',
         winner: {
           firstName: winner.firstName,
-          lastName: winner.lastName,
-          snapchat: winner.snapchat
+          lastName: winner.lastName
         }
       });
       
@@ -5614,8 +5610,7 @@ app.post('/api/giveaway/spin', async (req, res) => {
         winner: true,
         winnerData: {
           firstName: winner.firstName,
-          lastName: winner.lastName,
-          snapchat: winner.snapchat
+          lastName: winner.lastName
         }
       });
     }
@@ -5662,8 +5657,7 @@ app.post('/api/giveaway/spin', async (req, res) => {
       const winner = remaining.find(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
       giveaway.winner = {
         firstName: winner.firstName,
-        lastName: winner.lastName,
-        email: winner.email
+        lastName: winner.lastName
       };
     }
     
