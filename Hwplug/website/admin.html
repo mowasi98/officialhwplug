@@ -617,6 +617,17 @@
                                       </div>
                                     </div>
                                     
+                                    <!-- Manual Entry Management -->
+                                    <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                      <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.8rem 0; font-weight: 600;">➕ Add Entry Manually:</p>
+                                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                                        <input type="text" id="manualFirstName" placeholder="First Name" style="flex: 1; min-width: 120px; padding: 0.6rem; border: 2px solid #fff; border-radius: 6px; font-size: 1rem; background: #fff; color: #333;">
+                                        <input type="text" id="manualLastName" placeholder="Last Name" style="flex: 1; min-width: 120px; padding: 0.6rem; border: 2px solid #fff; border-radius: 6px; font-size: 1rem; background: #fff; color: #333;">
+                                        <button class="btn" id="addManualEntryBtn" style="background: #28a745; color: #fff; font-weight: 700; touch-action: manipulation; white-space: nowrap;">ADD ENTRY</button>
+                                      </div>
+                                      <p style="font-size: 0.75rem; color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;">💡 Admin can add unlimited entries (bypasses 30 limit)</p>
+                                    </div>
+                                    
                                     <!-- Show/Hide Wheel Controls -->
                                     <div style="background: rgba(255,255,255,0.15); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; text-align: center;">
                                       <p style="font-size: 0.9rem; color: #fff; margin: 0 0 0.8rem 0; font-weight: 600;">Public Wheel Visibility:</p>
@@ -3188,13 +3199,18 @@
                                       html += '</div>';
                                       
                                       data.entries.forEach((entry, index) => {
-                                        const isEliminated = data.eliminated.includes(`${entry.firstName} ${entry.lastName}`);
-                                        const isWinner = data.winner && data.winner.email === entry.email;
+                                        const fullName = `${entry.firstName} ${entry.lastName}`;
+                                        const isEliminated = data.eliminated.includes(fullName);
+                                        const isWinner = data.winner && `${data.winner.firstName} ${data.winner.lastName}` === fullName;
+                                        
+                                        // Escape quotes for onclick handler
+                                        const escapedFirstName = entry.firstName.replace(/'/g, "\\'");
+                                        const escapedLastName = entry.lastName.replace(/'/g, "\\'");
                                         
                                         html += `
                                           <div style="padding: 0.8rem; margin-bottom: 0.5rem; background: ${isWinner ? '#d4edda' : isEliminated ? '#f8d7da' : '#f8f9fa'}; border-radius: 6px; border-left: 4px solid ${isWinner ? '#28a745' : isEliminated ? '#dc3545' : '#6c757d'};">
-                                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                              <div>
+                                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                              <div style="flex: 1; min-width: 200px;">
                                                 <strong>${entry.firstName} ${entry.lastName}</strong>
                                                 ${isWinner ? '<span style="color: #28a745; font-weight: 900; margin-left: 0.5rem;">🎉 WINNER!</span>' : ''}
                                                 ${isEliminated && !isWinner ? '<span style="color: #dc3545; font-weight: 700; margin-left: 0.5rem;">❌ Eliminated</span>' : ''}
@@ -3203,6 +3219,7 @@
                                                   ⏰ ${new Date(entry.enteredAt).toLocaleString()}
                                                 </div>
                                               </div>
+                                              <button onclick="removeEntry('${escapedFirstName}', '${escapedLastName}')" style="background: #dc3545; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 700; touch-action: manipulation; white-space: nowrap;">🗑️ Remove</button>
                                             </div>
                                           </div>
                                         `;
@@ -3221,6 +3238,84 @@
                                 function closeEntriesModal() {
                                   document.getElementById('entriesModal').classList.remove('active');
                                 }
+                                
+                                // Add entry manually
+                                async function addManualEntry() {
+                                  const password = document.getElementById('adminPassword').value;
+                                  const firstName = document.getElementById('manualFirstName').value.trim();
+                                  const lastName = document.getElementById('manualLastName').value.trim();
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  if (!firstName || !lastName) {
+                                    showMessage('Please enter both first name and last name', 'error');
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/add-entry`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ password, firstName, lastName })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage(data.message || `✅ Entry added: ${firstName} ${lastName}`, 'success');
+                                      // Clear inputs
+                                      document.getElementById('manualFirstName').value = '';
+                                      document.getElementById('manualLastName').value = '';
+                                      // Refresh entry count
+                                      loadGiveawayStatus();
+                                    } else {
+                                      showMessage(data.message || data.error || 'Failed to add entry', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error adding entry:', error);
+                                    showMessage('Error adding entry: ' + error.message, 'error');
+                                  }
+                                }
+                                
+                                // Remove entry
+                                window.removeEntry = async function(firstName, lastName) {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  const fullName = `${firstName} ${lastName}`;
+                                  if (!(await customConfirm(`Are you sure you want to remove "${fullName}" from the giveaway?`, '🗑️ Remove Entry'))) {
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/api/giveaway/remove-entry`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ password, firstName, lastName })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      showMessage(data.message || `✅ Entry removed: ${fullName}`, 'success');
+                                      // Refresh entry count and entries list
+                                      loadGiveawayStatus();
+                                      viewEntries(); // Refresh the entries modal
+                                    } else {
+                                      showMessage(data.message || data.error || 'Failed to remove entry', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error removing entry:', error);
+                                    showMessage('Error removing entry: ' + error.message, 'error');
+                                  }
+                                };
                                 
                                 // Custom confirmation modal
                                 let confirmCallback = null;
@@ -3400,6 +3495,7 @@
                                 document.getElementById('setMinParticipantsBtn')?.addEventListener('click', setMinParticipants);
                                 document.getElementById('setSpinDateBtn')?.addEventListener('click', setSpinDate);
                                 document.getElementById('viewEntriesBtn')?.addEventListener('click', viewEntries);
+                                document.getElementById('addManualEntryBtn')?.addEventListener('click', addManualEntry);
                                 document.getElementById('spinWheelBtn')?.addEventListener('click', spinWheel);
                                 document.getElementById('resetGiveawayBtn')?.addEventListener('click', resetGiveaway);
                                 document.getElementById('showWheelBtn')?.addEventListener('click', showWheelToPublic);

@@ -5689,6 +5689,15 @@ app.post('/api/giveaway/spin', async (req, res) => {
 // Admin: Get all giveaway entries
 app.get('/api/giveaway/entries', async (req, res) => {
   try {
+    if (!mongoConnected) {
+      // Use in-memory storage
+      return res.json({
+        entries: inMemoryGiveaway.entries || [],
+        eliminated: inMemoryGiveaway.eliminated || [],
+        winner: inMemoryGiveaway.winner || null
+      });
+    }
+    
     const giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
     
     if (!giveaway) {
@@ -5703,6 +5712,286 @@ app.get('/api/giveaway/entries', async (req, res) => {
   } catch (error) {
     console.error('Error getting entries:', error);
     res.status(500).json({ error: 'Failed to get entries' });
+  }
+});
+
+// Admin: Add entry manually (bypasses 30 limit)
+app.post('/api/giveaway/add-entry', async (req, res) => {
+  try {
+    const { password, firstName, lastName } = req.body;
+    
+    // Verify admin password
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+    if (!ADMIN_PASSWORD) {
+      return res.status(500).json({ success: false, error: 'Admin password not configured' });
+    }
+    if (password !== ADMIN_PASSWORD) {
+      return res.json({ success: false, error: 'Invalid admin password' });
+    }
+    
+    if (!firstName || !lastName) {
+      return res.json({ success: false, message: 'First name and last name are required' });
+    }
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      const fullName = `${firstName.trim()} ${lastName.trim()}`;
+      
+      // Check if already exists (by name, not email)
+      const alreadyExists = inMemoryGiveaway.entries.find(e => 
+        `${e.firstName} ${e.lastName}` === fullName
+      );
+      if (alreadyExists) {
+        return res.json({ success: false, message: 'This person has already entered!' });
+      }
+      
+      inMemoryGiveaway.entries.push({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: `admin-added-${Date.now()}@manual.entry`, // Placeholder email for admin entries
+        enteredAt: new Date()
+      });
+      
+      console.log(`🎁 Admin added entry: ${fullName} (in-memory)`);
+      
+      // Broadcast to wheel viewers
+      const eliminatedNames = inMemoryGiveaway.eliminated || [];
+      const participants = inMemoryGiveaway.entries.filter(entry => {
+        const entryFullName = `${entry.firstName} ${entry.lastName}`;
+        return !eliminatedNames.includes(entryFullName);
+      });
+      
+      broadcastToWheelClients({
+        type: 'update',
+        participants: participants.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName
+        })),
+        eliminated: eliminatedNames
+      });
+      
+      // Broadcast status change with updated entry count
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: inMemoryGiveaway.active,
+        spinDate: inMemoryGiveaway.spinDate,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
+        winner: inMemoryGiveaway.winner
+      });
+      
+      return res.json({ success: true, message: `Entry added: ${fullName}`, entryCount: inMemoryGiveaway.entries.length });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        entries: [],
+        eliminated: []
+      });
+    }
+    
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    
+    // Check if already exists (by name, not email)
+    const alreadyExists = giveaway.entries.find(e => 
+      `${e.firstName} ${e.lastName}` === fullName
+    );
+    if (alreadyExists) {
+      return res.json({ success: false, message: 'This person has already entered!' });
+    }
+    
+    // Add entry (no limit for admin)
+    giveaway.entries.push({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: `admin-added-${Date.now()}@manual.entry`, // Placeholder email for admin entries
+      enteredAt: new Date()
+    });
+    
+    giveaway.updatedAt = new Date();
+    await giveaway.save();
+    
+    console.log(`🎁 Admin added entry: ${fullName}`);
+    
+    // Broadcast to wheel viewers
+    const eliminatedNames = giveaway.eliminated || [];
+    const participants = giveaway.entries.filter(entry => {
+      const entryFullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(entryFullName);
+    });
+    
+    broadcastToWheelClients({
+      type: 'update',
+      participants: participants.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName
+      })),
+      eliminated: eliminatedNames
+    });
+    
+    // Broadcast status change with updated entry count
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      wheelVisible: giveaway.wheelVisible || false,
+      entryCount: giveaway.entries.length,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
+      winner: giveaway.winner
+    });
+    
+    res.json({ success: true, message: `Entry added: ${fullName}`, entryCount: giveaway.entries.length });
+  } catch (error) {
+    console.error('Error adding entry:', error);
+    res.status(500).json({ success: false, error: 'Failed to add entry' });
+  }
+});
+
+// Admin: Remove entry manually
+app.post('/api/giveaway/remove-entry', async (req, res) => {
+  try {
+    const { password, firstName, lastName } = req.body;
+    
+    // Verify admin password
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+    if (!ADMIN_PASSWORD) {
+      return res.status(500).json({ success: false, error: 'Admin password not configured' });
+    }
+    if (password !== ADMIN_PASSWORD) {
+      return res.json({ success: false, error: 'Invalid admin password' });
+    }
+    
+    if (!firstName || !lastName) {
+      return res.json({ success: false, message: 'First name and last name are required' });
+    }
+    
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      const entryIndex = inMemoryGiveaway.entries.findIndex(e => 
+        `${e.firstName} ${e.lastName}` === fullName
+      );
+      
+      if (entryIndex === -1) {
+        return res.json({ success: false, message: 'Entry not found' });
+      }
+      
+      // Remove from entries
+      inMemoryGiveaway.entries.splice(entryIndex, 1);
+      
+      // Remove from eliminated list if present
+      const eliminatedIndex = inMemoryGiveaway.eliminated.indexOf(fullName);
+      if (eliminatedIndex !== -1) {
+        inMemoryGiveaway.eliminated.splice(eliminatedIndex, 1);
+      }
+      
+      // Clear winner if this person was the winner
+      if (inMemoryGiveaway.winner && 
+          `${inMemoryGiveaway.winner.firstName} ${inMemoryGiveaway.winner.lastName}` === fullName) {
+        inMemoryGiveaway.winner = null;
+      }
+      
+      console.log(`🗑️ Admin removed entry: ${fullName} (in-memory)`);
+      
+      // Broadcast to wheel viewers
+      const eliminatedNames = inMemoryGiveaway.eliminated || [];
+      const participants = inMemoryGiveaway.entries.filter(entry => {
+        const entryFullName = `${entry.firstName} ${entry.lastName}`;
+        return !eliminatedNames.includes(entryFullName);
+      });
+      
+      broadcastToWheelClients({
+        type: 'update',
+        participants: participants.map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName
+        })),
+        eliminated: eliminatedNames
+      });
+      
+      // Broadcast status change with updated entry count
+      broadcastToWheelClients({
+        type: 'giveaway_status_change',
+        active: inMemoryGiveaway.active,
+        spinDate: inMemoryGiveaway.spinDate,
+        wheelVisible: inMemoryGiveaway.wheelVisible,
+        entryCount: inMemoryGiveaway.entries.length,
+        hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
+        winner: inMemoryGiveaway.winner
+      });
+      
+      return res.json({ success: true, message: `Entry removed: ${fullName}`, entryCount: inMemoryGiveaway.entries.length });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      return res.json({ success: false, message: 'No giveaway found' });
+    }
+    
+    const entryIndex = giveaway.entries.findIndex(e => 
+      `${e.firstName} ${e.lastName}` === fullName
+    );
+    
+    if (entryIndex === -1) {
+      return res.json({ success: false, message: 'Entry not found' });
+    }
+    
+    // Remove from entries
+    giveaway.entries.splice(entryIndex, 1);
+    
+    // Remove from eliminated list if present
+    if (giveaway.eliminated && giveaway.eliminated.includes(fullName)) {
+      giveaway.eliminated = giveaway.eliminated.filter(name => name !== fullName);
+    }
+    
+    // Clear winner if this person was the winner
+    if (giveaway.winner && 
+        `${giveaway.winner.firstName} ${giveaway.winner.lastName}` === fullName) {
+      giveaway.winner = null;
+    }
+    
+    giveaway.updatedAt = new Date();
+    await giveaway.save();
+    
+    console.log(`🗑️ Admin removed entry: ${fullName}`);
+    
+    // Broadcast to wheel viewers
+    const eliminatedNames = giveaway.eliminated || [];
+    const participants = giveaway.entries.filter(entry => {
+      const entryFullName = `${entry.firstName} ${entry.lastName}`;
+      return !eliminatedNames.includes(entryFullName);
+    });
+    
+    broadcastToWheelClients({
+      type: 'update',
+      participants: participants.map(p => ({
+        firstName: p.firstName,
+        lastName: p.lastName
+      })),
+      eliminated: eliminatedNames
+    });
+    
+    // Broadcast status change with updated entry count
+    broadcastToWheelClients({
+      type: 'giveaway_status_change',
+      active: giveaway.active,
+      spinDate: giveaway.spinDate,
+      wheelVisible: giveaway.wheelVisible || false,
+      entryCount: giveaway.entries.length,
+      hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
+      winner: giveaway.winner
+    });
+    
+    res.json({ success: true, message: `Entry removed: ${fullName}`, entryCount: giveaway.entries.length });
+  } catch (error) {
+    console.error('Error removing entry:', error);
+    res.status(500).json({ success: false, error: 'Failed to remove entry' });
   }
 });
 
