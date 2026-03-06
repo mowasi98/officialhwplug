@@ -5591,42 +5591,50 @@ app.post('/api/giveaway/spin', async (req, res) => {
     // Let them be eliminated by the spin instead
     // Winner is only declared when going from 2 people to 1 person
     
-    // Randomly select someone to eliminate
-    const randomIndex = Math.floor(Math.random() * remaining.length);
-    const eliminated = remaining[randomIndex];
-    const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
-    
-    // Calculate the angle for this person's slice
-    // CANVAS COORDINATE SYSTEM:
-    // - In HTML5 canvas, 0° = 3 o'clock (right), angles increase counter-clockwise
-    // - 90° = 6 o'clock (bottom), 180° = 9 o'clock (left), 270° = 12 o'clock (TOP)
-    // - The pointer is at the TOP of the canvas = 270°
-    // - Slice[i] is drawn from (i * sliceAngle) to ((i+1) * sliceAngle)
-    // - When we ctx.rotate(wheelRotation), positive rotation moves slices clockwise
-    //
-    // FORMULA:
-    // - Slice[i] center is at: (i * sliceAngle) + (sliceAngle / 2)
-    // - To get slice[i] under the pointer at 270°: wheelRotation = (270 - sliceCenterAngle + 360) % 360
-    // - This ensures: (sliceCenterAngle + wheelRotation) % 360 = 270
+    // Instead of calculating which person to eliminate and trying to land on them,
+    // we'll: 1) Generate a random final rotation, 2) Detect which slice is under the pointer,
+    // 3) Eliminate that person. This guarantees the wheel lands on the person we eliminate!
     
     const sliceAngle = 360 / remaining.length; // degrees per person
-    const targetSliceIndex = randomIndex;
     
-    // Calculate the center angle of the target slice in its initial position (canvas coordinates)
-    const sliceCenterAngle = (targetSliceIndex * sliceAngle) + (sliceAngle / 2);
-    
-    // Calculate rotation needed to bring this slice to 270° (where the pointer is)
-    // Formula: (sliceCenterAngle + wheelRotation) % 360 = 270
-    // Therefore: wheelRotation = (270 - sliceCenterAngle + 360) % 360
-    const baseRotation = (270 - sliceCenterAngle + 360) % 360;
-    
-    // Add a small random offset for drama (±10% of slice width)
-    const randomOffset = (Math.random() * 0.2 - 0.1) * sliceAngle;
-    const targetAngle = (baseRotation + randomOffset + 360) % 360;
+    // Generate a random final angle (where the wheel will stop)
+    // This gives us a truly random result
+    const randomFinalAngle = Math.random() * 360;
     
     // Add multiple full rotations for dramatic effect (5-8 full spins)
     const fullRotations = 5 + Math.floor(Math.random() * 4); // 5-8 spins
-    const totalRotation = (fullRotations * 360) + targetAngle;
+    const totalRotation = (fullRotations * 360) + randomFinalAngle;
+    
+    // Calculate which slice will be under the pointer (270°) after this rotation
+    // When canvas is rotated by totalRotation, slices drawn at angle theta in rotated system
+    // appear at angle (theta + totalRotation) in original system
+    // Slice[i] center is drawn at: (i * sliceAngle + sliceAngle/2) in rotated system
+    // So it appears at: ((i * sliceAngle + sliceAngle/2) + totalRotation) % 360 in original system
+    // We want to find which i gives us 270° in original system
+    const finalRotation = totalRotation % 360;
+    let actualIndex = -1;
+    let minDiff = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const sliceCenterInRotated = (i * sliceAngle) + (sliceAngle / 2);
+      const sliceCenterInOriginal = (sliceCenterInRotated + finalRotation) % 360;
+      
+      // Calculate angular distance to 270° (pointer position)
+      let diff = Math.abs(sliceCenterInOriginal - 270);
+      if (diff > 180) diff = 360 - diff;
+      
+      if (diff < minDiff) {
+        minDiff = diff;
+        actualIndex = i;
+      }
+    }
+    
+    // Eliminate the person who will be under the pointer
+    if (actualIndex < 0 || actualIndex >= remaining.length) {
+      return res.json({ success: false, message: 'Error calculating elimination' });
+    }
+    
+    const eliminated = remaining[actualIndex];
+    const eliminatedName = `${eliminated.firstName} ${eliminated.lastName}`;
     
     // Add to eliminated list
     if (!giveaway.eliminated) {
@@ -5655,7 +5663,7 @@ app.post('/api/giveaway/spin', async (req, res) => {
     broadcastToWheelClients({
       type: 'spin',
       eliminatedName: eliminatedName,
-      eliminatedIndex: randomIndex,
+      eliminatedIndex: actualIndex,
       totalParticipants: remaining.length,
       targetRotation: totalRotation, // degrees to rotate
       isWinner: isWinner,
@@ -5665,7 +5673,7 @@ app.post('/api/giveaway/spin', async (req, res) => {
     res.json({
       success: true,
       eliminatedName: eliminatedName,
-      eliminatedIndex: randomIndex,
+      eliminatedIndex: actualIndex,
       totalParticipants: remaining.length,
       targetRotation: totalRotation,
       remaining: remainingAfterSpin,
