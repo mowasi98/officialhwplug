@@ -386,6 +386,7 @@ let inMemoryGiveaway = {
   wheelVisible: false,
   spinDate: '',
   minParticipants: 15,
+  maxParticipants: 30,
   entries: [],
   eliminated: [],
   winner: null
@@ -416,6 +417,7 @@ const GiveawaySchema = new mongoose.Schema({
   wheelVisible: { type: Boolean, default: false },
   spinDate: { type: String, default: '' },
   minParticipants: { type: Number, default: 15 }, // Minimum participants to start (1-15)
+  maxParticipants: { type: Number, default: 30 }, // Maximum participants allowed to enter (configurable)
   entries: [{
     firstName: String,
     lastName: String,
@@ -5348,6 +5350,7 @@ app.get('/api/giveaway/status', async (req, res) => {
         wheelVisible: inMemoryGiveaway.wheelVisible,
         spinDate: inMemoryGiveaway.spinDate,
         minParticipants: inMemoryGiveaway.minParticipants || 15,
+        maxParticipants: inMemoryGiveaway.maxParticipants || 30,
         isSpinDay: isSpinDay,
         entryCount: inMemoryGiveaway.entries.length,
         hasWinner: !!(inMemoryGiveaway.winner && inMemoryGiveaway.winner.firstName),
@@ -5370,6 +5373,7 @@ app.get('/api/giveaway/status', async (req, res) => {
       wheelVisible: giveaway.wheelVisible || false,
       spinDate: giveaway.spinDate,
       minParticipants: giveaway.minParticipants || 15,
+      maxParticipants: giveaway.maxParticipants || 30,
       isSpinDay: isSpinDay,
       entryCount: giveaway.entries.length,
       hasWinner: !!(giveaway.winner && giveaway.winner.firstName),
@@ -5425,9 +5429,10 @@ app.post('/api/giveaway/enter', async (req, res) => {
         return res.json({ success: false, message: 'You have already entered!' });
       }
       
-      // Check max entries (30 people max)
-      if (inMemoryGiveaway.entries.length >= 30) {
-        return res.json({ success: false, message: 'Giveaway is full! Maximum 30 entries reached.' });
+      // Check max entries (configurable max)
+      const maxEntries = inMemoryGiveaway.maxParticipants || 30;
+      if (inMemoryGiveaway.entries.length >= maxEntries) {
+        return res.json({ success: false, message: `Giveaway is full! Maximum ${maxEntries} entries reached.` });
       }
       
       inMemoryGiveaway.entries.push({
@@ -5470,9 +5475,10 @@ app.post('/api/giveaway/enter', async (req, res) => {
       return res.json({ success: false, message: 'You have already entered!' });
     }
     
-    // Check max entries (30 people max)
-    if (giveaway.entries.length >= 30) {
-      return res.json({ success: false, message: 'Giveaway is full! Maximum 30 entries reached.' });
+    // Check max entries (configurable max)
+    const maxEntries = giveaway.maxParticipants || 30;
+    if (giveaway.entries.length >= maxEntries) {
+      return res.json({ success: false, message: `Giveaway is full! Maximum ${maxEntries} entries reached.` });
     }
     
     // Add entry
@@ -6214,6 +6220,46 @@ app.post('/api/giveaway/set-min-participants', async (req, res) => {
   } catch (error) {
     console.error('Error setting minimum participants:', error);
     res.status(500).json({ success: false, error: 'Failed to set minimum participants' });
+  }
+});
+
+// Set maximum participants (how many people can enter through the website)
+app.post('/api/giveaway/set-max-participants', async (req, res) => {
+  try {
+    const { maxParticipants } = req.body;
+    
+    // Validate range (1-1000, reasonable upper limit)
+    if (maxParticipants < 1 || maxParticipants > 1000) {
+      return res.json({ success: false, message: 'Maximum must be between 1 and 1000' });
+    }
+    
+    if (!mongoConnected) {
+      // Use in-memory storage
+      inMemoryGiveaway.maxParticipants = maxParticipants;
+      console.log(`🎁 Maximum participants set to: ${maxParticipants} (in-memory)`);
+      return res.json({ success: true, maxParticipants: inMemoryGiveaway.maxParticipants });
+    }
+    
+    let giveaway = await GiveawayModel.findOne().sort({ createdAt: -1 });
+    
+    if (!giveaway) {
+      giveaway = new GiveawayModel({
+        active: false,
+        maxParticipants: maxParticipants,
+        entries: [],
+        eliminated: []
+      });
+    } else {
+      giveaway.maxParticipants = maxParticipants;
+      giveaway.updatedAt = new Date();
+    }
+    
+    await giveaway.save();
+    
+    res.json({ success: true, maxParticipants: giveaway.maxParticipants });
+  } catch (error) {
+    console.error('Error setting maximum participants:', error);
+    res.status(500).json({ success: false, error: 'Failed to set maximum participants' });
   }
 });
 
