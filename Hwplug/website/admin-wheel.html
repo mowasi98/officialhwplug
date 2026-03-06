@@ -413,18 +413,28 @@
             isSpinning = true;
             
             const eliminatedName = spinData.eliminatedName || spinData;
+            // Use the exact targetRotation from server (in degrees) for perfect synchronization
             const targetRotationDegrees = spinData.targetRotation || (360 * 5 + Math.random() * 360);
-            
-            // Convert degrees to radians for canvas rotation
-            const targetRotationRadians = (targetRotationDegrees * Math.PI) / 180;
-            targetRotation = targetRotationRadians;
             
             playSpinSound();
             
             const spinDuration = 8000; // 8 seconds - synchronized with main wheel
             const startTime = Date.now();
-            const startRotation = currentRotation;
-            const totalRotation = targetRotation - startRotation;
+            const startRotation = currentRotation; // currentRotation is in degrees
+            
+            // Calculate rotation: targetRotationDegrees is absolute total rotation (including full spins)
+            // We need to rotate FROM current position TO target position
+            // Normalize both to 0-360 range for calculation, then add back full rotations
+            const currentNormalized = currentRotation % 360;
+            const targetNormalized = targetRotationDegrees % 360;
+            
+            // Calculate shortest path to target
+            let rotationDifference = targetNormalized - currentNormalized;
+            if (rotationDifference < 0) rotationDifference += 360;
+            
+            // Add the full rotations from targetRotationDegrees
+            const fullRotations = Math.floor(targetRotationDegrees / 360);
+            const totalRotation = (fullRotations * 360) + rotationDifference;
             
             function animateSpin() {
                 const elapsed = Date.now() - startTime;
@@ -439,12 +449,13 @@
                 if (progress < 1) {
                     requestAnimationFrame(animateSpin);
                 } else {
-                    currentRotation = targetRotation;
+                    // Ensure we land exactly on target rotation (synchronized with server)
+                    currentRotation = targetRotationDegrees;
                     isSpinning = false;
                     drawWheel();
                     playStopSound();
                     
-                    // Remove eliminated participant
+                    // Remove eliminated participant (sync with server state)
                     participants = participants.filter(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
                     
                     // Check if we have a winner

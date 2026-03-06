@@ -1951,7 +1951,10 @@
             participants = data.participants;
             eliminated = data.eliminated;
             updateWheelDisplay();
-            drawWheel(); // Redraw wheel with new name!
+            // Redraw wheel smoothly with updated participants (maintains current rotation)
+            if (!isSpinning) {
+              drawWheel();
+            }
             
             // Show notification if new person joined
             if (participants.length > oldCount) {
@@ -1988,6 +1991,13 @@
         
         wheelSocket.onclose = () => {
           console.log('🎡 Disconnected from wheel socket');
+          // Auto-reconnect after 3 seconds
+          setTimeout(() => {
+            if (!wheelSocket || wheelSocket.readyState === WebSocket.CLOSED) {
+              console.log('🔄 Reconnecting to wheel socket...');
+              connectToWheelSocket();
+            }
+          }, 3000);
         };
       } catch (error) {
         console.error('Failed to create WebSocket:', error);
@@ -2196,19 +2206,29 @@
       // Idle spin will automatically pause because isSpinning = true
       
       const eliminatedName = spinData.eliminatedName || spinData;
+      // Use the exact targetRotation from server for perfect synchronization
       const targetRotation = spinData.targetRotation || (360 * 5 + Math.random() * 360);
       
       // Play spin sound
       playSound('spin');
       
-      const spinDuration = 8000; // 8 seconds (like wheelofnames.com)
+      const spinDuration = 8000; // 8 seconds (like wheelofnames.com) - synchronized across all clients
       const startTime = Date.now();
       const startRotation = wheelRotation;
       
-      // Calculate rotation: we need to rotate TO the target, accounting for current position
-      // The target rotation is absolute, so we calculate the difference
-      const rotationDifference = targetRotation - (wheelRotation % 360);
-      const totalRotation = rotationDifference + (Math.floor(wheelRotation / 360) * 360);
+      // Calculate rotation: targetRotation is absolute total rotation (including full spins)
+      // We need to rotate FROM current position TO target position
+      // Normalize both to 0-360 range for calculation, then add back full rotations
+      const currentNormalized = wheelRotation % 360;
+      const targetNormalized = targetRotation % 360;
+      
+      // Calculate shortest path to target
+      let rotationDifference = targetNormalized - currentNormalized;
+      if (rotationDifference < 0) rotationDifference += 360;
+      
+      // Add the full rotations from targetRotation
+      const fullRotations = Math.floor(targetRotation / 360);
+      const totalRotation = (fullRotations * 360) + rotationDifference;
       
       // Add tick sound interval
       let lastTickAngle = 0;
@@ -2235,14 +2255,14 @@
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          // Ensure we land exactly on target
-          wheelRotation = startRotation + totalRotation;
+          // Ensure we land exactly on target rotation (synchronized with server)
+          wheelRotation = targetRotation;
           drawWheel();
           
           isSpinning = false;
           playSound('eliminate');
           
-          // Remove eliminated participant
+          // Remove eliminated participant (sync with server state)
           participants = participants.filter(p => `${p.firstName} ${p.lastName}` !== eliminatedName);
           eliminated.push(eliminatedName);
           updateWheelDisplay();
