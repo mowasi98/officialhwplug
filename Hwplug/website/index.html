@@ -2130,6 +2130,7 @@
       
       // Check if user entered giveaway to get their info
       const savedUsername = localStorage.getItem('savedUsername');
+      const savedChatName = localStorage.getItem('chatFirstName');
       
       // Check if user entered the giveaway
       fetch(`${BACKEND_URL}/api/giveaway/check-entry?email=${encodeURIComponent(savedUsername || '')}`)
@@ -2144,6 +2145,15 @@
             identifier = entryData.entry.email || savedUsername || '';
             firstName = entryData.entry.firstName || '';
             lastName = entryData.entry.lastName || '';
+            sendChatConnect(identifier, firstName, lastName);
+          } else if (savedChatName) {
+            // User has saved name from previous session
+            firstName = savedChatName;
+            identifier = savedUsername || `guest_${localStorage.getItem('chatGuestId') || Date.now()}`;
+            if (!localStorage.getItem('chatGuestId')) {
+              localStorage.setItem('chatGuestId', identifier);
+            }
+            sendChatConnect(identifier, firstName, '');
           } else {
             // User hasn't entered - show name prompt
             const namePrompt = document.getElementById('chatNamePrompt');
@@ -2153,30 +2163,50 @@
               firstNameInput.focus();
               
               // Wait for user to enter name
-              firstNameInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && firstNameInput.value.trim()) {
+              const handleNameEnter = function() {
+                if (firstNameInput.value.trim()) {
                   firstName = firstNameInput.value.trim();
                   identifier = savedUsername || `guest_${Date.now()}`;
+                  localStorage.setItem('chatFirstName', firstName);
+                  localStorage.setItem('chatGuestId', identifier);
                   namePrompt.style.display = 'none';
                   sendChatConnect(identifier, firstName, '');
                 }
+              };
+              
+              // Remove old listeners and add new one
+              firstNameInput.removeEventListener('keypress', handleNameEnter);
+              firstNameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                  handleNameEnter();
+                }
               });
               
-              return; // Don't connect yet - wait for name input
+              // Also handle send button
+              const sendBtn = document.getElementById('chatSendBtn');
+              if (sendBtn) {
+                const originalClick = sendBtn.onclick;
+                sendBtn.onclick = function() {
+                  handleNameEnter();
+                };
+              }
             }
-          }
-          
-          // Connect with user info
-          if (identifier && firstName) {
-            sendChatConnect(identifier, firstName, lastName);
           }
         })
         .catch(error => {
           console.error('Error checking entry:', error);
-          // Still try to connect as guest
-          const firstNameInput = document.getElementById('chatFirstNameInput');
-          if (firstNameInput) {
-            document.getElementById('chatNamePrompt').style.display = 'block';
+          // Check if we have saved name
+          const savedChatName = localStorage.getItem('chatFirstName');
+          if (savedChatName) {
+            const savedUsername = localStorage.getItem('savedUsername');
+            const identifier = savedUsername || localStorage.getItem('chatGuestId') || `guest_${Date.now()}`;
+            sendChatConnect(identifier, savedChatName, '');
+          } else {
+            // Show name prompt
+            const firstNameInput = document.getElementById('chatFirstNameInput');
+            if (firstNameInput) {
+              document.getElementById('chatNamePrompt').style.display = 'block';
+            }
           }
         });
     }
@@ -2197,12 +2227,11 @@
     function handleChatMessage(data) {
       if (data.type === 'chat_history') {
         // Received chat history and moderator status
-        chatUserInfo = {
-          identifier: data.identifier || '',
-          firstName: data.firstName || '',
-          lastName: data.lastName || '',
-          isModerator: data.isModerator || false
-        };
+        // Note: chat_history doesn't include user info, it's set when we connect
+        // But we can update isModerator status
+        if (chatUserInfo) {
+          chatUserInfo.isModerator = data.isModerator || false;
+        }
         
         const chatMessages = document.getElementById('chatMessages');
         if (chatMessages) {
@@ -2336,9 +2365,42 @@
         const savedUsername = localStorage.getItem('savedUsername');
         const firstName = firstNameInput.value.trim();
         const identifier = savedUsername || `guest_${Date.now()}`;
+        
+        // Save name to localStorage for persistence
+        localStorage.setItem('chatFirstName', firstName);
+        
         namePrompt.style.display = 'none';
         sendChatConnect(identifier, firstName, '');
-        return; // Will send message after connection
+        
+        // Wait for connection, then send message
+        const messageInput = document.getElementById('chatMessageInput');
+        const message = messageInput ? messageInput.value.trim() : '';
+        if (message) {
+          // Wait a bit for connection to establish, then send
+          setTimeout(() => {
+            if (chatUserInfo && wheelSocket && wheelSocket.readyState === WebSocket.OPEN) {
+              wheelSocket.send(JSON.stringify({
+                type: 'chat_message',
+                message: message
+              }));
+              if (messageInput) messageInput.value = '';
+            } else {
+              // Retry after connection
+              const checkConnection = setInterval(() => {
+                if (chatUserInfo && wheelSocket && wheelSocket.readyState === WebSocket.OPEN) {
+                  wheelSocket.send(JSON.stringify({
+                    type: 'chat_message',
+                    message: message
+                  }));
+                  if (messageInput) messageInput.value = '';
+                  clearInterval(checkConnection);
+                }
+              }, 100);
+              setTimeout(() => clearInterval(checkConnection), 5000); // Timeout after 5s
+            }
+          }, 500);
+        }
+        return;
       }
       
       if (!chatUserInfo) {
