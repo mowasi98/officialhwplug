@@ -2245,9 +2245,18 @@
       const isCurrentUser = chatUserInfo && chatUserInfo.identifier === msg.identifier;
       const displayName = msg.lastName ? `${msg.firstName} ${msg.lastName}` : msg.firstName;
       
-      // Color coding: Blue for entered users, Green for non-entered users
-      const nameColor = (msg.hasEntered !== undefined && msg.hasEntered) ? '#6C63FF' : '#28a745'; // Blue for entered, Green for not entered
-      const borderColor = (msg.hasEntered !== undefined && msg.hasEntered) ? '#6C63FF' : '#28a745';
+      // Color coding: Purple for moderators, Blue for entered users, Green for non-entered users
+      let nameColor, borderColor;
+      if (msg.isModerator) {
+        nameColor = '#9c27b0'; // Purple for moderators
+        borderColor = '#9c27b0';
+      } else if (msg.hasEntered !== undefined && msg.hasEntered) {
+        nameColor = '#6C63FF'; // Blue for entered users
+        borderColor = '#6C63FF';
+      } else {
+        nameColor = '#28a745'; // Green for non-entered users
+        borderColor = '#28a745';
+      }
       
       const messageDiv = document.createElement('div');
       messageDiv.style.cssText = `background: #fff; padding: 0.75rem; border-radius: 10px; border-left: 4px solid ${borderColor}; margin-bottom: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s;`;

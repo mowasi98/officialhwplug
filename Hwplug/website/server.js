@@ -6512,7 +6512,7 @@ wss.on('connection', (ws) => {
             userInfo.hasEntered = hasEnteredSync;
           }
           
-          // Enrich chat history messages with entry status
+          // Enrich chat history messages with entry status and moderator status
           const enrichedMessages = chatMessages.slice(-50).map(msg => {
             // Check if this message's sender entered the giveaway
             const msgHasEntered = giveaway && giveaway.entries ? giveaway.entries.some(entry => {
@@ -6520,9 +6520,13 @@ wss.on('connection', (ws) => {
               return entryEmail.toLowerCase() === (msg.identifier || '').toLowerCase();
             }) : false;
             
+            // Check if this message's sender is a moderator
+            const msgIsModerator = moderatorUsers.includes(msg.identifier || '');
+            
             return {
               ...msg,
-              hasEntered: msgHasEntered
+              hasEntered: msgHasEntered,
+              isModerator: msgIsModerator
             };
           });
           
@@ -6538,7 +6542,8 @@ wss.on('connection', (ws) => {
           // Send without entry check on error (default to not entered)
           const enrichedMessages = chatMessages.slice(-50).map(msg => ({
             ...msg,
-            hasEntered: false
+            hasEntered: false,
+            isModerator: moderatorUsers.includes(msg.identifier || '')
           }));
           ws.send(JSON.stringify({
             type: 'chat_history',
@@ -6594,7 +6599,8 @@ wss.on('connection', (ws) => {
           lastName: userInfo.lastName,
           message: messageText,
           timestamp: Date.now(),
-          hasEntered: hasEnteredStatus
+          hasEntered: hasEnteredStatus,
+          isModerator: userInfo.isModerator || false
         };
         
         // Add to messages (keep last 100)
