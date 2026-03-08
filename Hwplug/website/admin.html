@@ -467,7 +467,7 @@
                                       <p style="font-size: 0.85rem; color: #fff; margin: 0 0 0.5rem 0; font-weight: 600;">🔑 Add User to Whitelist:</p>
                                       <p style="font-size: 0.75rem; color: rgba(255,255,255,0.9); margin: 0 0 0.8rem 0;">Whitelisted users can login on test mode screen to access the website</p>
                                       <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                        <input type="text" id="whitelistUsernameInput" placeholder="Enter username" style="flex: 1; min-width: 200px; padding: 0.5rem; border: 2px solid #fff; border-radius: 4px; font-size: 1rem;">
+                                        <input type="text" id="whitelistUsernameInput" placeholder="Enter username or email" style="flex: 1; min-width: 200px; padding: 0.5rem; border: 2px solid #fff; border-radius: 4px; font-size: 1rem;">
                                         <button class="btn" id="addToWhitelistBtn" style="background: #fff; color: #dc3545; font-weight: 700; touch-action: manipulation;">Add User</button>
                                       </div>
                                     </div>
@@ -1025,7 +1025,7 @@
                                       document.getElementById('statusSection').style.display = 'block';
                                       displayStatus(data.counters);
                                       updateTestModeUI(data.testMode || false);
-                                      updateWhitelistUI(data.whitelistedUsers || []); // Whitelist is now part of test mode
+                                      updateWhitelistUI(data.whitelistedUsers || [], data.moderatorUsers || []); // Whitelist is now part of test mode
                                       showMessage('✅ Admin access granted!', 'success');
                                     } else {
                                       showMessage('Error fetching status', 'error');
@@ -3032,9 +3032,14 @@
                                 }
 
                                 // ====== WHITELIST MANAGEMENT FUNCTIONS (Part of Test Mode) ======
-                                function updateWhitelistUI(users) {
+                                let currentModeratorUsers = []; // Store current moderator list
+                                
+                                function updateWhitelistUI(users, moderators = []) {
                                   const count = document.getElementById('whitelistCount');
                                   const usersList = document.getElementById('whitelistedUsersList');
+                                  
+                                  // Store moderators for toggle function
+                                  currentModeratorUsers = moderators || [];
                                   
                                   // Update users list
                                   count.textContent = users.length;
@@ -3042,12 +3047,57 @@
                                   if (users.length === 0) {
                                     usersList.innerHTML = '<p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0;">No users whitelisted yet</p>';
                                   } else {
-                                    usersList.innerHTML = users.map(user => `
-                                      <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 0.8rem; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="color: #fff; font-weight: 600;">${user}</span>
-                                        <button onclick="removeFromWhitelist('${user}')" style="background: #dc3545; color: #fff; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 700; touch-action: manipulation;">Remove</button>
-                                      </div>
-                                    `).join('');
+                                    usersList.innerHTML = users.map(user => {
+                                      const isModerator = moderators.includes(user);
+                                      return `
+                                        <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 0.8rem; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                                          <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+                                            <span style="color: #fff; font-weight: 600;">${user}</span>
+                                            ${isModerator ? '<span style="background: #ffc107; color: #000; padding: 0.2rem 0.5rem; border-radius: 3px; font-size: 0.7rem; font-weight: 700;">MODERATOR</span>' : ''}
+                                          </div>
+                                          <div style="display: flex; gap: 0.3rem; align-items: center;">
+                                            <button onclick="toggleModerator('${user}')" style="background: ${isModerator ? '#6c757d' : '#ffc107'}; color: ${isModerator ? '#fff' : '#000'}; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 700; touch-action: manipulation;">${isModerator ? 'Remove Mod' : 'Make Mod'}</button>
+                                            <button onclick="removeFromWhitelist('${user}')" style="background: #dc3545; color: #fff; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 700; touch-action: manipulation;">Remove</button>
+                                          </div>
+                                        </div>
+                                      `;
+                                    }).join('');
+                                  }
+                                }
+                                
+                                async function toggleModerator(username) {
+                                  const password = document.getElementById('adminPassword').value;
+                                  
+                                  if (!password) {
+                                    showMessage('Please enter admin password first', 'error');
+                                    return;
+                                  }
+                                  
+                                  const isModerator = currentModeratorUsers.includes(username);
+                                  const action = isModerator ? 'remove from moderators' : 'make a moderator';
+                                  
+                                  if (!(await customConfirm(`${isModerator ? 'Remove' : 'Make'} "${username}" ${action}?`, isModerator ? '🔇 Remove Moderator' : '👮 Make Moderator'))) {
+                                    return;
+                                  }
+                                  
+                                  try {
+                                    const response = await fetch(`${BACKEND_URL}/admin/toggle-moderator`, {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ password, username })
+                                    });
+                                    
+                                    const data = await response.json();
+                                    
+                                    if (data.success) {
+                                      updateWhitelistUI(data.whitelistedUsers, data.moderatorUsers);
+                                      showMessage(data.message || `✅ ${isModerator ? 'Removed from' : 'Added to'} moderators`, 'success');
+                                    } else {
+                                      showMessage(data.error || 'Failed to toggle moderator', 'error');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error toggling moderator:', error);
+                                    showMessage('Error toggling moderator: ' + error.message, 'error');
                                   }
                                 }
 
@@ -3075,7 +3125,7 @@
                                     const data = await response.json();
 
                                     if (data.success) {
-                                      updateWhitelistUI(data.whitelistedUsers);
+                                      updateWhitelistUI(data.whitelistedUsers, data.moderatorUsers || []);
                                       document.getElementById('whitelistUsernameInput').value = ''; // Clear input
                                       showMessage(`✅ User "${username}" added to whitelist`, 'success');
                                     } else {
@@ -3109,7 +3159,7 @@
                                     const data = await response.json();
 
                                     if (data.success) {
-                                      updateWhitelistUI(data.whitelistedUsers);
+                                      updateWhitelistUI(data.whitelistedUsers, data.moderatorUsers || []);
                                       showMessage(`✅ User "${username}" removed from whitelist`, 'success');
                                     } else {
                                       showMessage(data.error || 'Failed to remove user', 'error');
@@ -3649,6 +3699,7 @@
                                 window.resetProductCounter = resetProductCounter;
                                 window.toggleProductAvailability = toggleProductAvailability;
                                 window.removeFromWhitelist = removeFromWhitelist;
+                                window.toggleModerator = toggleModerator;
                                 window.resetCounters = resetCounters;
                                 window.resetTimer = resetTimer;
                                 

@@ -406,6 +406,7 @@ const DataSchema = new mongoose.Schema({
   testMode: { type: Boolean, default: false }, // Test mode flag
   whitelistMode: { type: Boolean, default: false }, // Whitelist mode - only approved users can access
   whitelistedUsers: { type: Array, default: [] }, // List of approved usernames
+  moderatorUsers: { type: Array, default: [] }, // List of moderator usernames/emails (subset of whitelist)
   updatedAt: { type: Date, default: Date.now }
 });
 
@@ -450,6 +451,7 @@ let testMode = false;
 // Whitelist mode - when enabled, only approved users can access the website
 let whitelistMode = false;
 let whitelistedUsers = []; // Array of approved usernames
+let moderatorUsers = []; // Array of moderator usernames/emails
 
 const MAX_PURCHASES_PER_DAY = 5; // Default starting slots per product per day (changed from 3 to 5)
 const ADMIN_MAX_SLOTS = 20; // Maximum slots admin can set per product
@@ -632,6 +634,7 @@ async function saveData() {
       testMode,
       whitelistMode,
       whitelistedUsers,
+      moderatorUsers,
       updatedAt: new Date()
       },
       { upsert: true, new: true }
@@ -727,6 +730,7 @@ async function loadData() {
       testMode = data.testMode || false;
       whitelistMode = data.whitelistMode || false;
       whitelistedUsers = data.whitelistedUsers || [];
+      moderatorUsers = data.moderatorUsers || [];
       
       console.log('✅ Data loaded from MongoDB');
       console.log(`   - Last updated: ${data.updatedAt}`);
@@ -1733,7 +1737,8 @@ app.get('/admin/counters-status', (req, res) => {
     maxPerDay: MAX_PURCHASES_PER_DAY,
     testMode: testMode,
     whitelistMode: whitelistMode,
-    whitelistedUsers: whitelistedUsers
+    whitelistedUsers: whitelistedUsers,
+    moderatorUsers: moderatorUsers
   });
 });
 
@@ -1812,6 +1817,7 @@ app.post('/admin/toggle-whitelist-mode', (req, res) => {
     success: true,
     whitelistMode: whitelistMode,
     whitelistedUsers: whitelistedUsers,
+    moderatorUsers: moderatorUsers,
     message: whitelistMode ? 'Whitelist mode enabled - only approved users can access' : 'Whitelist mode disabled - all users can access'
   });
 });
@@ -1854,6 +1860,7 @@ app.post('/admin/add-to-whitelist', (req, res) => {
   res.json({
     success: true,
     whitelistedUsers: whitelistedUsers,
+    moderatorUsers: moderatorUsers,
     message: `User "${cleanUsername}" added to whitelist`
   });
 });
@@ -1887,6 +1894,13 @@ app.post('/admin/remove-from-whitelist', (req, res) => {
   
   whitelistedUsers.splice(index, 1);
   
+  // Also remove from moderators if they were a moderator
+  const moderatorIndex = moderatorUsers.indexOf(username);
+  if (moderatorIndex !== -1) {
+    moderatorUsers.splice(moderatorIndex, 1);
+    console.log(`   Also removed from moderators`);
+  }
+  
   console.log(`❌ User "${username}" removed from whitelist by admin`);
   console.log(`   Remaining whitelisted users: ${whitelistedUsers.length}`);
   
@@ -1896,7 +1910,59 @@ app.post('/admin/remove-from-whitelist', (req, res) => {
   res.json({
     success: true,
     whitelistedUsers: whitelistedUsers,
+    moderatorUsers: moderatorUsers,
     message: `User "${username}" removed from whitelist`
+  });
+});
+
+// Admin endpoint to toggle moderator status for a whitelist user
+app.post('/admin/toggle-moderator', (req, res) => {
+  const { password, username } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!username) {
+    return res.status(400).json({ error: 'Username required' });
+  }
+  
+  // Check if user is in whitelist
+  if (!whitelistedUsers.includes(username)) {
+    return res.json({
+      success: false,
+      error: 'User must be whitelisted first',
+      whitelistedUsers: whitelistedUsers,
+      moderatorUsers: moderatorUsers
+    });
+  }
+  
+  const isModerator = moderatorUsers.includes(username);
+  
+  if (isModerator) {
+    // Remove from moderators
+    const index = moderatorUsers.indexOf(username);
+    moderatorUsers.splice(index, 1);
+    console.log(`❌ User "${username}" removed from moderators`);
+  } else {
+    // Add to moderators
+    moderatorUsers.push(username);
+    console.log(`✅ User "${username}" added to moderators`);
+  }
+  
+  // Save to MongoDB
+  saveData();
+  
+  res.json({
+    success: true,
+    whitelistedUsers: whitelistedUsers,
+    moderatorUsers: moderatorUsers,
+    message: isModerator ? `User "${username}" removed from moderators` : `User "${username}" added to moderators`
   });
 });
 
@@ -6340,6 +6406,11 @@ app.post('/api/giveaway/reset', async (req, res) => {
 // WebSocket clients for wheel updates
 let wheelClients = [];
 
+// Chat system storage
+let chatMessages = []; // Store recent chat messages
+let mutedUsers = []; // Store muted user identifiers (username/email)
+let chatClients = new Map(); // Map of WebSocket connections to user info {identifier, firstName, lastName, isModerator}
+
 function broadcastToWheelClients(data) {
   wheelClients.forEach(client => {
     if (client.readyState === 1) { // OPEN
@@ -6398,9 +6469,204 @@ wss.on('connection', (ws) => {
     }
   });
   
+  // Handle incoming messages (for chat)
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+      
+      if (data.type === 'chat_connect') {
+        // User connecting to chat
+        const { identifier, firstName, lastName } = data;
+        const isModerator = moderatorUsers.includes(identifier);
+        
+        // Check if user entered the giveaway
+        let hasEntered = false;
+        if (identifier) {
+          GiveawayModel.findOne().sort({ createdAt: -1 }).then(giveaway => {
+            if (giveaway && giveaway.entries) {
+              hasEntered = giveaway.entries.some(entry => {
+                const entryEmail = entry.email || '';
+                return entryEmail.toLowerCase() === identifier.toLowerCase();
+              });
+            }
+          }).catch(err => console.error('Error checking entry status:', err));
+        }
+        
+        chatClients.set(ws, {
+          identifier: identifier || 'anonymous',
+          firstName: firstName || 'Guest',
+          lastName: lastName || '',
+          isModerator: isModerator,
+          hasEntered: hasEntered
+        });
+        
+        // Check entry status synchronously for immediate response
+        GiveawayModel.findOne().sort({ createdAt: -1 }).then(giveaway => {
+          const hasEnteredSync = giveaway && giveaway.entries ? giveaway.entries.some(entry => {
+            const entryEmail = entry.email || '';
+            return entryEmail.toLowerCase() === (identifier || '').toLowerCase();
+          }) : false;
+          
+          const userInfo = chatClients.get(ws);
+          if (userInfo) {
+            userInfo.hasEntered = hasEnteredSync;
+          }
+          
+          // Enrich chat history messages with entry status
+          const enrichedMessages = chatMessages.slice(-50).map(msg => {
+            // Check if this message's sender entered the giveaway
+            const msgHasEntered = giveaway && giveaway.entries ? giveaway.entries.some(entry => {
+              const entryEmail = entry.email || '';
+              return entryEmail.toLowerCase() === (msg.identifier || '').toLowerCase();
+            }) : false;
+            
+            return {
+              ...msg,
+              hasEntered: msgHasEntered
+            };
+          });
+          
+          // Send recent chat messages and moderator status
+          ws.send(JSON.stringify({
+            type: 'chat_history',
+            messages: enrichedMessages,
+            isModerator: isModerator,
+            hasEntered: hasEnteredSync
+          }));
+        }).catch(err => {
+          console.error('Error checking entry status:', err);
+          // Send without entry check on error (default to not entered)
+          const enrichedMessages = chatMessages.slice(-50).map(msg => ({
+            ...msg,
+            hasEntered: false
+          }));
+          ws.send(JSON.stringify({
+            type: 'chat_history',
+            messages: enrichedMessages,
+            isModerator: isModerator,
+            hasEntered: false
+          }));
+        });
+        
+        console.log(`💬 Chat user connected: ${firstName} ${lastName} (${identifier})${isModerator ? ' [MODERATOR]' : ''}`);
+      } else if (data.type === 'chat_message') {
+        // User sending a chat message
+        const userInfo = chatClients.get(ws);
+        if (!userInfo) {
+          ws.send(JSON.stringify({
+            type: 'chat_error',
+            message: 'Not connected to chat'
+          }));
+          return;
+        }
+        
+        // Check if user is muted
+        if (mutedUsers.includes(userInfo.identifier)) {
+          ws.send(JSON.stringify({
+            type: 'chat_error',
+            message: 'You are muted and cannot send messages'
+          }));
+          return;
+        }
+        
+        const messageText = (data.message || '').trim();
+        if (!messageText || messageText.length === 0) {
+          return;
+        }
+        
+        // Limit message length
+        if (messageText.length > 200) {
+          ws.send(JSON.stringify({
+            type: 'chat_error',
+            message: 'Message too long (max 200 characters)'
+          }));
+          return;
+        }
+        
+        // Ensure hasEntered is set (use stored value or default to false)
+        const hasEnteredStatus = userInfo.hasEntered !== undefined ? userInfo.hasEntered : false;
+        
+        // Create chat message
+        const chatMessage = {
+          id: Date.now().toString(),
+          identifier: userInfo.identifier,
+          firstName: userInfo.firstName,
+          lastName: userInfo.lastName,
+          message: messageText,
+          timestamp: Date.now(),
+          hasEntered: hasEnteredStatus
+        };
+        
+        // Add to messages (keep last 100)
+        chatMessages.push(chatMessage);
+        if (chatMessages.length > 100) {
+          chatMessages.shift();
+        }
+        
+        // Broadcast to all chat clients
+        const broadcastData = {
+          type: 'chat_message',
+          ...chatMessage
+        };
+        
+        chatClients.forEach((info, client) => {
+          if (client.readyState === 1) { // OPEN
+            client.send(JSON.stringify(broadcastData));
+          }
+        });
+        
+        console.log(`💬 Chat: ${userInfo.firstName} ${userInfo.lastName}: ${messageText.substring(0, 50)}...`);
+      } else if (data.type === 'chat_mute') {
+        // Moderator muting/unmuting a user
+        const userInfo = chatClients.get(ws);
+        if (!userInfo || !userInfo.isModerator) {
+          ws.send(JSON.stringify({
+            type: 'chat_error',
+            message: 'Unauthorized - moderator only'
+          }));
+          return;
+        }
+        
+        const { targetIdentifier, mute } = data;
+        if (!targetIdentifier) {
+          return;
+        }
+        
+        if (mute) {
+          if (!mutedUsers.includes(targetIdentifier)) {
+            mutedUsers.push(targetIdentifier);
+            console.log(`🔇 Moderator ${userInfo.identifier} muted: ${targetIdentifier}`);
+          }
+        } else {
+          const index = mutedUsers.indexOf(targetIdentifier);
+          if (index !== -1) {
+            mutedUsers.splice(index, 1);
+            console.log(`🔊 Moderator ${userInfo.identifier} unmuted: ${targetIdentifier}`);
+          }
+        }
+        
+        // Broadcast mute status update
+        const broadcastData = {
+          type: 'chat_mute_update',
+          identifier: targetIdentifier,
+          muted: mute
+        };
+        
+        chatClients.forEach((info, client) => {
+          if (client.readyState === 1) { // OPEN
+            client.send(JSON.stringify(broadcastData));
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error handling WebSocket message:', error);
+    }
+  });
+  
   ws.on('close', () => {
     console.log('🎡 Wheel viewer disconnected');
     wheelClients = wheelClients.filter(client => client !== ws);
+    chatClients.delete(ws);
   });
   
   ws.on('error', (error) => {

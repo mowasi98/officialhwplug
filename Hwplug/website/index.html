@@ -359,6 +359,18 @@
       }
     }
     
+    @media (max-width: 768px) {
+      #liveChatContainer {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 400px !important;
+        max-height: 50vh !important;
+      }
+      .modal-content {
+        flex-direction: column !important;
+      }
+    }
+    
     @media (max-width: 480px) {
       .giveaway-banner h3 {
         font-size: 1.2rem;
@@ -1258,47 +1270,87 @@
   </div>
 
   <div id="liveWheelModal" class="modal-overlay" style="display: none;">
-    <div class="modal-content" style="max-width: 1200px; width: 95%;">
-      <button class="modal-close" onclick="closeLiveWheelModal()">&times;</button>
-      <h2 style="color: #6C63FF; margin-bottom: 0.5rem; text-align: center;">🎡 SPIN THE WHEEL - LIVE!</h2>
-      <p id="wheelStatusMessage" style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">⏳ Please wait... Admin will start spinning soon!</p>
+    <div class="modal-content" style="max-width: 1400px; width: 95%; display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap;">
+      <button class="modal-close" onclick="closeLiveWheelModal()" style="position: absolute; top: 1rem; right: 1rem; z-index: 10001;">&times;</button>
       
-      <!-- Wheel Container -->
-      <div id="wheelContainer" style="position: relative; width: 100%; max-width: 600px; margin: 0 auto 2rem auto; touch-action: none;">
-        <canvas id="wheelCanvas" width="600" height="600" style="width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; position: relative; z-index: 1;"></canvas>
-        <div id="wheelPointer" style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 50px solid #fff; z-index: 999; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); will-change: transform;"></div>
-      </div>
-      
-      <!-- Participants Info -->
-      <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
-        <div style="text-align: center;">
-          <div style="font-size: 2rem; font-weight: 900; color: #6C63FF;" id="remainingCount">0</div>
-          <div style="color: #666; font-weight: 600;">Remaining</div>
-        </div>
-        <div style="text-align: center;">
-          <div style="font-size: 2rem; font-weight: 900; color: #999;" id="eliminatedCount">0</div>
-          <div style="color: #666; font-weight: 600;">Eliminated</div>
-        </div>
-      </div>
-      
-      <!-- Eliminated List -->
-      <div id="eliminatedListContainer" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
-        <h4 style="margin: 0 0 0.5rem 0; color: #999;">Eliminated:</h4>
-        <div id="eliminatedList" style="color: #999; font-size: 0.9rem;"></div>
-      </div>
-      
-      <!-- Winner Display -->
-      <div id="winnerDisplay" style="display: none; text-align: center; padding: 3rem; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); border-radius: 16px; margin-top: 2rem; position: relative; overflow: hidden; box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);">
-        <!-- Animated background sparkles -->
-        <div class="winner-sparkles"></div>
+      <!-- Left Side: Wheel Content -->
+      <div style="flex: 1; min-width: 300px; max-width: 800px;">
+        <h2 style="color: #6C63FF; margin-bottom: 0.5rem; text-align: center;">🎡 SPIN THE WHEEL - LIVE!</h2>
+        <p id="wheelStatusMessage" style="text-align: center; font-size: 1.2rem; color: #666; margin-bottom: 2rem;">⏳ Please wait... Admin will start spinning soon!</p>
         
-        <h2 class="winner-title" style="font-size: 3rem; margin: 0 0 1rem 0; color: #6C63FF; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); animation: winnerPulse 1.5s ease-in-out infinite;">🎉 CONGRATULATIONS! 🎉</h2>
-        <p class="winner-name" style="font-size: 2.5rem; font-weight: 900; color: #FF1744; margin: 0 0 1.5rem 0; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); animation: winnerGlow 2s ease-in-out infinite;" id="winnerName"></p>
-        <p class="winner-prize" style="font-size: 1.5rem; color: #6C63FF; margin: 0 0 1rem 0; font-weight: 800; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); animation: winnerBounce 1s ease-in-out infinite;">🎁 YOU WON FREE HOMEWORK FOR A MONTH! 🎁</p>
-        <p class="winner-contact" style="font-size: 1.1rem; color: #333; margin: 1.5rem 0 0 0; padding: 1rem; background: rgba(255,255,255,0.9); border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          📱 Contact us on Snapchat <strong style="color: #FFFC00; background: #000; padding: 0.2rem 0.5rem; border-radius: 6px;">@homework5003</strong><br>
-          <span style="color: #FF1744; font-weight: 700;">⏰ within 24 hours to claim your prize!</span>
-        </p>
+        <!-- Wheel Container -->
+        <div id="wheelContainer" style="position: relative; width: 100%; max-width: 600px; margin: 0 auto 2rem auto; touch-action: none;">
+          <canvas id="wheelCanvas" width="600" height="600" style="width: 100%; height: auto; display: block; touch-action: none; user-select: none; -webkit-user-select: none; position: relative; z-index: 1;"></canvas>
+          <div id="wheelPointer" style="position: absolute; top: -5px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 25px solid transparent; border-right: 25px solid transparent; border-top: 50px solid #fff; z-index: 999; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); will-change: transform;"></div>
+        </div>
+        
+        <!-- Participants Info -->
+        <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 900; color: #6C63FF;" id="remainingCount">0</div>
+            <div style="color: #666; font-weight: 600;">Remaining</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 900; color: #999;" id="eliminatedCount">0</div>
+            <div style="color: #666; font-weight: 600;">Eliminated</div>
+          </div>
+        </div>
+        
+        <!-- Eliminated List -->
+        <div id="eliminatedListContainer" style="max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+          <h4 style="margin: 0 0 0.5rem 0; color: #999;">Eliminated:</h4>
+          <div id="eliminatedList" style="color: #999; font-size: 0.9rem;"></div>
+        </div>
+        
+        <!-- Winner Display -->
+        <div id="winnerDisplay" style="display: none; text-align: center; padding: 3rem; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); border-radius: 16px; margin-top: 2rem; position: relative; overflow: hidden; box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);">
+          <!-- Animated background sparkles -->
+          <div class="winner-sparkles"></div>
+          
+          <h2 class="winner-title" style="font-size: 3rem; margin: 0 0 1rem 0; color: #6C63FF; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); animation: winnerPulse 1.5s ease-in-out infinite;">🎉 CONGRATULATIONS! 🎉</h2>
+          <p class="winner-name" style="font-size: 2.5rem; font-weight: 900; color: #FF1744; margin: 0 0 1.5rem 0; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); animation: winnerGlow 2s ease-in-out infinite;" id="winnerName"></p>
+          <p class="winner-prize" style="font-size: 1.5rem; color: #6C63FF; margin: 0 0 1rem 0; font-weight: 800; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); animation: winnerBounce 1s ease-in-out infinite;">🎁 YOU WON FREE HOMEWORK FOR A MONTH! 🎁</p>
+          <p class="winner-contact" style="font-size: 1.1rem; color: #333; margin: 1.5rem 0 0 0; padding: 1rem; background: rgba(255,255,255,0.9); border-radius: 12px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            📱 Contact us on Snapchat <strong style="color: #FFFC00; background: #000; padding: 0.2rem 0.5rem; border-radius: 6px;">@homework5003</strong><br>
+            <span style="color: #FF1744; font-weight: 700;">⏰ within 24 hours to claim your prize!</span>
+          </p>
+        </div>
+      </div>
+      
+      <!-- Right Side: Live Chat -->
+      <div id="liveChatContainer" style="width: 320px; min-width: 280px; max-width: 100%; background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(108, 99, 255, 0.15); display: flex; flex-direction: column; height: 600px; max-height: 80vh; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 1.2rem 1rem; border-radius: 12px 12px 0 0; font-weight: 700; font-size: 1.1rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          💬 Live Chat
+        </div>
+        <div id="chatMessages" style="flex: 1; overflow-y: auto; padding: 1rem; background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%); display: flex; flex-direction: column; gap: 0.75rem;">
+          <style>
+            #chatMessages::-webkit-scrollbar {
+              width: 6px;
+            }
+            #chatMessages::-webkit-scrollbar-track {
+              background: #f1f1f1;
+              border-radius: 10px;
+            }
+            #chatMessages::-webkit-scrollbar-thumb {
+              background: #6C63FF;
+              border-radius: 10px;
+            }
+            #chatMessages::-webkit-scrollbar-thumb:hover {
+              background: #5548d9;
+            }
+          </style>
+          <p style="color: #999; text-align: center; font-size: 0.9rem; margin: 0; padding: 1rem 0;">Chat messages will appear here...</p>
+        </div>
+        <div id="chatInputContainer" style="padding: 1rem; background: #fff; border-top: 2px solid #f0f0f0; border-radius: 0 0 12px 12px; box-shadow: 0 -2px 8px rgba(0,0,0,0.05);">
+          <div id="chatNamePrompt" style="display: none; margin-bottom: 0.5rem;">
+            <input type="text" id="chatFirstNameInput" placeholder="Enter your first name" style="width: 100%; padding: 0.6rem; border: 2px solid #6C63FF; border-radius: 8px; font-size: 0.9rem; transition: border-color 0.3s; outline: none;" onfocus="this.style.borderColor='#5548d9'" onblur="this.style.borderColor='#6C63FF'">
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="chatMessageInput" placeholder="Type a message..." maxlength="200" style="flex: 1; padding: 0.7rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.9rem; transition: all 0.3s; outline: none;" onfocus="this.style.borderColor='#6C63FF'; this.style.boxShadow='0 0 0 3px rgba(108, 99, 255, 0.1)'" onblur="this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'">
+            <button id="chatSendBtn" style="background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem; transition: all 0.3s; box-shadow: 0 2px 8px rgba(108, 99, 255, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(108, 99, 255, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(108, 99, 255, 0.3)'">Send</button>
+          </div>
+          <p id="chatError" style="color: #dc3545; font-size: 0.8rem; margin: 0.5rem 0 0 0; display: none; font-weight: 600;"></p>
+        </div>
       </div>
     </div>
   </div>
@@ -1707,6 +1759,10 @@
     let idleSpinning = false; // for constant slow idle spin
     let lastIdleTime = performance.now();
     const IDLE_SPEED = 0.0015; // radians per ms (slow constant spin when idle)
+    
+    // Chat system
+    let chatUserInfo = null; // {identifier, firstName, lastName, isModerator}
+    let mutedUsers = []; // List of muted user identifiers
 
     // Check giveaway status and update banner
     async function checkGiveawayStatus() {
@@ -1956,6 +2012,12 @@
         wheelSocket.close();
         wheelSocket = null;
       }
+      // Reset chat
+      chatUserInfo = null;
+      const chatMessages = document.getElementById('chatMessages');
+      if (chatMessages) {
+        chatMessages.innerHTML = '<p style="color: #999; text-align: center; font-size: 0.9rem; margin: 0;">Chat messages will appear here...</p>';
+      }
     }
     
     // Close modal when clicking outside
@@ -1974,6 +2036,8 @@
         
         wheelSocket.onopen = () => {
           console.log('🎡 Connected to wheel socket');
+          // Connect to chat when wheel socket opens
+          connectToChat();
         };
         
         wheelSocket.onmessage = (event) => {
@@ -2019,6 +2083,9 @@
             }
             // Update banner to reflect visibility
             checkGiveawayStatus();
+          } else if (data.type === 'chat_history' || data.type === 'chat_message' || data.type === 'chat_error' || data.type === 'chat_mute_update') {
+            // Handle chat messages
+            handleChatMessage(data);
           }
         };
         
@@ -2041,6 +2108,274 @@
         showError('Unable to connect to live wheel. Please refresh the page.');
       }
     }
+    
+    // ========== CHAT FUNCTIONALITY ==========
+    function connectToChat() {
+      if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
+        console.error('Wheel socket not connected');
+        return;
+      }
+      
+      // Check if user entered giveaway to get their info
+      const savedUsername = localStorage.getItem('savedUsername');
+      
+      // Check if user entered the giveaway
+      fetch(`${BACKEND_URL}/api/giveaway/check-entry?email=${encodeURIComponent(savedUsername || '')}`)
+        .then(res => res.json())
+        .then(entryData => {
+          let identifier = savedUsername || '';
+          let firstName = '';
+          let lastName = '';
+          
+          if (entryData.entered && entryData.entry) {
+            // User entered - use their entry info
+            identifier = entryData.entry.email || savedUsername || '';
+            firstName = entryData.entry.firstName || '';
+            lastName = entryData.entry.lastName || '';
+          } else {
+            // User hasn't entered - show name prompt
+            const namePrompt = document.getElementById('chatNamePrompt');
+            const firstNameInput = document.getElementById('chatFirstNameInput');
+            if (namePrompt && firstNameInput) {
+              namePrompt.style.display = 'block';
+              firstNameInput.focus();
+              
+              // Wait for user to enter name
+              firstNameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && firstNameInput.value.trim()) {
+                  firstName = firstNameInput.value.trim();
+                  identifier = savedUsername || `guest_${Date.now()}`;
+                  namePrompt.style.display = 'none';
+                  sendChatConnect(identifier, firstName, '');
+                }
+              });
+              
+              return; // Don't connect yet - wait for name input
+            }
+          }
+          
+          // Connect with user info
+          if (identifier && firstName) {
+            sendChatConnect(identifier, firstName, lastName);
+          }
+        })
+        .catch(error => {
+          console.error('Error checking entry:', error);
+          // Still try to connect as guest
+          const firstNameInput = document.getElementById('chatFirstNameInput');
+          if (firstNameInput) {
+            document.getElementById('chatNamePrompt').style.display = 'block';
+          }
+        });
+    }
+    
+    function sendChatConnect(identifier, firstName, lastName) {
+      if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      
+      wheelSocket.send(JSON.stringify({
+        type: 'chat_connect',
+        identifier: identifier,
+        firstName: firstName,
+        lastName: lastName
+      }));
+    }
+    
+    function handleChatMessage(data) {
+      if (data.type === 'chat_history') {
+        // Received chat history and moderator status
+        chatUserInfo = {
+          identifier: data.identifier || '',
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          isModerator: data.isModerator || false
+        };
+        
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+          chatMessages.innerHTML = '';
+          if (data.messages && data.messages.length > 0) {
+            data.messages.forEach(msg => {
+              addChatMessageToUI(msg);
+            });
+          } else {
+            chatMessages.innerHTML = '<p style="color: #999; text-align: center; font-size: 0.9rem; margin: 0;">No messages yet. Start the conversation!</p>';
+          }
+          scrollChatToBottom();
+        }
+      } else if (data.type === 'chat_message') {
+        // New chat message received
+        addChatMessageToUI(data);
+        scrollChatToBottom();
+      } else if (data.type === 'chat_error') {
+        // Show error message
+        const chatError = document.getElementById('chatError');
+        if (chatError) {
+          chatError.textContent = data.message || 'An error occurred';
+          chatError.style.display = 'block';
+          setTimeout(() => {
+            chatError.style.display = 'none';
+          }, 5000);
+        }
+      } else if (data.type === 'chat_mute_update') {
+        // Mute status updated
+        if (data.muted) {
+          if (!mutedUsers.includes(data.identifier)) {
+            mutedUsers.push(data.identifier);
+          }
+        } else {
+          mutedUsers = mutedUsers.filter(id => id !== data.identifier);
+        }
+        // Update UI to show mute status
+        updateChatMessageMuteStatus(data.identifier, data.muted);
+      }
+    }
+    
+    function addChatMessageToUI(msg) {
+      const chatMessages = document.getElementById('chatMessages');
+      if (!chatMessages) return;
+      
+      // Clear placeholder if exists
+      if (chatMessages.children.length === 1 && chatMessages.children[0].tagName === 'P') {
+        chatMessages.innerHTML = '';
+      }
+      
+      const isMuted = mutedUsers.includes(msg.identifier);
+      const isCurrentUser = chatUserInfo && chatUserInfo.identifier === msg.identifier;
+      const displayName = msg.lastName ? `${msg.firstName} ${msg.lastName}` : msg.firstName;
+      
+      // Color coding: Blue for entered users, Green for non-entered users
+      const nameColor = (msg.hasEntered !== undefined && msg.hasEntered) ? '#6C63FF' : '#28a745'; // Blue for entered, Green for not entered
+      const borderColor = (msg.hasEntered !== undefined && msg.hasEntered) ? '#6C63FF' : '#28a745';
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.style.cssText = `background: #fff; padding: 0.75rem; border-radius: 10px; border-left: 4px solid ${borderColor}; margin-bottom: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s;`;
+      messageDiv.onmouseenter = function() { this.style.transform = 'translateX(2px)'; this.style.boxShadow = '0 4px 10px rgba(0,0,0,0.12)'; };
+      messageDiv.onmouseleave = function() { this.style.transform = 'translateX(0)'; this.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; };
+      messageDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.3rem;">
+              <span style="font-weight: 700; color: ${nameColor}; font-size: 0.9rem;">${escapeHtml(displayName)}</span>
+              ${isMuted ? '<span style="color: #dc3545; font-size: 0.7rem; background: #ffe0e0; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600;">🔇 MUTED</span>' : ''}
+            </div>
+            <div style="color: #333; font-size: 0.95rem; word-wrap: break-word; line-height: 1.4; margin-bottom: 0.3rem;">${escapeHtml(msg.message)}</div>
+            <div style="color: #999; font-size: 0.75rem; opacity: 0.7;">${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+          </div>
+          ${chatUserInfo && chatUserInfo.isModerator && !isCurrentUser ? `
+            <button onclick="toggleMuteUser('${msg.identifier}', ${isMuted})" style="background: ${isMuted ? 'linear-gradient(135deg, #28a745 0%, #20c997 100%)' : 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'}; color: #fff; border: none; padding: 0.4rem 0.7rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 700; white-space: nowrap; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 3px 6px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
+              ${isMuted ? 'Unmute' : 'Mute'}
+            </button>
+          ` : ''}
+        </div>
+      `;
+      
+      chatMessages.appendChild(messageDiv);
+    }
+    
+    function updateChatMessageMuteStatus(identifier, muted) {
+      const chatMessages = document.getElementById('chatMessages');
+      if (!chatMessages) return;
+      
+      chatMessages.querySelectorAll('[data-identifier]').forEach(msgDiv => {
+        if (msgDiv.getAttribute('data-identifier') === identifier) {
+          const muteSpan = msgDiv.querySelector('.mute-indicator');
+          if (muteSpan) {
+            muteSpan.style.display = muted ? 'inline' : 'none';
+          }
+        }
+      });
+    }
+    
+    function scrollChatToBottom() {
+      const chatMessages = document.getElementById('chatMessages');
+      if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function sendChatMessage() {
+      if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
+        showError('Not connected to chat');
+        return;
+      }
+      
+      // Check if name prompt is visible
+      const namePrompt = document.getElementById('chatNamePrompt');
+      const firstNameInput = document.getElementById('chatFirstNameInput');
+      if (namePrompt && namePrompt.style.display !== 'none' && firstNameInput && firstNameInput.value.trim()) {
+        // User is entering name - connect first
+        const savedUsername = localStorage.getItem('savedUsername');
+        const firstName = firstNameInput.value.trim();
+        const identifier = savedUsername || `guest_${Date.now()}`;
+        namePrompt.style.display = 'none';
+        sendChatConnect(identifier, firstName, '');
+        return; // Will send message after connection
+      }
+      
+      if (!chatUserInfo) {
+        showError('Please enter your name first');
+        return;
+      }
+      
+      const messageInput = document.getElementById('chatMessageInput');
+      if (!messageInput) return;
+      
+      const message = messageInput.value.trim();
+      if (!message) return;
+      
+      wheelSocket.send(JSON.stringify({
+        type: 'chat_message',
+        message: message
+      }));
+      
+      messageInput.value = '';
+    }
+    
+    function toggleMuteUser(identifier, currentlyMuted) {
+      if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      
+      if (!chatUserInfo || !chatUserInfo.isModerator) {
+        showError('Only moderators can mute users');
+        return;
+      }
+      
+      wheelSocket.send(JSON.stringify({
+        type: 'chat_mute',
+        targetIdentifier: identifier,
+        mute: !currentlyMuted
+      }));
+    }
+    
+    // Make toggleMuteUser globally accessible
+    window.toggleMuteUser = toggleMuteUser;
+    
+    // Set up chat input handlers
+    document.addEventListener('DOMContentLoaded', () => {
+      const chatMessageInput = document.getElementById('chatMessageInput');
+      const chatSendBtn = document.getElementById('chatSendBtn');
+      
+      if (chatMessageInput) {
+        chatMessageInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            sendChatMessage();
+          }
+        });
+      }
+      
+      if (chatSendBtn) {
+        chatSendBtn.addEventListener('click', sendChatMessage);
+      }
+    });
 
     // Fetch current wheel data
     async function fetchWheelData() {
