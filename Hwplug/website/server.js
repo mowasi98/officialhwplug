@@ -6474,7 +6474,45 @@ wss.on('connection', (ws) => {
     try {
       const data = JSON.parse(message);
       
-      if (data.type === 'chat_connect') {
+      if (data.type === 'chat_view_only') {
+        // User wants to view chat without connecting (no name required)
+        // Send chat history to all wheel clients
+        GiveawayModel.findOne().sort({ createdAt: -1 }).then(giveaway => {
+          // Enrich chat history messages with entry status and moderator status
+          const enrichedMessages = chatMessages.slice(-50).map(msg => {
+            const msgHasEntered = giveaway && giveaway.entries ? giveaway.entries.some(entry => {
+              const entryEmail = entry.email || '';
+              return entryEmail.toLowerCase() === (msg.identifier || '').toLowerCase();
+            }) : false;
+            const msgIsModerator = moderatorUsers.includes(msg.identifier || '');
+            return {
+              ...msg,
+              hasEntered: msgHasEntered,
+              isModerator: msgIsModerator
+            };
+          });
+          
+          ws.send(JSON.stringify({
+            type: 'chat_history',
+            messages: enrichedMessages,
+            isModerator: false,
+            hasEntered: false
+          }));
+        }).catch(err => {
+          console.error('Error getting chat history:', err);
+          const enrichedMessages = chatMessages.slice(-50).map(msg => ({
+            ...msg,
+            hasEntered: false,
+            isModerator: moderatorUsers.includes(msg.identifier || '')
+          }));
+          ws.send(JSON.stringify({
+            type: 'chat_history',
+            messages: enrichedMessages,
+            isModerator: false,
+            hasEntered: false
+          }));
+        });
+      } else if (data.type === 'chat_connect') {
         // User connecting to chat
         const { identifier, firstName, lastName } = data;
         const isModerator = moderatorUsers.includes(identifier);
@@ -6609,13 +6647,14 @@ wss.on('connection', (ws) => {
           chatMessages.shift();
         }
         
-        // Broadcast to all chat clients
+        // Broadcast to all wheel clients (so everyone watching can see messages)
         const broadcastData = {
           type: 'chat_message',
           ...chatMessage
         };
         
-        chatClients.forEach((info, client) => {
+        // Send to all wheel clients (everyone watching the live wheel)
+        wheelClients.forEach(client => {
           if (client.readyState === 1) { // OPEN
             client.send(JSON.stringify(broadcastData));
           }

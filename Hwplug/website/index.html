@@ -2415,7 +2415,58 @@
       }
       
       if (!chatUserInfo) {
-        showError('Please enter your name first');
+        // User wants to send but hasn't connected - show name prompt
+        const namePrompt = document.getElementById('chatNamePrompt');
+        const firstNameInput = document.getElementById('chatFirstNameInput');
+        if (namePrompt && firstNameInput) {
+          namePrompt.style.display = 'block';
+          firstNameInput.focus();
+          
+          // Wait for user to enter name, then send message
+          const handleNameAndSend = () => {
+            if (firstNameInput.value.trim()) {
+              const savedUsername = localStorage.getItem('savedUsername');
+              const firstName = firstNameInput.value.trim();
+              const identifier = savedUsername || `guest_${Date.now()}`;
+              localStorage.setItem('chatFirstName', firstName);
+              localStorage.setItem('chatGuestId', identifier);
+              namePrompt.style.display = 'none';
+              sendChatConnect(identifier, firstName, '');
+              
+              // Wait for connection, then send message
+              const messageInput = document.getElementById('chatMessageInput');
+              const message = messageInput ? messageInput.value.trim() : '';
+              if (message) {
+                setTimeout(() => {
+                  if (chatUserInfo && wheelSocket && wheelSocket.readyState === WebSocket.OPEN) {
+                    wheelSocket.send(JSON.stringify({
+                      type: 'chat_message',
+                      message: message
+                    }));
+                    if (messageInput) messageInput.value = '';
+                  }
+                }, 500);
+              }
+            }
+          };
+          
+          firstNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              handleNameAndSend();
+            }
+          });
+          
+          // Also handle when they click send button after entering name
+          const sendBtn = document.getElementById('chatSendBtn');
+          if (sendBtn) {
+            const checkAndSend = () => {
+              if (chatUserInfo && firstNameInput.value.trim()) {
+                handleNameAndSend();
+              }
+            };
+            sendBtn.addEventListener('click', checkAndSend);
+          }
+        }
         return;
       }
       
