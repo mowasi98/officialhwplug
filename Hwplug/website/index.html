@@ -2124,6 +2124,19 @@
     }
     
     // ========== CHAT FUNCTIONALITY ==========
+    function requestChatHistory() {
+      // Request chat history without connecting (view-only mode)
+      // This allows users to see messages without entering their name
+      if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
+        return;
+      }
+      
+      // Send a view-only request to get chat history
+      wheelSocket.send(JSON.stringify({
+        type: 'chat_view_only'
+      }));
+    }
+    
     function connectToChat() {
       if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
         console.error('Wheel socket not connected');
