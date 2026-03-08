@@ -360,14 +360,26 @@
     }
     
     @media (max-width: 768px) {
+      #liveWheelModal .modal-content {
+        flex-direction: column !important;
+        max-height: 95vh !important;
+        overflow-y: auto !important;
+        align-items: stretch !important;
+      }
+      
+      #liveWheelModal .modal-content > div:first-child {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: none !important;
+      }
+      
       #liveChatContainer {
         width: 100% !important;
         max-width: 100% !important;
         height: 400px !important;
-        max-height: 50vh !important;
-      }
-      .modal-content {
-        flex-direction: column !important;
+        max-height: 400px !important;
+        margin-top: 1.5rem !important;
+        order: 2 !important;
       }
     }
     
