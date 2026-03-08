@@ -3484,7 +3484,7 @@
                                   }
                                   
                                   // Show custom confirmation modal
-                                  const confirmed = await showConfirm('Are you sure you want to spin the wheel? This will eliminate one random person.');
+                                  const confirmed = await customConfirm('Are you sure you want to spin the wheel? This will eliminate one random person.', '🎡 Spin the Wheel');
                                   if (!confirmed) {
                                     return;
                                   }
@@ -3533,7 +3533,7 @@
                                   }
                                   
                                   // Show custom confirmation modal
-                                  const confirmed = await showConfirm('⚠️ Are you sure you want to RESET the giveaway? This will clear ALL entries and cannot be undone!');
+                                  const confirmed = await customConfirm('⚠️ Are you sure you want to RESET the giveaway? This will clear ALL entries and cannot be undone!', '🔄 Reset Giveaway');
                                   if (!confirmed) {
                                     return;
                                   }
