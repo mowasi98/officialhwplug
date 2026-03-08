@@ -2213,8 +2213,19 @@
     
     function sendChatConnect(identifier, firstName, lastName) {
       if (!wheelSocket || wheelSocket.readyState !== WebSocket.OPEN) {
+        console.error('Cannot send chat connect - socket not open');
         return;
       }
+      
+      // Set chatUserInfo immediately so we know we're connected
+      chatUserInfo = {
+        identifier: identifier,
+        firstName: firstName,
+        lastName: lastName,
+        isModerator: false // Will be updated when we receive chat_history
+      };
+      
+      console.log('Sending chat_connect:', { identifier, firstName, lastName });
       
       wheelSocket.send(JSON.stringify({
         type: 'chat_connect',
