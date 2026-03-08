@@ -2048,7 +2048,9 @@
         
         wheelSocket.onopen = () => {
           console.log('🎡 Connected to wheel socket');
-          // Connect to chat when wheel socket opens
+          // Request chat history immediately (view-only, no name required)
+          requestChatHistory();
+          // Connect to chat when wheel socket opens (for sending messages)
           connectToChat();
         };
         
