@@ -360,17 +360,25 @@
     }
     
     @media (max-width: 768px) {
+      #liveWheelModal {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      
       #liveWheelModal .modal-content {
         flex-direction: column !important;
-        max-height: 95vh !important;
-        overflow-y: auto !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow-y: visible !important;
         align-items: stretch !important;
+        padding-bottom: 2rem !important;
       }
       
       #liveWheelModal .modal-content > div:first-child {
         width: 100% !important;
         max-width: 100% !important;
         flex: none !important;
+        order: 1 !important;
       }
       
       #liveChatContainer {
@@ -380,6 +388,7 @@
         max-height: 400px !important;
         margin-top: 1.5rem !important;
         order: 2 !important;
+        flex-shrink: 0 !important;
       }
     }
     
