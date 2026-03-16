@@ -127,6 +127,8 @@
     .item-card {
       background: white !important;
       animation: card-fade-in 0.8s ease-out backwards !important;
+      position: relative;
+      overflow: hidden;
     }
 
     @keyframes card-fade-in {
@@ -145,6 +147,37 @@
     .item-card:nth-child(3) { animation-delay: 0.6s !important; }
     .item-card:nth-child(4) { animation-delay: 0.8s !important; }
     .item-card:nth-child(5) { animation-delay: 1s !important; }
+
+    /* Sequential highlight effect */
+    @keyframes card-highlight {
+      0%, 100% {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(255, 0, 100, 0.6), 0 0 60px rgba(255, 105, 180, 0.4), 0 4px 12px rgba(0,0,0,0.08);
+      }
+    }
+
+    .item-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 0, 100, 0.15) 0%, rgba(255, 105, 180, 0.15) 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .item-card.highlight-active {
+      animation: card-highlight 1.2s ease-in-out !important;
+    }
+
+    .item-card.highlight-active::before {
+      opacity: 1;
+    }
 
     
     body {
@@ -4599,6 +4632,36 @@
     setTimeout(() => {
       typeTagline();
     }, 1000);
+
+    // Sequential card highlight effect
+    function startCardHighlightSequence() {
+      const cards = document.querySelectorAll('.item-card');
+      if (cards.length === 0) return;
+
+      let currentIndex = 0;
+
+      function highlightNext() {
+        // Remove highlight from all cards
+        cards.forEach(card => card.classList.remove('highlight-active'));
+        
+        // Add highlight to current card
+        if (cards[currentIndex]) {
+          cards[currentIndex].classList.add('highlight-active');
+        }
+        
+        // Move to next card
+        currentIndex = (currentIndex + 1) % cards.length;
+        
+        // Continue the sequence after 1.5 seconds
+        setTimeout(highlightNext, 1500);
+      }
+
+      // Start the sequence after page loads
+      setTimeout(highlightNext, 2000);
+    }
+
+    // Start card highlight sequence
+    startCardHighlightSequence();
   </script>
 </body>
 </html>
