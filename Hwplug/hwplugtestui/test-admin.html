@@ -2233,7 +2233,8 @@
           const safeProductId = product.replace(/\s+/g, '-');
           const count = counters[product]?.count || 0;
           const maxSlots = counters[product]?.maxSlots || 5;
-          const isUnavailable = unavailableProducts.includes(product);
+          const isAvailable = counters[product]?.available !== false;
+          const isUnavailable = !isAvailable;
           const comingSoon = counters[product]?.comingSoon || false;
           
           // Extra slots data
