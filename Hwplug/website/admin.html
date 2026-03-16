@@ -2396,6 +2396,289 @@
       }
     }
 
+    // Individual Product Control Functions
+    async function adjustSlotCount(product, change) {
+      const response = await fetch(`${BACKEND_URL}/admin/get-counters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      const data = await response.json();
+      const currentCount = data.counters[product]?.count || 0;
+      const newCount = Math.max(0, currentCount + change);
+      await setSlotCount(product, newCount);
+    }
+
+    async function setSlotCount(product, count) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/set-slot-count`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            product: product,
+            count: parseInt(count)
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        loadProductStatus();
+        loadDashboardData();
+      } catch (error) {
+        console.error('Error setting slot count:', error);
+        showAlert('Failed to update slot count', 'Error', '❌');
+      }
+    }
+
+    async function adjustMaxSlots(product, change) {
+      const response = await fetch(`${BACKEND_URL}/admin/get-counters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      const data = await response.json();
+      const currentMax = data.counters[product]?.maxSlots || 5;
+      const newMax = Math.max(1, currentMax + change);
+      await setMaxSlots(product, newMax);
+    }
+
+    async function setMaxSlots(product, max) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/set-max-slots`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            product: product,
+            max: parseInt(max)
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        loadProductStatus();
+      } catch (error) {
+        console.error('Error setting max slots:', error);
+        showAlert('Failed to update max slots', 'Error', '❌');
+      }
+    }
+
+    async function adjustExtraSlotCount(product, change) {
+      const response = await fetch(`${BACKEND_URL}/admin/get-counters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      const data = await response.json();
+      const currentCount = data.counters[product]?.extraSlots?.count || 0;
+      const newCount = Math.max(0, currentCount + change);
+      await setExtraSlotCount(product, newCount);
+    }
+
+    async function setExtraSlotCount(product, count) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/set-extra-slot-count`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            product: product,
+            count: parseInt(count)
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        loadProductStatus();
+        loadDashboardData();
+      } catch (error) {
+        console.error('Error setting extra slot count:', error);
+        showAlert('Failed to update extra slot count', 'Error', '❌');
+      }
+    }
+
+    async function adjustExtraSlotMax(product, change) {
+      const response = await fetch(`${BACKEND_URL}/admin/get-counters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      const data = await response.json();
+      const currentMax = data.counters[product]?.extraSlots?.max || 0;
+      const newMax = Math.max(0, currentMax + change);
+      await setExtraSlotMax(product, newMax);
+    }
+
+    async function setExtraSlotMax(product, max) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/set-extra-slot-max`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            product: product,
+            max: parseInt(max)
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        loadProductStatus();
+      } catch (error) {
+        console.error('Error setting extra slot max:', error);
+        showAlert('Failed to update extra slot max', 'Error', '❌');
+      }
+    }
+
+    async function setExtraSlotPrice(product, price) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/set-extra-slot-price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            product: product,
+            price: parseFloat(price)
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert(`Extra slot price updated to £${price}`, 'Success', '✅');
+        loadProductStatus();
+      } catch (error) {
+        console.error('Error setting extra slot price:', error);
+        showAlert('Failed to update extra slot price', 'Error', '❌');
+      }
+    }
+
+    async function resetProductCounter(product) {
+      const confirmed = await showConfirm(
+        `Reset ${product} counter to 0?`,
+        'Reset Counter',
+        '🔄',
+        'Reset',
+        'modal-btn-danger'
+      );
+      
+      if (confirmed) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/admin/reset-product-counter`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              password: adminPassword,
+              product: product
+            })
+          });
+          const data = await response.json();
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          showAlert(`${product} counter reset to 0`, 'Success', '✅');
+          loadProductStatus();
+          loadDashboardData();
+        } catch (error) {
+          console.error('Error resetting product counter:', error);
+          showAlert('Failed to reset counter', 'Error', '❌');
+        }
+      }
+    }
+
+    async function toggleProductAvailability(product, makeAvailable) {
+      const action = makeAvailable ? 'available' : 'unavailable';
+      const confirmed = await showConfirm(
+        `Mark ${product} as ${action}?`,
+        'Toggle Availability',
+        makeAvailable ? '✅' : '⚠️',
+        makeAvailable ? 'Mark Available' : 'Mark Unavailable',
+        makeAvailable ? 'modal-btn-success' : 'modal-btn-warning'
+      );
+      
+      if (confirmed) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/admin/toggle-product-availability`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              password: adminPassword,
+              product: product,
+              available: makeAvailable
+            })
+          });
+          const data = await response.json();
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          showAlert(`${product} marked as ${action}`, 'Success', makeAvailable ? '✅' : '⚠️');
+          loadProductStatus();
+        } catch (error) {
+          console.error('Error toggling product availability:', error);
+          showAlert('Failed to update availability', 'Error', '❌');
+        }
+      }
+    }
+
+    async function toggleComingSoon(product) {
+      const response = await fetch(`${BACKEND_URL}/admin/get-counters`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      });
+      const data = await response.json();
+      const currentComingSoon = data.counters[product]?.comingSoon || false;
+      const newComingSoon = !currentComingSoon;
+      
+      const confirmed = await showConfirm(
+        `${newComingSoon ? 'Mark' : 'Remove'} ${product} as Coming Soon?`,
+        'Toggle Coming Soon',
+        '🚀',
+        newComingSoon ? 'Mark Coming Soon' : 'Remove Coming Soon',
+        'modal-btn-confirm'
+      );
+      
+      if (confirmed) {
+        try {
+          const response = await fetch(`${BACKEND_URL}/admin/toggle-coming-soon`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              password: adminPassword,
+              product: product,
+              comingSoon: newComingSoon
+            })
+          });
+          const data = await response.json();
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          showAlert(
+            `${product} ${newComingSoon ? 'marked as Coming Soon' : 'Coming Soon status removed'}`,
+            'Success',
+            '✅'
+          );
+          loadProductStatus();
+        } catch (error) {
+          console.error('Error toggling coming soon:', error);
+          showAlert('Failed to update coming soon status', 'Error', '❌');
+        }
+      }
+    }
+
     async function markAllAvailable() {
       const confirmed = await showConfirm('Mark all products as available?', 'Mark All Available', '✅', 'Mark Available', 'modal-btn-success');
       if (confirmed) {
