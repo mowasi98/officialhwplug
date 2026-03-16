@@ -2681,22 +2681,28 @@
           body: JSON.stringify({ password: adminPassword })
         });
         const data = await response.json();
-        
+        console.log('🚫 Banned users response:', data);
+
         const container = document.getElementById('bannedUsersContainer');
         const bannedUsers = data.bannedUsers || [];
-        
+        console.log('🚫 Banned users array:', bannedUsers);
+
         if (bannedUsers.length > 0) {
-          container.innerHTML = bannedUsers.map(user => `
-            <div style="padding: 0.8rem; background: white; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #e74c3c;">
-              <span style="font-weight: 600; color: #2c3e50;">${user}</span>
-              <button class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="unbanUser('${user}')">Unban</button>
-            </div>
-          `).join('');
+          container.innerHTML = bannedUsers.map(user => {
+            const userStr = typeof user === 'string' ? user : (user.username || String(user));
+            console.log('🚫 User item:', user, '→', userStr);
+            return `
+              <div style="padding: 0.8rem; background: white; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #e74c3c;">
+                <span style="font-weight: 600; color: #2c3e50;">${userStr}</span>
+                <button class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="unbanUser('${userStr}')">Unban</button>
+              </div>
+            `;
+          }).join('');
         } else {
           container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 1rem;">No banned users</p>';
         }
       } catch (error) {
-        console.error('Error loading banned users:', error);
+        console.error('❌ Error loading banned users:', error);
         document.getElementById('bannedUsersContainer').innerHTML = '<p style="color: #e74c3c;">Failed to load banned users</p>';
       }
     }
@@ -2815,6 +2821,7 @@
     }
 
     function viewAllLogins() {
+      console.log('📋 Loading all logins...');
       fetch(`${BACKEND_URL}/admin/login-history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2822,6 +2829,7 @@
       })
         .then(res => res.json())
         .then(async data => {
+          console.log('📋 Login history response:', data);
           if (data.error) {
             showAlert(data.error, 'Error', '❌');
             return;
@@ -2834,9 +2842,11 @@
             body: JSON.stringify({ password: adminPassword })
           });
           const bannedData = await bannedResponse.json();
+          console.log('📋 Banned users for comparison:', bannedData);
           const bannedUsers = bannedData.bannedUsers || [];
           
           if (data.success && data.logins) {
+            console.log('📋 Processing', data.logins.length, 'logins');
             const loginsList = data.logins.map(login => {
               const isBanned = bannedUsers.includes(login.username);
               return `
@@ -3457,6 +3467,7 @@
       })
       .then(res => res.json())
       .then(data => {
+        console.log('💵 Cash codes response:', data);
         if (data.error) {
           showAlert(data.error, 'Error', '❌');
           return;
@@ -3465,24 +3476,30 @@
           const content = document.getElementById('cashCodesContent');
           content.style.display = 'block';
           document.getElementById('totalCodes').textContent = data.totalCodes || 0;
-          
+
           const listDiv = document.getElementById('cashCodesList');
           if (data.codes && data.codes.length > 0) {
-            listDiv.innerHTML = data.codes.map(code => `
-              <div style="padding: 0.8rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 2px solid #17a2b8;">
-                <div>
-                  <strong style="color: #0c5460; font-size: 1.1rem;">${code.code}</strong>
-                  <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 0.3rem;">
-                    Used: ${code.usedCount || 0} times | Created: ${new Date(code.createdAt).toLocaleDateString()}
+            console.log('💵 Codes:', data.codes);
+            listDiv.innerHTML = data.codes.map(code => {
+              const codeStr = typeof code === 'string' ? code : (code.code || String(code));
+              console.log('💵 Code item:', code, '→', codeStr);
+              return `
+                <div style="padding: 0.8rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 2px solid #17a2b8; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <div>
+                    <strong style="color: #0c5460; font-size: 1.1rem;">${codeStr}</strong>
                   </div>
+                  <button class="btn btn-danger" style="padding: 0.5rem 1rem;" onclick="deleteCashCode('${codeStr}')">Delete</button>
                 </div>
-                <button class="btn btn-danger" style="padding: 0.5rem 1rem;" onclick="deleteCashCode('${code.code}')">Delete</button>
-              </div>
-            `).join('');
+              `;
+            }).join('');
           } else {
             listDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center;">No codes found</p>';
           }
         }
+      })
+      .catch(err => {
+        console.error('❌ Error loading cash codes:', err);
+        showAlert('Failed to load codes', 'Error', '❌');
       });
     }
 
