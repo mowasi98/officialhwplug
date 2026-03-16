@@ -148,34 +148,39 @@
     .item-card:nth-child(4) { animation-delay: 0.8s !important; }
     .item-card:nth-child(5) { animation-delay: 1s !important; }
 
-    /* Sequential highlight effect - each card gets its own color */
-    .item-card.highlight-active {
+    /* Sequential highlight effect - only the title text gets colored */
+    .item-card .item-title {
       transition: all 0.4s ease;
     }
 
-    .item-card:nth-child(1).highlight-active {
-      box-shadow: 0 0 40px rgba(255, 105, 180, 0.8), 0 0 80px rgba(255, 105, 180, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
-      border-color: #FF69B4 !important;
+    .item-card:nth-child(1).highlight-active .item-title {
+      color: #FF69B4 !important;
+      text-shadow: 0 0 20px rgba(255, 105, 180, 0.8), 0 0 40px rgba(255, 105, 180, 0.5);
+      font-weight: 900;
     }
 
-    .item-card:nth-child(2).highlight-active {
-      box-shadow: 0 0 40px rgba(255, 0, 100, 0.8), 0 0 80px rgba(255, 0, 100, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
-      border-color: #FF0064 !important;
+    .item-card:nth-child(2).highlight-active .item-title {
+      color: #FF0064 !important;
+      text-shadow: 0 0 20px rgba(255, 0, 100, 0.8), 0 0 40px rgba(255, 0, 100, 0.5);
+      font-weight: 900;
     }
 
-    .item-card:nth-child(3).highlight-active {
-      box-shadow: 0 0 40px rgba(0, 150, 255, 0.8), 0 0 80px rgba(0, 150, 255, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
-      border-color: #0096FF !important;
+    .item-card:nth-child(3).highlight-active .item-title {
+      color: #0096FF !important;
+      text-shadow: 0 0 20px rgba(0, 150, 255, 0.8), 0 0 40px rgba(0, 150, 255, 0.5);
+      font-weight: 900;
     }
 
-    .item-card:nth-child(4).highlight-active {
-      box-shadow: 0 0 40px rgba(0, 255, 100, 0.8), 0 0 80px rgba(0, 255, 100, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
-      border-color: #00FF64 !important;
+    .item-card:nth-child(4).highlight-active .item-title {
+      color: #00FF64 !important;
+      text-shadow: 0 0 20px rgba(0, 255, 100, 0.8), 0 0 40px rgba(0, 255, 100, 0.5);
+      font-weight: 900;
     }
 
-    .item-card:nth-child(5).highlight-active {
-      box-shadow: 0 0 40px rgba(138, 43, 226, 0.8), 0 0 80px rgba(138, 43, 226, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
-      border-color: #8A2BE2 !important;
+    .item-card:nth-child(5).highlight-active .item-title {
+      color: #8A2BE2 !important;
+      text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.5);
+      font-weight: 900;
     }
 
     
