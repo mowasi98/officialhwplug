@@ -1742,6 +1742,39 @@ app.get('/admin/counters-status', (req, res) => {
   });
 });
 
+// Revenue stats endpoint for admin dashboard
+app.get('/api/admin/revenue-stats', (req, res) => {
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Count purchases by time period (each purchase is £2)
+    let todayCount = 0;
+    let weekCount = 0;
+    let monthCount = 0;
+    let totalCount = loginHistory.length;
+
+    loginHistory.forEach(login => {
+      const loginDate = new Date(login.timestamp);
+      if (loginDate >= todayStart) todayCount++;
+      if (loginDate >= weekStart) weekCount++;
+      if (loginDate >= monthStart) monthCount++;
+    });
+
+    res.json({
+      today: todayCount,
+      week: weekCount,
+      month: monthCount,
+      total: totalCount
+    });
+  } catch (error) {
+    console.error('Error calculating revenue stats:', error);
+    res.status(500).json({ error: 'Failed to calculate revenue stats' });
+  }
+});
+
 // Check test mode status (public endpoint)
 app.get('/check-test-mode', (req, res) => {
   res.json({

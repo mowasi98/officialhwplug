@@ -86,44 +86,40 @@
     }
 
 
-    /* Typewriter animation for title */
+    /* Main title - just show it normally */
     .logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .typewriter-word {
-      display: inline-block;
-      color: white !important;
-      font-family: 'Courier New', monospace;
+      font-size: 2.5rem;
       font-weight: 900;
-      font-size: 2rem;
-      opacity: 0;
-      animation: word-fade-in 0.5s ease-out forwards;
+      color: white !important;
+      text-align: center;
+      margin-bottom: 0.5rem;
     }
 
-    @keyframes word-fade-in {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    /* Rotating tagline with typewriter effect */
+    .tagline {
+      font-size: 1.2rem;
+      color: #e8e6ff;
+      margin-top: 0.4rem;
+      font-weight: 400;
+      font-family: 'Courier New', monospace;
+      min-height: 1.5em;
+      overflow: hidden;
+      border-right: 3px solid #e8e6ff;
+      white-space: nowrap;
+      animation: blink-caret 0.75s step-end infinite;
     }
 
-    .typewriter-word:nth-child(2) { animation-delay: 0.2s; }
-    .typewriter-word:nth-child(3) { animation-delay: 0.4s; }
-    .typewriter-word:nth-child(4) { animation-delay: 0.6s; }
-    .typewriter-word:nth-child(5) { animation-delay: 0.8s; }
+    @keyframes blink-caret {
+      from, to { border-color: transparent; }
+      50% { border-color: #e8e6ff; }
+    }
 
     @media (max-width: 768px) {
-      .typewriter-word {
-        font-size: 1.2rem;
+      .logo {
+        font-size: 1.8rem;
+      }
+      .tagline {
+        font-size: 1rem;
       }
     }
 
@@ -150,28 +146,6 @@
     .item-card:nth-child(4) { animation-delay: 0.8s !important; }
     .item-card:nth-child(5) { animation-delay: 1s !important; }
 
-    .item-card.clicked {
-      animation: glow-pulse 0.6s ease-out !important;
-    }
-
-    @keyframes glow-pulse {
-      0% {
-        box-shadow: 
-          0 0 20px rgba(255, 255, 255, 0.5),
-          0 0 40px rgba(255, 255, 255, 0.3);
-      }
-      50% {
-        box-shadow: 
-          0 0 80px rgba(255, 255, 255, 1),
-          0 0 160px rgba(255, 255, 255, 0.8),
-          0 0 240px rgba(255, 255, 255, 0.6);
-      }
-      100% {
-        box-shadow: 
-          0 0 20px rgba(255, 255, 255, 0.5),
-          0 0 40px rgba(255, 255, 255, 0.3);
-      }
-    }
     
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -1362,8 +1336,8 @@
       <button id="logoutBtn" class="auth-btn" onclick="logout()" style="display: none;">Logout</button>
       <a href="login.html" class="auth-btn" id="loginBtn">Login</a>
     </div>
-    <h1 class="logo"><img src="plug-logo.png" alt="Plug Logo" style="height: 1.5em; vertical-align: middle; margin-right: 0.3em; filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.5));"><span class="typewriter-word">LEARN.</span> <span class="typewriter-word">GROW.</span> <span class="typewriter-word">SUCCEED.</span> <span class="typewriter-word">HWPLUG.</span></h1>
-    <div class="tagline">Your one-stop shop for learning tools</div>
+    <h1 class="logo"><img src="plug-logo.png" alt="Plug Logo" style="height: 1.5em; vertical-align: middle; margin-right: 0.3em; filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.5));">LEARN. GROW. SUCCEED. HWPLUG.</h1>
+    <div class="tagline" id="rotatingTagline">Your one-stop shop for learning tools</div>
   </header>
 
   <!-- Giveaway Banner -->
@@ -1666,7 +1640,7 @@
   </div>
 
   <section class="items">
-    <div class="item-card" data-product="Sparx Reader" onclick="glowCard(this)">
+    <div class="item-card" data-product="Sparx Reader">
       <div class="popular-badge">Most Popular</div>
       <div class="item-title">Sparx Reader</div>
       <div class="item-desc">Improve reading comprehension with interactive tasks</div>
@@ -1689,7 +1663,7 @@
       </div>
     </div>
     
-    <div class="item-card" data-product="Sparx Maths" onclick="glowCard(this)">
+    <div class="item-card" data-product="Sparx Maths">
       <div class="item-title">Sparx Maths</div>
       <div class="item-desc">Master maths with adaptive problem sets</div>
       <div class="price">&pound;2</div>
@@ -1710,7 +1684,7 @@
       </div>
     </div>
     
-    <div class="item-card" data-product="Educate" onclick="glowCard(this)">
+    <div class="item-card" data-product="Educate">
       <div class="item-title">Educate</div>
       <div class="item-desc">Explore science topics with engaging resources</div>
       <div class="price">&pound;2</div>
@@ -1731,7 +1705,7 @@
       </div>
     </div>
     
-    <div class="item-card" data-product="Seneca" onclick="glowCard(this)">
+    <div class="item-card" data-product="Seneca">
       <div class="item-title">Seneca</div>
       <div class="item-desc">Learn smarter with bite-sized lessons and quizzes</div>
       <div class="price">&pound;2</div>
@@ -1752,7 +1726,7 @@
       </div>
     </div>
     
-    <div class="item-card" data-product="Sparx Science" id="sparxScienceCard" onclick="glowCard(this)">
+    <div class="item-card" data-product="Sparx Science" id="sparxScienceCard">
       <!-- Coming Soon Banner -->
       <div id="comingSoonBanner-Sparx Science" style="display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: #fff; padding: 0.4rem 1.2rem; border-radius: 20px; font-weight: 700; font-size: 0.85rem; z-index: 10; box-shadow: 0 4px 12px rgba(255,152,0,0.4); white-space: nowrap;">
         🚧 COMING SOON 🚧
@@ -4569,24 +4543,63 @@
     });
 
     // Glow effect when clicking a card
-    function glowCard(card) {
-      card.classList.add('clicked');
-      setTimeout(() => {
-        card.classList.remove('clicked');
-      }, 600);
+    // Rotating tagline with typewriter effect
+    const taglines = [
+      "Your one-stop shop for learning tools",
+      "Get homework help instantly",
+      "Ace your assignments with ease",
+      "Study smarter, not harder",
+      "Your academic success partner"
+    ];
+    
+    let currentTaglineIndex = 0;
+    let currentText = '';
+    let isDeleting = false;
+    let charIndex = 0;
+
+    function typeTagline() {
+      const taglineElement = document.getElementById('rotatingTagline');
+      if (!taglineElement) return;
+
+      const fullText = taglines[currentTaglineIndex];
+
+      if (!isDeleting) {
+        // Typing
+        currentText = fullText.substring(0, charIndex + 1);
+        charIndex++;
+
+        if (charIndex === fullText.length) {
+          // Finished typing, wait 5 seconds then start deleting
+          setTimeout(() => {
+            isDeleting = true;
+            typeTagline();
+          }, 5000);
+          taglineElement.textContent = currentText;
+          return;
+        }
+      } else {
+        // Deleting
+        currentText = fullText.substring(0, charIndex - 1);
+        charIndex--;
+
+        if (charIndex === 0) {
+          // Finished deleting, move to next tagline
+          isDeleting = false;
+          currentTaglineIndex = (currentTaglineIndex + 1) % taglines.length;
+          setTimeout(typeTagline, 500);
+          taglineElement.textContent = currentText;
+          return;
+        }
+      }
+
+      taglineElement.textContent = currentText;
+      setTimeout(typeTagline, isDeleting ? 50 : 100);
     }
 
-    // Add click event to all product cards for glow effect - run after page loads
+    // Start typewriter effect after page loads
     setTimeout(() => {
-      document.querySelectorAll('.item-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-          // Only glow if not clicking on a button or link
-          if (!e.target.closest('.buy-btn') && !e.target.closest('a')) {
-            glowCard(this);
-          }
-        });
-      });
-    }, 100);
+      typeTagline();
+    }, 1000);
   </script>
 </body>
 </html>

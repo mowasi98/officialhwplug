@@ -379,6 +379,47 @@
       margin-left: 1rem;
     }
 
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.show {
+      display: block;
+      opacity: 1;
+    }
+
+    .sidebar-close {
+      display: none;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: rotate(90deg);
+    }
+
     /* Main Content */
     .main-content {
       margin-left: 260px;
@@ -931,10 +972,15 @@
     @media (max-width: 768px) {
       .sidebar {
         transform: translateX(-100%);
+        z-index: 1001;
       }
 
       .sidebar.open {
         transform: translateX(0);
+      }
+
+      .sidebar-close {
+        display: flex !important;
       }
 
       .mobile-header {
@@ -1276,8 +1322,12 @@
     <div class="mobile-title">hwplug Admin</div>
   </div>
 
+  <!-- Sidebar Overlay for Mobile -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="closeSidebar()">✕</button>
     <div class="sidebar-header">
       <div class="sidebar-logo">
         <img src="plug-logo.png" alt="hwplug">
@@ -1767,6 +1817,9 @@
       ? 'http://localhost:10000' 
       : 'https://test2-adsw.onrender.com';
 
+    // Store admin password after successful login
+    let adminPassword = '';
+
     // Custom Alert Function (replaces browser alert)
     function showAlert(message, title = 'Success', icon = '✅') {
       const modal = document.getElementById('customAlert');
@@ -1856,8 +1909,9 @@
           return;
         }
 
-        // Password is correct! Animate transition to dashboard
+        // Password is correct! Store it and animate transition to dashboard
         console.log('✅ Password correct! Loading dashboard...');
+        adminPassword = password; // Store password for future API calls
         errorDiv.style.display = 'none';
         
         // Fade out login screen
@@ -1939,7 +1993,19 @@
 
     // Toggle sidebar on mobile
     function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('open');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('show');
+    }
+
+    function closeSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
     }
 
     // Show different sections
@@ -1958,7 +2024,7 @@
 
       // Close sidebar on mobile
       if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.remove('open');
+        closeSidebar();
       }
     }
 
@@ -1982,14 +2048,53 @@
         document.getElementById('totalRevenue').textContent = data.total * 2;
         document.getElementById('totalSales').textContent = data.total;
 
+        // Update revenue chart
+        updateRevenueChart(data);
+
         // Load other data
         loadProductStatus();
         loadGiveawayData();
+        loadTestModeStatus();
+        loadWhitelistedUsers();
+        loadBannedUsers();
+        loadBotSettings();
       } catch (error) {
         console.error('Error loading dashboard:', error);
         // Show demo data if backend fails
         showDemoData();
       }
+    }
+
+    // Update revenue chart with real data
+    function updateRevenueChart(data) {
+      const chartContainer = document.getElementById('revenueChart');
+      
+      // Calculate max value for scaling
+      const maxValue = Math.max(data.today * 2, data.week * 2, data.month * 2, data.total * 2, 1);
+      
+      // Create chart bars
+      chartContainer.innerHTML = `
+        <div class="chart-bar" style="animation-delay: 0.1s;">
+          <div class="bar-fill" style="height: ${(data.today * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #6C63FF 0%, #5548d9 100%);"></div>
+          <div class="bar-label">Today</div>
+          <div class="bar-value">£${data.today * 2}</div>
+        </div>
+        <div class="chart-bar" style="animation-delay: 0.2s;">
+          <div class="bar-fill" style="height: ${(data.week * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #00d2ff 0%, #3a7bd5 100%);"></div>
+          <div class="bar-label">Week</div>
+          <div class="bar-value">£${data.week * 2}</div>
+        </div>
+        <div class="chart-bar" style="animation-delay: 0.3s;">
+          <div class="bar-fill" style="height: ${(data.month * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);"></div>
+          <div class="bar-label">Month</div>
+          <div class="bar-value">£${data.month * 2}</div>
+        </div>
+        <div class="chart-bar" style="animation-delay: 0.4s;">
+          <div class="bar-fill" style="height: ${(data.total * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);"></div>
+          <div class="bar-label">Total</div>
+          <div class="bar-value">£${data.total * 2}</div>
+        </div>
+      `;
     }
 
     // Show zero data initially (will be replaced by real data from backend)
@@ -2002,6 +2107,9 @@
       document.getElementById('monthChange').textContent = '0';
       document.getElementById('totalRevenue').textContent = '0';
       document.getElementById('totalSales').textContent = '0';
+      
+      // Show empty chart
+      updateRevenueChart({ today: 0, week: 0, month: 0, total: 0 });
     }
 
     // Change chart view
@@ -2018,15 +2126,29 @@
     // Product & Slot Functions
     async function loadProductStatus() {
       try {
+        console.log('📦 Loading products from:', `${BACKEND_URL}/admin/counters-status`);
         const response = await fetch(`${BACKEND_URL}/admin/counters-status`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
-        
+        console.log('📦 Products data received:', data);
+
         const productsDiv = document.getElementById('productsList');
-        productsDiv.innerHTML = '';
+        if (!productsDiv) {
+          console.error('❌ productsList element not found!');
+          return;
+        }
         
+        productsDiv.innerHTML = '';
+
         const products = ['Sparx Reader', 'Sparx Maths', 'Educate', 'Seneca', 'Sparx Science'];
         const counters = data.counters || {};
         const unavailableProducts = data.unavailableProducts || [];
+        
+        console.log('📦 Processing', products.length, 'products');
         
         products.forEach((product, index) => {
           const safeProductId = product.replace(/\s+/g, '-');
@@ -2140,20 +2262,38 @@
           
           productsDiv.appendChild(productCard);
         });
+        
+        console.log('✅ Products loaded successfully:', products.length, 'products added to DOM');
       } catch (error) {
-        console.error('Error loading product status:', error);
-        document.getElementById('productsList').innerHTML = '<p style="color: #e74c3c; text-align: center; padding: 2rem;">Error loading products. Check console.</p>';
+        console.error('❌ Error loading product status:', error);
+        const productsDiv = document.getElementById('productsList');
+        if (productsDiv) {
+          productsDiv.innerHTML = `<p style="color: #e74c3c; text-align: center; padding: 2rem;">Error loading products: ${error.message}<br>Check console for details.</p>`;
+        }
       }
     }
 
     async function resetAllCounters() {
       const confirmed = await showConfirm('Reset all counters and timer?', 'Reset All', '🔄', 'Reset All', 'modal-btn-danger');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/reset-all`, { method: 'POST' })
+        fetch(`${BACKEND_URL}/admin/reset-counters`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        })
           .then(res => res.json())
           .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
             showAlert('All counters have been reset!', 'Success', '✅');
             loadProductStatus();
+            loadDashboardData();
+          })
+          .catch(err => {
+            console.error('Error resetting counters:', err);
+            showAlert('Failed to reset counters', 'Error', '❌');
           });
       }
     }
@@ -2161,30 +2301,78 @@
     async function resetTimerOnly() {
       const confirmed = await showConfirm('Reset timer only (keep slot counts)?', 'Reset Timer', '⏱️', 'Reset Timer', 'modal-btn-confirm');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/reset-timer`, { method: 'POST' })
+        fetch(`${BACKEND_URL}/admin/reset-timer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        })
           .then(res => res.json())
           .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
             showAlert('Timer has been reset!', 'Success', '✅');
+          })
+          .catch(err => {
+            console.error('Error resetting timer:', err);
+            showAlert('Failed to reset timer', 'Error', '❌');
           });
       }
     }
 
-    function markAllAvailable() {
-      fetch(`${BACKEND_URL}/mark-all-available`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          showAlert('All products marked as available!', 'Success', '✅');
-          loadProductStatus();
-        });
+    async function markAllAvailable() {
+      const confirmed = await showConfirm('Mark all products as available?', 'Mark All Available', '✅', 'Mark Available', 'modal-btn-success');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/admin/set-product-availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            available: true 
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
+            showAlert('All products marked as available!', 'Success', '✅');
+            loadProductStatus();
+          })
+          .catch(err => {
+            console.error('Error marking all available:', err);
+            showAlert('Failed to update products', 'Error', '❌');
+          });
+      }
     }
 
-    function markAllUnavailable() {
-      fetch(`${BACKEND_URL}/mark-all-unavailable`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          showAlert('All products marked as unavailable!', 'Success', '⚠️');
-          loadProductStatus();
-        });
+    async function markAllUnavailable() {
+      const confirmed = await showConfirm('Mark all products as unavailable?', 'Mark All Unavailable', '⚠️', 'Mark Unavailable', 'modal-btn-danger');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/admin/set-product-availability`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            available: false 
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
+            showAlert('All products marked as unavailable!', 'Success', '⚠️');
+            loadProductStatus();
+          })
+          .catch(err => {
+            console.error('Error marking all unavailable:', err);
+            showAlert('Failed to update products', 'Error', '❌');
+          });
+      }
     }
 
     function saveWeekdaySchedule() {
@@ -2235,28 +2423,68 @@
       }
     }
 
-    function toggleGiveaway() {
-      fetch(`${BACKEND_URL}/api/giveaway/toggle`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          showAlert(
-            data.active ? 'Giveaway is now active!' : 'Giveaway has been deactivated!',
-            data.active ? 'Giveaway Active' : 'Giveaway Inactive',
-            data.active ? '🎁' : '🚫'
-          );
-          loadGiveawayData();
-        });
+    async function toggleGiveaway() {
+      const currentStatus = document.getElementById('giveawayStatusBadge').textContent;
+      const isCurrentlyActive = currentStatus === 'Active';
+      const newStatus = !isCurrentlyActive;
+      
+      const confirmed = await showConfirm(
+        `${newStatus ? 'Activate' : 'Deactivate'} the giveaway?`,
+        'Toggle Giveaway',
+        newStatus ? '🎁' : '🚫',
+        newStatus ? 'Activate' : 'Deactivate',
+        newStatus ? 'modal-btn-success' : 'modal-btn-danger'
+      );
+      
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/api/giveaway/toggle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active: newStatus })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
+            showAlert(
+              data.active ? 'Giveaway is now active!' : 'Giveaway has been deactivated!',
+              data.active ? 'Giveaway Active' : 'Giveaway Inactive',
+              data.active ? '🎁' : '🚫'
+            );
+            loadGiveawayData();
+          })
+          .catch(err => {
+            console.error('Error toggling giveaway:', err);
+            showAlert('Failed to toggle giveaway', 'Error', '❌');
+          });
+      }
     }
 
     function setSpinDate() {
       const date = document.getElementById('giveawaySpinDatePicker').value;
-      fetch(`${BACKEND_URL}/api/giveaway/set-spin-date`, {
+      if (!date) {
+        showAlert('Please select a date', 'Missing Information', '⚠️');
+        return;
+      }
+      fetch(`${BACKEND_URL}/api/giveaway/set-date`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date })
+        body: JSON.stringify({ spinDate: date })
       })
       .then(res => res.json())
-      .then(data => showAlert('Spin date has been set!', 'Success', '📅'));
+      .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert('Spin date has been set!', 'Success', '📅');
+      })
+      .catch(err => {
+        console.error('Error setting spin date:', err);
+        showAlert('Failed to set spin date', 'Error', '❌');
+      });
     }
 
     function setMinParticipants() {
@@ -2264,10 +2492,20 @@
       fetch(`${BACKEND_URL}/api/giveaway/set-min-participants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ min: parseInt(min) })
+        body: JSON.stringify({ minParticipants: parseInt(min) })
       })
       .then(res => res.json())
-      .then(data => showAlert(`Minimum participants set to ${min}!`, 'Success', '👥'));
+      .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert(`Minimum participants set to ${min}!`, 'Success', '👥');
+      })
+      .catch(err => {
+        console.error('Error setting min participants:', err);
+        showAlert('Failed to set minimum', 'Error', '❌');
+      });
     }
 
     function setMaxParticipants() {
@@ -2275,15 +2513,25 @@
       fetch(`${BACKEND_URL}/api/giveaway/set-max-participants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max: parseInt(max) })
+        body: JSON.stringify({ maxParticipants: parseInt(max) })
       })
       .then(res => res.json())
-      .then(data => showAlert(`Maximum participants set to ${max}!`, 'Success', '📊'));
+      .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert(`Maximum participants set to ${max}!`, 'Success', '📊');
+      })
+      .catch(err => {
+        console.error('Error setting max participants:', err);
+        showAlert('Failed to set maximum', 'Error', '❌');
+      });
     }
 
     function addManualEntry() {
-      const firstName = document.getElementById('manualFirstName').value;
-      const lastName = document.getElementById('manualLastName').value;
+      const firstName = document.getElementById('manualFirstName').value.trim();
+      const lastName = document.getElementById('manualLastName').value.trim();
       
       if (!firstName || !lastName) {
         showAlert('Please enter both first and last name', 'Missing Information', '⚠️');
@@ -2293,37 +2541,101 @@
       fetch(`${BACKEND_URL}/api/giveaway/add-entry`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, isManual: true })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          firstName, 
+          lastName 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         showAlert(`${firstName} ${lastName} has been added to the giveaway!`, 'Entry Added', '✅');
         document.getElementById('manualFirstName').value = '';
         document.getElementById('manualLastName').value = '';
         loadGiveawayData();
+      })
+      .catch(err => {
+        console.error('Error adding manual entry:', err);
+        showAlert('Failed to add entry', 'Error', '❌');
       });
     }
 
-    function showWheel() {
-      fetch(`${BACKEND_URL}/api/giveaway/show-wheel`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => showAlert('Wheel is now visible to everyone!', 'Wheel Shown', '👁️'));
+    async function showWheel() {
+      const confirmed = await showConfirm('Make the wheel visible to all users?', 'Show Wheel', '👁️', 'Show Wheel', 'modal-btn-success');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/api/giveaway/set-wheel-visibility`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            visible: true 
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
+            showAlert('Wheel is now visible to everyone!', 'Wheel Shown', '👁️');
+          })
+          .catch(err => {
+            console.error('Error showing wheel:', err);
+            showAlert('Failed to show wheel', 'Error', '❌');
+          });
+      }
     }
 
-    function hideWheel() {
-      fetch(`${BACKEND_URL}/api/giveaway/hide-wheel`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => showAlert('Wheel is now hidden!', 'Wheel Hidden', '🚫'));
+    async function hideWheel() {
+      const confirmed = await showConfirm('Hide the wheel from all users?', 'Hide Wheel', '🚫', 'Hide Wheel', 'modal-btn-danger');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/api/giveaway/set-wheel-visibility`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            visible: false 
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
+            showAlert('Wheel is now hidden!', 'Wheel Hidden', '🚫');
+          })
+          .catch(err => {
+            console.error('Error hiding wheel:', err);
+            showAlert('Failed to hide wheel', 'Error', '❌');
+          });
+      }
     }
 
     async function spinWheel() {
       const confirmed = await showConfirm('Spin the wheel and eliminate one random person?', 'Spin Wheel', '🎡', 'Spin Now', 'modal-btn-confirm');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/api/giveaway/spin`, { method: 'POST' })
+        fetch(`${BACKEND_URL}/api/giveaway/spin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        })
           .then(res => res.json())
           .then(data => {
-            showAlert(`Eliminated: ${data.eliminated}`, 'Person Eliminated', '🎯');
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
+            showAlert(`Eliminated: ${data.eliminated || 'Someone'}`, 'Person Eliminated', '🎯');
             loadGiveawayData();
+          })
+          .catch(err => {
+            console.error('Error spinning wheel:', err);
+            showAlert('Failed to spin wheel', 'Error', '❌');
           });
       }
     }
@@ -2339,16 +2651,85 @@
     async function resetGiveaway() {
       const confirmed = await showConfirm('This will clear ALL entries and reset the giveaway. Continue?', 'Reset Giveaway', '⚠️', 'Reset Everything', 'modal-btn-danger');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/api/giveaway/reset`, { method: 'POST' })
+        fetch(`${BACKEND_URL}/api/giveaway/reset`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        })
           .then(res => res.json())
           .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
             showAlert('Giveaway has been completely reset!', 'Reset Complete', '🔄');
             loadGiveawayData();
+          })
+          .catch(err => {
+            console.error('Error resetting giveaway:', err);
+            showAlert('Failed to reset giveaway', 'Error', '❌');
           });
       }
     }
 
     // User Management Functions
+    async function loadBannedUsers() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/get-banned-users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        const data = await response.json();
+        
+        const container = document.getElementById('bannedUsersContainer');
+        const bannedUsers = data.bannedUsers || [];
+        
+        if (bannedUsers.length > 0) {
+          container.innerHTML = bannedUsers.map(user => `
+            <div style="padding: 0.8rem; background: white; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #e74c3c;">
+              <span style="font-weight: 600; color: #2c3e50;">${user}</span>
+              <button class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="unbanUser('${user}')">Unban</button>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 1rem;">No banned users</p>';
+        }
+      } catch (error) {
+        console.error('Error loading banned users:', error);
+        document.getElementById('bannedUsersContainer').innerHTML = '<p style="color: #e74c3c;">Failed to load banned users</p>';
+      }
+    }
+
+    async function unbanUser(username) {
+      const confirmed = await showConfirm(`Unban user "${username}"?`, 'Unban User', '✅', 'Unban', 'modal-btn-success');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/admin/unban-user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            username 
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          if (data.success) {
+            showAlert(`User "${username}" has been unbanned!`, 'User Unbanned', '✅');
+            loadBannedUsers();
+          }
+        })
+        .catch(err => {
+          console.error('Error unbanning user:', err);
+          showAlert('Failed to unban user', 'Error', '❌');
+        });
+      }
+    }
+
     function addToWhitelist() {
       const username = document.getElementById('whitelistUsernameInput').value;
       if (!username) {
@@ -2356,82 +2737,258 @@
         return;
       }
       
-      fetch(`${BACKEND_URL}/add-to-whitelist`, {
+      fetch(`${BACKEND_URL}/admin/add-to-whitelist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          username 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         showAlert(`${username} has been added to whitelist!`, 'User Added', '✅');
         document.getElementById('whitelistUsernameInput').value = '';
         loadWhitelistedUsers();
+      })
+      .catch(err => {
+        console.error('Error adding to whitelist:', err);
+        showAlert('Failed to add user to whitelist', 'Error', '❌');
       });
     }
 
     async function loadWhitelistedUsers() {
       try {
-        const response = await fetch(`${BACKEND_URL}/get-whitelist`);
+        const response = await fetch(`${BACKEND_URL}/admin/counters-status`);
         const data = await response.json();
         
         const listDiv = document.getElementById('whitelistedUsersList');
-        if (data.whitelist && data.whitelist.length > 0) {
-          listDiv.innerHTML = data.whitelist.map(user => `
-            <div style="padding: 0.8rem; background: white; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: 600;">${user}</span>
+        const whitelist = data.whitelistedUsers || [];
+        
+        if (whitelist.length > 0) {
+          listDiv.innerHTML = whitelist.map(user => `
+            <div style="padding: 0.8rem; background: white; border-radius: 6px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <span style="font-weight: 600; color: #2c3e50;">${user}</span>
               <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="removeFromWhitelist('${user}')">Remove</button>
             </div>
           `).join('');
-          document.getElementById('whitelistCount').textContent = data.whitelist.length;
+          document.getElementById('whitelistCount').textContent = whitelist.length;
         } else {
-          listDiv.innerHTML = '<p style="color: #7f8c8d;">No users whitelisted yet</p>';
+          listDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 1rem;">No users whitelisted yet</p>';
+          document.getElementById('whitelistCount').textContent = '0';
         }
       } catch (error) {
         console.error('Error loading whitelist:', error);
+        showAlert('Failed to load whitelist', 'Error', '❌');
       }
     }
 
     async function removeFromWhitelist(username) {
       const confirmed = await showConfirm(`Remove ${username} from whitelist?`, 'Remove User', '🗑️', 'Remove', 'modal-btn-danger');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/remove-from-whitelist`, {
+        fetch(`${BACKEND_URL}/admin/remove-from-whitelist`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username })
+          body: JSON.stringify({ 
+            password: adminPassword,
+            username 
+          })
         })
         .then(res => res.json())
         .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
           showAlert(`${username} has been removed from whitelist!`, 'User Removed', '✅');
           loadWhitelistedUsers();
+        })
+        .catch(err => {
+          console.error('Error removing from whitelist:', err);
+          showAlert('Failed to remove user', 'Error', '❌');
         });
       }
     }
 
     function viewAllLogins() {
-      fetch(`${BACKEND_URL}/get-all-logins`)
+      fetch(`${BACKEND_URL}/admin/login-history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword })
+      })
         .then(res => res.json())
-        .then(data => {
-          const container = document.getElementById('loginsContainer');
-          if (data.logins && data.logins.length > 0) {
-            container.innerHTML = data.logins.map(login => `
-              <div style="padding: 0.8rem; background: #f8f9fa; border-radius: 6px; margin-bottom: 0.5rem;">
-                <strong>${login.username}</strong> - ${login.email}
-                <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 0.3rem;">
-                  Last login: ${new Date(login.lastLogin).toLocaleString()}
-                </div>
-              </div>
-            `).join('');
-          } else {
-            container.innerHTML = '<p style="color: #7f8c8d;">No logins found</p>';
+        .then(async data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
           }
+          
+          // Get banned users list
+          const bannedResponse = await fetch(`${BACKEND_URL}/admin/get-banned-users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: adminPassword })
+          });
+          const bannedData = await bannedResponse.json();
+          const bannedUsers = bannedData.bannedUsers || [];
+          
+          if (data.success && data.logins) {
+            const loginsList = data.logins.map(login => {
+              const isBanned = bannedUsers.includes(login.username);
+              return `
+                <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; border-left: 4px solid ${isBanned ? '#e74c3c' : '#6C63FF'}; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                    <div style="flex: 1; min-width: 200px;">
+                      <div style="font-weight: 700; color: #2c3e50; font-size: 1.1rem; margin-bottom: 0.5rem;">
+                        ${login.username} ${isBanned ? '<span style="color: #e74c3c; font-size: 0.9rem;">(BANNED)</span>' : ''}
+                      </div>
+                      <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
+                        📦 Product: <strong>${login.productName}</strong> (£${login.productPrice})
+                      </div>
+                      <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
+                        🏫 School: ${login.school || 'Not provided'}
+                      </div>
+                      <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
+                        💳 Payment: ${login.paymentMethod}
+                      </div>
+                      <div style="font-size: 0.85rem; color: #95a5a6;">
+                        🕒 ${new Date(login.timestamp).toLocaleString()}
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                      ${isBanned 
+                        ? `<button class="btn btn-success" style="padding: 0.5rem 1rem; white-space: nowrap;" onclick="unbanUserFromLogins('${login.username}')">Unban User</button>`
+                        : `<button class="btn btn-danger" style="padding: 0.5rem 1rem; white-space: nowrap;" onclick="banUserFromLogins('${login.username}')">Ban User</button>`
+                      }
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+            
+            const modal = document.getElementById('customAlert');
+            document.getElementById('alertIcon').textContent = '📋';
+            document.getElementById('alertTitle').textContent = 'All User Logins';
+            document.getElementById('alertMessage').innerHTML = `
+              <div style="max-height: 60vh; overflow-y: auto; margin-top: 1rem;">
+                ${loginsList || '<p style="color: #7f8c8d; text-align: center;">No logins found</p>'}
+              </div>
+            `;
+            modal.classList.add('show');
+          }
+        })
+        .catch(err => {
+          console.error('Error loading all logins:', err);
+          showAlert('Failed to load login history', 'Error', '❌');
         });
     }
 
-    // Settings Functions
-    function toggleTestMode() {
-      fetch(`${BACKEND_URL}/toggle-test-mode`, { method: 'POST' })
+    async function banUserFromLogins(username) {
+      closeAlert();
+      const confirmed = await showConfirm(`Ban user "${username}"? They will not be able to access the site.`, 'Ban User', '🚫', 'Ban User', 'modal-btn-danger');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/admin/ban-user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            username 
+          })
+        })
         .then(res => res.json())
         .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          if (data.success) {
+            showAlert(`User "${username}" has been banned!`, 'User Banned', '🚫');
+            setTimeout(() => viewAllLogins(), 1500);
+          }
+        })
+        .catch(err => {
+          console.error('Error banning user:', err);
+          showAlert('Failed to ban user', 'Error', '❌');
+        });
+      } else {
+        viewAllLogins();
+      }
+    }
+
+    async function unbanUserFromLogins(username) {
+      closeAlert();
+      const confirmed = await showConfirm(`Unban user "${username}"? They will be able to access the site again.`, 'Unban User', '✅', 'Unban User', 'modal-btn-success');
+      if (confirmed) {
+        fetch(`${BACKEND_URL}/admin/unban-user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            password: adminPassword,
+            username 
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          if (data.success) {
+            showAlert(`User "${username}" has been unbanned!`, 'User Unbanned', '✅');
+            setTimeout(() => viewAllLogins(), 1500);
+          }
+        })
+        .catch(err => {
+          console.error('Error unbanning user:', err);
+          showAlert('Failed to unban user', 'Error', '❌');
+        });
+      } else {
+        viewAllLogins();
+      }
+    }
+
+    // Settings Functions
+    async function loadTestModeStatus() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/check-test-mode`);
+        const data = await response.json();
+        
+        const badge = document.getElementById('testModeStatusBadge');
+        const btn = document.getElementById('testModeButtonText');
+        
+        if (data.testMode) {
+          badge.textContent = 'Test Mode';
+          badge.className = 'status-badge active';
+          btn.textContent = 'Disable Test Mode';
+        } else {
+          badge.textContent = 'Live';
+          badge.className = 'status-badge available';
+          btn.textContent = 'Enable Test Mode';
+        }
+      } catch (error) {
+        console.error('Error loading test mode status:', error);
+      }
+    }
+
+    function toggleTestMode() {
+      fetch(`${BACKEND_URL}/admin/toggle-test-mode`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          password: adminPassword,
+          enabled: !document.getElementById('testModeStatusBadge').textContent.includes('Test Mode')
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
           const badge = document.getElementById('testModeStatusBadge');
           const btn = document.getElementById('testModeButtonText');
           if (data.testMode) {
@@ -2445,15 +3002,27 @@
             btn.textContent = 'Enable Test Mode';
             showAlert('Test mode is now disabled! Site is live for everyone.', 'Test Mode Disabled', '🌐');
           }
+        })
+        .catch(err => {
+          console.error('Error toggling test mode:', err);
+          showAlert('Failed to toggle test mode', 'Error', '❌');
         });
     }
 
     async function forceRelogin() {
       const confirmed = await showConfirm('Force all users to re-login? They will need to enter credentials again.', 'Force Re-login', '🔄', 'Force Re-login', 'modal-btn-danger');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/force-relogin`, { method: 'POST' })
+        fetch(`${BACKEND_URL}/admin/force-relogin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        })
           .then(res => res.json())
           .then(data => {
+            if (data.error) {
+              showAlert(data.error, 'Error', '❌');
+              return;
+            }
             showAlert('All users will be forced to re-login on their next visit!', 'Success', '✅');
             const statusDiv = document.getElementById('forceReloginStatus');
             if (statusDiv) {
@@ -2464,6 +3033,10 @@
               statusDiv.style.padding = '1rem';
               statusDiv.style.borderRadius = '8px';
             }
+          })
+          .catch(err => {
+            console.error('Error forcing relogin:', err);
+            showAlert('Failed to force relogin', 'Error', '❌');
           });
       }
     }
@@ -2472,57 +3045,135 @@
       const minutes = document.getElementById('testTimerMinutes').value;
       const confirmed = await showConfirm(`Set test timer to ${minutes} minutes? This will override the 24-hour timer.`, 'Set Test Timer', '⏱️', 'Set Timer', 'modal-btn-confirm');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/set-test-timer`, {
+        fetch(`${BACKEND_URL}/admin/set-test-timer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ minutes: parseInt(minutes) })
+          body: JSON.stringify({ 
+            password: adminPassword,
+            minutes: parseInt(minutes) 
+          })
         })
         .then(res => res.json())
-        .then(data => showAlert(`Test timer set to ${minutes} minutes!`, 'Success', '✅'));
+        .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
+          showAlert(`Test timer set to ${minutes} minutes!`, 'Success', '✅');
+        })
+        .catch(err => {
+          console.error('Error setting test timer:', err);
+          showAlert('Failed to set test timer', 'Error', '❌');
+        });
       }
     }
 
     // Bot Automation Functions
+    async function loadBotSettings() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/bot-mode`);
+        const data = await response.json();
+        
+        if (data.mode) {
+          const radioBtn = document.querySelector(`input[name="botMode"][value="${data.mode}"]`);
+          if (radioBtn) radioBtn.checked = true;
+          
+          const modeText = data.mode === 'auto' ? 'Auto-Bot Mode' : 'Email Confirmation Mode';
+          document.getElementById('currentBotMode').textContent = modeText;
+        }
+        
+        // Load queue settings
+        const queueResponse = await fetch(`${BACKEND_URL}/admin/get-queue-settings`);
+        const queueData = await queueResponse.json();
+        
+        if (queueData.success) {
+          document.getElementById('globalQueueMinutes').value = queueData.globalQueueMinutes || 5;
+          
+          const sameProductHours = Math.floor(queueData.sameProductQueueMinutes / 60);
+          const sameProductMinutes = queueData.sameProductQueueMinutes % 60;
+          document.getElementById('sameProductHours').value = sameProductHours;
+          document.getElementById('sameProductMinutes').value = sameProductMinutes;
+        }
+      } catch (error) {
+        console.error('Error loading bot settings:', error);
+      }
+    }
+
     function saveBotMode() {
       const mode = document.querySelector('input[name="botMode"]:checked').value;
-      fetch(`${BACKEND_URL}/set-bot-mode`, {
+      fetch(`${BACKEND_URL}/admin/set-bot-mode`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          mode 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         const modeText = mode === 'auto' ? 'Auto-Bot Mode' : 'Email Confirmation Mode';
         showAlert(`Bot mode set to ${modeText}!`, 'Bot Mode Saved', '🤖');
         document.getElementById('currentBotMode').textContent = modeText;
+      })
+      .catch(err => {
+        console.error('Error saving bot mode:', err);
+        showAlert('Failed to save bot mode', 'Error', '❌');
       });
     }
 
     function setGlobalQueue() {
       const minutes = document.getElementById('globalQueueMinutes').value;
-      fetch(`${BACKEND_URL}/set-global-queue-time`, {
+      fetch(`${BACKEND_URL}/admin/set-global-queue-time`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minutes: parseInt(minutes) })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          minutes: parseInt(minutes) 
+        })
       })
       .then(res => res.json())
-      .then(data => showAlert(`Global queue time set to ${minutes} minutes!`, 'Success', '⏳'));
+      .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert(`Global queue time set to ${minutes} minutes!`, 'Success', '⏳');
+      })
+      .catch(err => {
+        console.error('Error setting global queue:', err);
+        showAlert('Failed to set queue time', 'Error', '❌');
+      });
     }
 
     function setSameProductQueue() {
       const hours = document.getElementById('sameProductHours').value;
       const minutes = document.getElementById('sameProductMinutes').value;
       
-      fetch(`${BACKEND_URL}/set-same-product-queue-time`, {
+      fetch(`${BACKEND_URL}/admin/set-same-product-queue-time`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
+          password: adminPassword,
           hours: parseInt(hours), 
           minutes: parseInt(minutes) 
         })
       })
       .then(res => res.json())
-      .then(data => showAlert(`Same product queue time set to ${hours}h ${minutes}m!`, 'Success', '⏱️'));
+      .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert(`Same product queue time set to ${hours}h ${minutes}m!`, 'Success', '⏱️');
+      })
+      .catch(err => {
+        console.error('Error setting product queue:', err);
+        showAlert('Failed to set queue time', 'Error', '❌');
+      });
     }
 
     // Individual Product Control Functions
@@ -2537,13 +3188,25 @@
       fetch(`${BACKEND_URL}/admin/set-slot-count`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product, count: parseInt(value) })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product, 
+          count: parseInt(value) 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           showAlert(`${product} slot count updated to ${value}`, 'Success', '✅');
         }
+      })
+      .catch(err => {
+        console.error('Error setting slot count:', err);
+        showAlert('Failed to update slot count', 'Error', '❌');
       });
     }
 
@@ -2558,10 +3221,18 @@
       fetch(`${BACKEND_URL}/admin/set-max-slots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product, maxSlots: parseInt(value) })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product, 
+          maxSlots: parseInt(value) 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           showAlert(`${product} max slots updated to ${value}`, 'Success', '✅');
         }
@@ -2580,14 +3251,26 @@
       fetch(`${BACKEND_URL}/admin/set-extra-slot-count`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product, count: parseInt(value) })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product, 
+          count: parseInt(value) 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           showAlert(`${product} extra slot count updated to ${value}`, 'Success', '💎');
           loadProductStatus();
         }
+      })
+      .catch(err => {
+        console.error('Error setting extra slot count:', err);
+        showAlert('Failed to update extra slot count', 'Error', '❌');
       });
     }
 
@@ -2602,10 +3285,18 @@
       fetch(`${BACKEND_URL}/admin/set-extra-slot-max`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product, max: parseInt(value) })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product, 
+          max: parseInt(value) 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           showAlert(`${product} extra slot max updated to ${value}`, 'Success', '💎');
           loadProductStatus();
@@ -2624,29 +3315,52 @@
       fetch(`${BACKEND_URL}/admin/set-extra-slot-price`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product, price: parseInt(value) })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product, 
+          price: parseInt(value) 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           showAlert(`${product} extra slot base price updated to £${value}`, 'Success', '💰');
           loadProductStatus();
         }
+      })
+      .catch(err => {
+        console.error('Error setting extra slot price:', err);
+        showAlert('Failed to update price', 'Error', '❌');
       });
     }
 
     async function resetProductCounter(product) {
       const confirmed = await showConfirm(`Reset ${product} counter to 0?`, 'Reset Product', '🔄', 'Reset', 'modal-btn-danger');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/admin/reset-product`, {
+        fetch(`${BACKEND_URL}/admin/reset-product-counter`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product })
+          body: JSON.stringify({ 
+            password: adminPassword,
+            product 
+          })
         })
         .then(res => res.json())
         .then(data => {
+          if (data.error) {
+            showAlert(data.error, 'Error', '❌');
+            return;
+          }
           showAlert(`${product} counter reset to 0!`, 'Success', '✅');
           loadProductStatus();
+        })
+        .catch(err => {
+          console.error('Error resetting product counter:', err);
+          showAlert('Failed to reset counter', 'Error', '❌');
         });
       }
     }
@@ -2655,12 +3369,24 @@
       fetch(`${BACKEND_URL}/admin/toggle-product-availability`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product, available: makeAvailable })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product, 
+          available: makeAvailable 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         showAlert(`${product} marked as ${makeAvailable ? 'available' : 'not available'}!`, 'Success', makeAvailable ? '✅' : '⚠️');
         loadProductStatus();
+      })
+      .catch(err => {
+        console.error('Error toggling product availability:', err);
+        showAlert('Failed to update availability', 'Error', '❌');
       });
     }
 
@@ -2668,12 +3394,23 @@
       fetch(`${BACKEND_URL}/admin/toggle-coming-soon`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          product 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         showAlert(`${product} coming soon status toggled!`, 'Success', '🚧');
         loadProductStatus();
+      })
+      .catch(err => {
+        console.error('Error toggling coming soon:', err);
+        showAlert('Failed to toggle coming soon status', 'Error', '❌');
       });
     }
 
@@ -2684,20 +3421,31 @@
         showAlert('Please enter a code', 'Missing Information', '⚠️');
         return;
       }
-      
+
       fetch(`${BACKEND_URL}/admin/add-cash-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          code 
+        })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           showAlert(`Code "${code}" has been added!`, 'Code Added', '✅');
           document.getElementById('newCashCode').value = '';
         } else {
           showAlert(data.message || 'Failed to add code', 'Error', '❌');
         }
+      })
+      .catch(err => {
+        console.error('Error adding cash code:', err);
+        showAlert('Failed to add code', 'Error', '❌');
       });
     }
 
@@ -2705,10 +3453,14 @@
       fetch(`${BACKEND_URL}/admin/get-cash-codes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ password: adminPassword })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           const content = document.getElementById('cashCodesContent');
           content.style.display = 'block';
@@ -2738,10 +3490,14 @@
       fetch(`${BACKEND_URL}/admin/get-code-usage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ password: adminPassword })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           const content = document.getElementById('codeUsageContent');
           content.style.display = 'block';
@@ -2761,16 +3517,23 @@
             listDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center;">No code usage found</p>';
           }
         }
+      })
+      .catch(err => {
+        console.error('Error loading code usage:', err);
+        showAlert('Failed to load code usage', 'Error', '❌');
       });
     }
 
     async function deleteCashCode(code) {
       const confirmed = await showConfirm(`Delete code "${code}"?`, 'Delete Code', '🗑️', 'Delete', 'modal-btn-danger');
       if (confirmed) {
-        fetch(`${BACKEND_URL}/admin/delete-cash-code`, {
+        fetch(`${BACKEND_URL}/admin/remove-cash-code`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ 
+            password: adminPassword,
+            code 
+          })
         })
         .then(res => res.json())
         .then(data => {
@@ -2784,13 +3547,17 @@
 
     // Who's Online Function
     function showOnlineUsers() {
-      fetch(`${BACKEND_URL}/admin/get-active-users`, {
+      fetch(`${BACKEND_URL}/admin/active-users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ password: adminPassword })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           const content = document.getElementById('activeUsersContent');
           content.style.display = 'block';
@@ -2815,24 +3582,28 @@
 
     // Purchase History Function
     function viewPurchaseHistory() {
-      fetch(`${BACKEND_URL}/admin/purchase-history`, {
+      fetch(`${BACKEND_URL}/admin/login-history`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ password: adminPassword })
       })
       .then(res => res.json())
       .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
         if (data.success) {
           const content = document.getElementById('purchaseHistoryContent');
           content.style.display = 'block';
           
           const listDiv = document.getElementById('purchaseHistoryList');
-          if (data.purchases && data.purchases.length > 0) {
-            listDiv.innerHTML = data.purchases.map(purchase => `
+          if (data.logins && data.logins.length > 0) {
+            listDiv.innerHTML = data.logins.map(login => `
               <div style="padding: 0.8rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border: 2px solid #6C63FF;">
-                <div style="font-weight: 700; color: #2c3e50;">${purchase.username}</div>
+                <div style="font-weight: 700; color: #2c3e50;">${login.username}</div>
                 <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 0.3rem;">
-                  Product: ${purchase.product} | Price: £${purchase.price} | Date: ${new Date(purchase.date).toLocaleString()}
+                  Product: ${login.productName} | Price: £${login.productPrice} | Method: ${login.paymentMethod} | Date: ${new Date(login.timestamp).toLocaleString()}
                 </div>
               </div>
             `).join('');
@@ -2840,6 +3611,10 @@
             listDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center;">No purchases found</p>';
           }
         }
+      })
+      .catch(err => {
+        console.error('Error loading purchase history:', err);
+        showAlert('Failed to load purchase history', 'Error', '❌');
       });
     }
   </script>
