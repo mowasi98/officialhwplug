@@ -148,35 +148,34 @@
     .item-card:nth-child(4) { animation-delay: 0.8s !important; }
     .item-card:nth-child(5) { animation-delay: 1s !important; }
 
-    /* Sequential highlight effect */
-    @keyframes card-highlight {
-      0%, 100% {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      }
-      50% {
-        box-shadow: 0 0 30px rgba(255, 0, 100, 0.6), 0 0 60px rgba(255, 105, 180, 0.4), 0 4px 12px rgba(0,0,0,0.08);
-      }
-    }
-
-    .item-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(255, 0, 100, 0.15) 0%, rgba(255, 105, 180, 0.15) 100%);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
+    /* Sequential highlight effect - each card gets its own color */
     .item-card.highlight-active {
-      animation: card-highlight 1.2s ease-in-out !important;
+      transition: all 0.4s ease;
     }
 
-    .item-card.highlight-active::before {
-      opacity: 1;
+    .item-card:nth-child(1).highlight-active {
+      box-shadow: 0 0 40px rgba(255, 105, 180, 0.8), 0 0 80px rgba(255, 105, 180, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
+      border-color: #FF69B4 !important;
+    }
+
+    .item-card:nth-child(2).highlight-active {
+      box-shadow: 0 0 40px rgba(255, 0, 100, 0.8), 0 0 80px rgba(255, 0, 100, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
+      border-color: #FF0064 !important;
+    }
+
+    .item-card:nth-child(3).highlight-active {
+      box-shadow: 0 0 40px rgba(0, 150, 255, 0.8), 0 0 80px rgba(0, 150, 255, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
+      border-color: #0096FF !important;
+    }
+
+    .item-card:nth-child(4).highlight-active {
+      box-shadow: 0 0 40px rgba(0, 255, 100, 0.8), 0 0 80px rgba(0, 255, 100, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
+      border-color: #00FF64 !important;
+    }
+
+    .item-card:nth-child(5).highlight-active {
+      box-shadow: 0 0 40px rgba(138, 43, 226, 0.8), 0 0 80px rgba(138, 43, 226, 0.5), 0 4px 12px rgba(0,0,0,0.08) !important;
+      border-color: #8A2BE2 !important;
     }
 
     
@@ -4633,12 +4632,13 @@
       typeTagline();
     }, 1000);
 
-    // Sequential card highlight effect
+    // Sequential card highlight effect - forward and backward
     function startCardHighlightSequence() {
       const cards = document.querySelectorAll('.item-card');
       if (cards.length === 0) return;
 
       let currentIndex = 0;
+      let direction = 1; // 1 for forward, -1 for backward
 
       function highlightNext() {
         // Remove highlight from all cards
@@ -4650,10 +4650,17 @@
         }
         
         // Move to next card
-        currentIndex = (currentIndex + 1) % cards.length;
+        currentIndex += direction;
         
-        // Continue the sequence after 1.5 seconds
-        setTimeout(highlightNext, 1500);
+        // Reverse direction at the ends
+        if (currentIndex >= cards.length - 1) {
+          direction = -1; // Start going backward
+        } else if (currentIndex <= 0) {
+          direction = 1; // Start going forward
+        }
+        
+        // Continue the sequence after 1 second
+        setTimeout(highlightNext, 1000);
       }
 
       // Start the sequence after page loads
