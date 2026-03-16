@@ -1393,6 +1393,7 @@
           <div class="stat-label">Today's Revenue</div>
           <div class="stat-value">£<span id="todayRevenue">0</span></div>
           <div class="stat-change positive">↑ <span id="todayChange">0</span> sales</div>
+          <button class="btn btn-danger" style="margin-top: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="removePurchase('today')">Remove £2</button>
         </div>
 
         <div class="stat-card">
@@ -1400,6 +1401,7 @@
           <div class="stat-label">This Week</div>
           <div class="stat-value">£<span id="weekRevenue">0</span></div>
           <div class="stat-change positive">↑ <span id="weekChange">0</span> sales</div>
+          <button class="btn btn-danger" style="margin-top: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="removePurchase('week')">Remove £2</button>
         </div>
 
         <div class="stat-card">
@@ -1407,6 +1409,7 @@
           <div class="stat-label">This Month</div>
           <div class="stat-value">£<span id="monthRevenue">0</span></div>
           <div class="stat-change positive">↑ <span id="monthChange">0</span> sales</div>
+          <button class="btn btn-danger" style="margin-top: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="removePurchase('month')">Remove £2</button>
         </div>
 
         <div class="stat-card">
@@ -1414,6 +1417,7 @@
           <div class="stat-label">All Time Total</div>
           <div class="stat-value">£<span id="totalRevenue">0</span></div>
           <div class="stat-change positive"><span id="totalSales">0</span> total sales</div>
+          <button class="btn btn-danger" style="margin-top: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="removePurchase('total')">Remove £2</button>
         </div>
       </div>
 
@@ -2062,6 +2066,81 @@
         console.error('Error loading dashboard:', error);
         // Show demo data if backend fails
         showDemoData();
+      }
+    }
+
+    // Remove a purchase from revenue
+    async function removePurchase(period) {
+      const confirmed = await showConfirm(
+        `Remove £2 from ${period === 'today' ? "today's" : period === 'total' ? 'total' : `this ${period}'s`} revenue? This will delete the most recent purchase.`,
+        'Remove Purchase',
+        '🗑️',
+        'Remove £2',
+        'modal-btn-danger'
+      );
+      
+      if (confirmed) {
+        try {
+          // Get the most recent login from the appropriate period
+          const response = await fetch(`${BACKEND_URL}/admin/login-history`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: adminPassword })
+          });
+          const data = await response.json();
+          
+          if (!data.success || !data.logins || data.logins.length === 0) {
+            showAlert('No purchases to remove', 'Error', '❌');
+            return;
+          }
+          
+          // Find the most recent purchase from the specified period
+          const now = new Date();
+          let targetIndex = -1;
+          
+          if (period === 'today') {
+            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            targetIndex = data.logins.findIndex(login => new Date(login.timestamp) >= todayStart);
+          } else if (period === 'week') {
+            const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            targetIndex = data.logins.findIndex(login => new Date(login.timestamp) >= weekStart);
+          } else if (period === 'month') {
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            targetIndex = data.logins.findIndex(login => new Date(login.timestamp) >= monthStart);
+          } else {
+            targetIndex = 0; // Most recent for total
+          }
+          
+          if (targetIndex === -1) {
+            showAlert(`No purchases found for ${period}`, 'Error', '❌');
+            return;
+          }
+          
+          // Remove the purchase
+          const removeResponse = await fetch(`${BACKEND_URL}/admin/remove-purchase-history`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              password: adminPassword,
+              index: targetIndex
+            })
+          });
+          
+          const removeData = await removeResponse.json();
+          
+          if (removeData.error) {
+            showAlert(removeData.error, 'Error', '❌');
+            return;
+          }
+          
+          if (removeData.success) {
+            showAlert('£2 removed from revenue!', 'Purchase Removed', '✅');
+            loadDashboardData(); // Reload all data
+          }
+        } catch (error) {
+          console.error('Error removing purchase:', error);
+          showAlert('Failed to remove purchase', 'Error', '❌');
+        }
       }
     }
 

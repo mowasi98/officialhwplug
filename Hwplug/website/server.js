@@ -1304,7 +1304,7 @@ app.post('/admin/reset-counters', async (req, res) => {
 
 // Admin endpoint to reset individual product counter
 app.post('/admin/reset-product-counter', async (req, res) => {
-  const { password, productName } = req.body;
+  const { password, productName, product } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1315,29 +1315,31 @@ app.post('/admin/reset-product-counter', async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Clear active reservations for this product when resetting
   let clearedReservations = 0;
   Object.keys(activeReservations).forEach(reservationId => {
-    if (activeReservations[reservationId].productName === productName) {
+    if (activeReservations[reservationId].productName === targetProduct) {
       delete activeReservations[reservationId];
       clearedReservations++;
     }
   });
   
-  dailyLimits[productName].count = 0;
-  dailyLimits[productName].date = new Date().toDateString();
+  dailyLimits[targetProduct].count = 0;
+  dailyLimits[targetProduct].date = new Date().toDateString();
   
   // Also reset extra slots for all products
-  if (dailyLimits[productName].extraSlots) {
-    dailyLimits[productName].extraSlots.count = 0;
-    console.log(`✅ Extra slots also reset for "${productName}"`);
+  if (dailyLimits[targetProduct].extraSlots) {
+    dailyLimits[targetProduct].extraSlots.count = 0;
+    console.log(`✅ Extra slots also reset for "${targetProduct}"`);
   }
   
-  console.log(`🔄 Admin reset: Product "${productName}" counter reset to 0, cleared ${clearedReservations} active reservations`);
+  console.log(`🔄 Admin reset: Product "${targetProduct}" counter reset to 0, cleared ${clearedReservations} active reservations`);
   
   // Save to disk
   saveData();
@@ -1408,7 +1410,7 @@ app.post('/admin/set-product-availability', (req, res) => {
 
 // Admin endpoint to toggle individual product availability
 app.post('/admin/toggle-product-availability', (req, res) => {
-  const { password, productName, available } = req.body;
+  const { password, productName, product, available } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1419,27 +1421,29 @@ app.post('/admin/toggle-product-availability', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Toggle individual product availability
-  dailyLimits[productName].available = available === true;
+  dailyLimits[targetProduct].available = available === true;
   
   // Save to disk
   saveData();
   
   res.json({
     success: true,
-    message: `${productName} ${available ? 'marked as available' : 'marked as not available'}`,
-    product: productName,
+    message: `${targetProduct} ${available ? 'marked as available' : 'marked as not available'}`,
+    product: targetProduct,
     availability: available
   });
 });
 
 // Admin endpoint to toggle Coming Soon mode for a product
 app.post('/admin/toggle-coming-soon', (req, res) => {
-  const { password, productName, comingSoon } = req.body;
+  const { password, productName, product, comingSoon } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1450,27 +1454,29 @@ app.post('/admin/toggle-coming-soon', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Toggle Coming Soon mode for the product
-  dailyLimits[productName].comingSoon = comingSoon === true;
+  dailyLimits[targetProduct].comingSoon = comingSoon === true;
   
   // Save to disk
   saveData();
   
   res.json({
     success: true,
-    message: `${productName} Coming Soon mode ${comingSoon ? 'enabled' : 'disabled'}`,
-    product: productName,
+    message: `${targetProduct} Coming Soon mode ${comingSoon ? 'enabled' : 'disabled'}`,
+    product: targetProduct,
     comingSoon: comingSoon
   });
 });
 
 // Admin endpoint to set custom slot count for a product
 app.post('/admin/set-slot-count', (req, res) => {
-  const { password, productName, slotCount } = req.body;
+  const { password, productName, product, slotCount, count } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1481,12 +1487,15 @@ app.post('/admin/set-slot-count', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  // Accept both 'product' and 'productName', 'count' and 'slotCount'
+  const targetProduct = product || productName;
+  const newCount = parseInt(count || slotCount);
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Validate slot count
-  const newCount = parseInt(slotCount);
   if (isNaN(newCount) || newCount < 0) {
     return res.status(400).json({ error: 'Invalid slot count. Must be a positive number.' });
   }
@@ -1497,19 +1506,19 @@ app.post('/admin/set-slot-count', (req, res) => {
     });
   }
   
-  const oldCount = dailyLimits[productName].count;
-  dailyLimits[productName].count = newCount;
+  const oldCount = dailyLimits[targetProduct].count;
+  dailyLimits[targetProduct].count = newCount;
   const remaining = Math.max(0, MAX_PURCHASES_PER_DAY - newCount);
   
-  console.log(`🔧 Admin: Set slot count for "${productName}": ${oldCount} → ${newCount} (${remaining} remaining)`);
+  console.log(`🔧 Admin: Set slot count for "${targetProduct}": ${oldCount} → ${newCount} (${remaining} remaining)`);
   
   // Save to disk
   saveData();
   
   res.json({
     success: true,
-    message: `Slot count for ${productName} set to ${newCount}`,
-    product: productName,
+    message: `Slot count for ${targetProduct} set to ${newCount}`,
+    product: targetProduct,
     oldCount: oldCount,
     newCount: newCount,
     remaining: remaining,
@@ -1519,7 +1528,7 @@ app.post('/admin/set-slot-count', (req, res) => {
 
 // Admin endpoint to set max available slots for a product
 app.post('/admin/set-max-slots', (req, res) => {
-  const { password, productName, maxSlots } = req.body;
+  const { password, productName, product, maxSlots } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1530,8 +1539,10 @@ app.post('/admin/set-max-slots', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Validate max slots
@@ -1546,18 +1557,18 @@ app.post('/admin/set-max-slots', (req, res) => {
     });
   }
   
-  const oldMax = dailyLimits[productName].maxSlots || MAX_PURCHASES_PER_DAY;
-  dailyLimits[productName].maxSlots = newMax;
+  const oldMax = dailyLimits[targetProduct].maxSlots || MAX_PURCHASES_PER_DAY;
+  dailyLimits[targetProduct].maxSlots = newMax;
   
-  console.log(`🔧 Admin: Set max available slots for "${productName}": ${oldMax} → ${newMax}`);
+  console.log(`🔧 Admin: Set max available slots for "${targetProduct}": ${oldMax} → ${newMax}`);
   
   // Save to disk
   saveData();
   
   res.json({
     success: true,
-    message: `Max slots for ${productName} set to ${newMax}`,
-    product: productName,
+    message: `Max slots for ${targetProduct} set to ${newMax}`,
+    product: targetProduct,
     oldMax: oldMax,
     newMax: newMax
   });
@@ -1565,7 +1576,7 @@ app.post('/admin/set-max-slots', (req, res) => {
 
 // Admin endpoint to set extra slot max for a product (Sparx Reader)
 app.post('/admin/set-extra-slot-max', (req, res) => {
-  const { password, productName, maxSlots } = req.body;
+  const { password, productName, product, maxSlots, max } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1576,17 +1587,19 @@ app.post('/admin/set-extra-slot-max', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  const newMax = parseInt(max || maxSlots);
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Check if product has extra slots feature
-  if (!dailyLimits[productName].extraSlots) {
+  if (!dailyLimits[targetProduct].extraSlots) {
     return res.status(400).json({ error: 'This product does not support extra slots' });
   }
   
   // Validate max slots
-  const newMax = parseInt(maxSlots);
   if (isNaN(newMax) || newMax < 0) {
     return res.status(400).json({ error: 'Invalid max slots. Must be 0 or greater.' });
   }
@@ -1595,32 +1608,32 @@ app.post('/admin/set-extra-slot-max', (req, res) => {
     return res.status(400).json({ error: 'Extra slot max cannot exceed 50.' });
   }
   
-  const oldMax = dailyLimits[productName].extraSlots.max;
-  dailyLimits[productName].extraSlots.max = newMax;
+  const oldMax = dailyLimits[targetProduct].extraSlots.max;
+  dailyLimits[targetProduct].extraSlots.max = newMax;
   
   // If current count exceeds new max, adjust it
-  if (dailyLimits[productName].extraSlots.count > newMax) {
-    dailyLimits[productName].extraSlots.count = newMax;
+  if (dailyLimits[targetProduct].extraSlots.count > newMax) {
+    dailyLimits[targetProduct].extraSlots.count = newMax;
   }
   
-  console.log(`💎 Admin: Set extra slot max for "${productName}": ${oldMax} → ${newMax}`);
+  console.log(`💎 Admin: Set extra slot max for "${targetProduct}": ${oldMax} → ${newMax}`);
   
   // Save to MongoDB
   saveData();
   
   res.json({
     success: true,
-    message: `Extra slot max for ${productName} set to ${newMax}`,
-    product: productName,
+    message: `Extra slot max for ${targetProduct} set to ${newMax}`,
+    product: targetProduct,
     oldMax: oldMax,
     newMax: newMax,
-    currentCount: dailyLimits[productName].extraSlots.count
+    currentCount: dailyLimits[targetProduct].extraSlots.count
   });
 });
 
 // Admin endpoint to set extra slot COUNT (for manual adjustments)
 app.post('/admin/set-extra-slot-count', (req, res) => {
-  const { password, productName, count } = req.body;
+  const { password, productName, product, count } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1631,12 +1644,14 @@ app.post('/admin/set-extra-slot-count', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Check if product has extra slots feature
-  if (!dailyLimits[productName].extraSlots) {
+  if (!dailyLimits[targetProduct].extraSlots) {
     return res.status(400).json({ error: 'This product does not support extra slots' });
   }
   
@@ -1646,36 +1661,36 @@ app.post('/admin/set-extra-slot-count', (req, res) => {
     return res.status(400).json({ error: 'Invalid count. Must be 0 or greater.' });
   }
   
-  const maxSlots = dailyLimits[productName].extraSlots.max;
+  const maxSlots = dailyLimits[targetProduct].extraSlots.max;
   if (newCount > maxSlots) {
     return res.status(400).json({ error: `Extra slot count cannot exceed max (${maxSlots}).` });
   }
   
-  const oldCount = dailyLimits[productName].extraSlots.count;
-  dailyLimits[productName].extraSlots.count = newCount;
+  const oldCount = dailyLimits[targetProduct].extraSlots.count;
+  dailyLimits[targetProduct].extraSlots.count = newCount;
   
   // Adjust currentPrice based on new count (price increases by £1 per slot used)
-  dailyLimits[productName].extraSlots.currentPrice = dailyLimits[productName].extraSlots.basePrice + newCount;
+  dailyLimits[targetProduct].extraSlots.currentPrice = dailyLimits[targetProduct].extraSlots.basePrice + newCount;
   
-  console.log(`💎 Admin: Set extra slot count for "${productName}": ${oldCount} → ${newCount} (price: £${dailyLimits[productName].extraSlots.currentPrice})`);
+  console.log(`💎 Admin: Set extra slot count for "${targetProduct}": ${oldCount} → ${newCount} (price: £${dailyLimits[targetProduct].extraSlots.currentPrice})`);
   
   // Save to MongoDB
   saveData();
   
   res.json({
     success: true,
-    message: `Extra slot count for ${productName} set to ${newCount}`,
-    product: productName,
+    message: `Extra slot count for ${targetProduct} set to ${newCount}`,
+    product: targetProduct,
     oldCount: oldCount,
     newCount: newCount,
     max: maxSlots,
-    currentPrice: dailyLimits[productName].extraSlots.currentPrice
+    currentPrice: dailyLimits[targetProduct].extraSlots.currentPrice
   });
 });
 
 // Admin endpoint to set extra slot BASE PRICE
 app.post('/admin/set-extra-slot-price', (req, res) => {
-  const { password, productName, basePrice } = req.body;
+  const { password, productName, product, basePrice, price } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
   if (!ADMIN_PASSWORD) {
@@ -1686,17 +1701,19 @@ app.post('/admin/set-extra-slot-price', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (!productName || !dailyLimits[productName]) {
-    return res.status(400).json({ error: 'Product not found' });
+  const targetProduct = product || productName;
+  const newPrice = parseInt(price || basePrice);
+  
+  if (!targetProduct || !dailyLimits[targetProduct]) {
+    return res.status(400).json({ error: `Product not found: ${targetProduct}` });
   }
   
   // Check if product has extra slots feature
-  if (!dailyLimits[productName].extraSlots) {
+  if (!dailyLimits[targetProduct].extraSlots) {
     return res.status(400).json({ error: 'This product does not support extra slots' });
   }
   
   // Validate price
-  const newPrice = parseInt(basePrice);
   if (isNaN(newPrice) || newPrice < 1) {
     return res.status(400).json({ error: 'Invalid price. Must be £1 or greater.' });
   }
@@ -1705,25 +1722,25 @@ app.post('/admin/set-extra-slot-price', (req, res) => {
     return res.status(400).json({ error: 'Price cannot exceed £50.' });
   }
   
-  const oldPrice = dailyLimits[productName].extraSlots.basePrice;
-  dailyLimits[productName].extraSlots.basePrice = newPrice;
+  const oldPrice = dailyLimits[targetProduct].extraSlots.basePrice;
+  dailyLimits[targetProduct].extraSlots.basePrice = newPrice;
   
   // Recalculate current price based on how many slots are used
-  const slotsUsed = dailyLimits[productName].extraSlots.count;
-  dailyLimits[productName].extraSlots.currentPrice = newPrice + slotsUsed;
+  const slotsUsed = dailyLimits[targetProduct].extraSlots.count;
+  dailyLimits[targetProduct].extraSlots.currentPrice = newPrice + slotsUsed;
   
-  console.log(`💰 Admin: Set extra slot base price for "${productName}": £${oldPrice} → £${newPrice} (current: £${dailyLimits[productName].extraSlots.currentPrice})`);
+  console.log(`💰 Admin: Set extra slot base price for "${targetProduct}": £${oldPrice} → £${newPrice} (current: £${dailyLimits[targetProduct].extraSlots.currentPrice})`);
   
   // Save to MongoDB
   saveData();
   
   res.json({
     success: true,
-    message: `Extra slot base price for ${productName} set to £${newPrice}`,
-    product: productName,
+    message: `Extra slot base price for ${targetProduct} set to £${newPrice}`,
+    product: targetProduct,
     oldPrice: oldPrice,
     newPrice: newPrice,
-    currentPrice: dailyLimits[productName].extraSlots.currentPrice,
+    currentPrice: dailyLimits[targetProduct].extraSlots.currentPrice,
     slotsUsed: slotsUsed
   });
 });
