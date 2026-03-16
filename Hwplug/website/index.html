@@ -148,38 +148,46 @@
     .item-card:nth-child(4) { animation-delay: 0.8s !important; }
     .item-card:nth-child(5) { animation-delay: 1s !important; }
 
-    /* Sequential highlight effect - only the title text gets colored */
-    .item-card .item-title {
-      transition: all 0.4s ease;
+    /* Sequential word-by-word highlight effect */
+    .item-title span {
+      transition: all 0.3s ease;
     }
 
-    .item-card:nth-child(1).highlight-active .item-title {
+    /* Card 1 - Pink */
+    .item-card:nth-child(1) .word-1.highlight-active,
+    .item-card:nth-child(1) .word-2.highlight-active {
       color: #FF69B4 !important;
-      text-shadow: 0 0 20px rgba(255, 105, 180, 0.8), 0 0 40px rgba(255, 105, 180, 0.5);
+      text-shadow: 0 0 20px rgba(255, 105, 180, 0.9), 0 0 40px rgba(255, 105, 180, 0.6);
       font-weight: 900;
     }
 
-    .item-card:nth-child(2).highlight-active .item-title {
+    /* Card 2 - Red */
+    .item-card:nth-child(2) .word-1.highlight-active,
+    .item-card:nth-child(2) .word-2.highlight-active {
       color: #FF0064 !important;
-      text-shadow: 0 0 20px rgba(255, 0, 100, 0.8), 0 0 40px rgba(255, 0, 100, 0.5);
+      text-shadow: 0 0 20px rgba(255, 0, 100, 0.9), 0 0 40px rgba(255, 0, 100, 0.6);
       font-weight: 900;
     }
 
-    .item-card:nth-child(3).highlight-active .item-title {
+    /* Card 3 - Blue */
+    .item-card:nth-child(3) .word-1.highlight-active {
       color: #0096FF !important;
-      text-shadow: 0 0 20px rgba(0, 150, 255, 0.8), 0 0 40px rgba(0, 150, 255, 0.5);
+      text-shadow: 0 0 20px rgba(0, 150, 255, 0.9), 0 0 40px rgba(0, 150, 255, 0.6);
       font-weight: 900;
     }
 
-    .item-card:nth-child(4).highlight-active .item-title {
+    /* Card 4 - Green */
+    .item-card:nth-child(4) .word-1.highlight-active {
       color: #00FF64 !important;
-      text-shadow: 0 0 20px rgba(0, 255, 100, 0.8), 0 0 40px rgba(0, 255, 100, 0.5);
+      text-shadow: 0 0 20px rgba(0, 255, 100, 0.9), 0 0 40px rgba(0, 255, 100, 0.6);
       font-weight: 900;
     }
 
-    .item-card:nth-child(5).highlight-active .item-title {
+    /* Card 5 - Purple */
+    .item-card:nth-child(5) .word-1.highlight-active,
+    .item-card:nth-child(5) .word-2.highlight-active {
       color: #8A2BE2 !important;
-      text-shadow: 0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.5);
+      text-shadow: 0 0 20px rgba(138, 43, 226, 0.9), 0 0 40px rgba(138, 43, 226, 0.6);
       font-weight: 900;
     }
 
@@ -1676,7 +1684,7 @@
   <section class="items">
     <div class="item-card" data-product="Sparx Reader">
       <div class="popular-badge">Most Popular</div>
-      <div class="item-title">Sparx Reader</div>
+      <div class="item-title"><span class="word-1">Sparx</span> <span class="word-2">Reader</span></div>
       <div class="item-desc">Improve reading comprehension with interactive tasks</div>
       <div class="price">&pound;2</div>
       <div id="slots-Sparx Reader"></div>
@@ -1698,7 +1706,7 @@
     </div>
     
     <div class="item-card" data-product="Sparx Maths">
-      <div class="item-title">Sparx Maths</div>
+      <div class="item-title"><span class="word-1">Sparx</span> <span class="word-2">Maths</span></div>
       <div class="item-desc">Master maths with adaptive problem sets</div>
       <div class="price">&pound;2</div>
       <div id="slots-Sparx Maths"></div>
@@ -1719,7 +1727,7 @@
     </div>
     
     <div class="item-card" data-product="Educate">
-      <div class="item-title">Educate</div>
+      <div class="item-title"><span class="word-1">Educate</span></div>
       <div class="item-desc">Explore science topics with engaging resources</div>
       <div class="price">&pound;2</div>
       <div id="slots-Educate"></div>
@@ -1740,7 +1748,7 @@
     </div>
     
     <div class="item-card" data-product="Seneca">
-      <div class="item-title">Seneca</div>
+      <div class="item-title"><span class="word-1">Seneca</span></div>
       <div class="item-desc">Learn smarter with bite-sized lessons and quizzes</div>
       <div class="price">&pound;2</div>
       <div id="slots-Seneca"></div>
@@ -1766,7 +1774,7 @@
         🚧 COMING SOON 🚧
       </div>
       
-      <div class="item-title">Sparx Science</div>
+      <div class="item-title"><span class="word-1">Sparx</span> <span class="word-2">Science</span></div>
       <div class="item-desc">Improve your science skills with tasks</div>
       <div class="price">&pound;2</div>
       <div id="slots-Sparx Science"></div>
@@ -4637,43 +4645,56 @@
       typeTagline();
     }, 1000);
 
-    // Sequential card highlight effect - forward and backward
-    function startCardHighlightSequence() {
+    // Word-by-word wave highlight effect
+    function startWordWaveEffect() {
       const cards = document.querySelectorAll('.item-card');
       if (cards.length === 0) return;
+
+      // Build sequence of words to highlight
+      const wordSequence = [];
+      cards.forEach((card, cardIndex) => {
+        const words = card.querySelectorAll('.item-title span');
+        words.forEach((word, wordIndex) => {
+          wordSequence.push({ card: cardIndex, word: wordIndex, element: word });
+        });
+      });
 
       let currentIndex = 0;
       let direction = 1; // 1 for forward, -1 for backward
 
       function highlightNext() {
-        // Remove highlight from all cards
-        cards.forEach(card => card.classList.remove('highlight-active'));
+        // Remove highlight from all words
+        wordSequence.forEach(item => {
+          item.element.classList.remove('highlight-active');
+        });
         
-        // Add highlight to current card
-        if (cards[currentIndex]) {
-          cards[currentIndex].classList.add('highlight-active');
+        // Add highlight to current word
+        if (wordSequence[currentIndex]) {
+          wordSequence[currentIndex].element.classList.add('highlight-active');
         }
         
-        // Move to next card
+        // Move to next word
         currentIndex += direction;
         
         // Reverse direction at the ends
-        if (currentIndex >= cards.length - 1) {
+        if (currentIndex >= wordSequence.length) {
+          currentIndex = wordSequence.length - 1;
           direction = -1; // Start going backward
-        } else if (currentIndex <= 0) {
+        } else if (currentIndex < 0) {
+          currentIndex = 0;
           direction = 1; // Start going forward
         }
         
-        // Continue the sequence after 1 second
-        setTimeout(highlightNext, 1000);
+        // Continue the wave after 500ms
+        setTimeout(highlightNext, 500);
       }
 
-      // Start the sequence after page loads
+      // Start the wave after page loads
       setTimeout(highlightNext, 2000);
     }
 
-    // Start card highlight sequence
-    startCardHighlightSequence();
+    // Start word wave effect
+    startWordWaveEffect();
   </script>
 </body>
 </html>
