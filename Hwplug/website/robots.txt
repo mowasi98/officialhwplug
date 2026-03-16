@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin-wheel.html
+Disallow: /success.html
+Disallow: /test.html
+Disallow: /test-wheel.html
+Disallow: /node_modules/
+
+Sitemap: https://hwplug.store/sitemap.xml
