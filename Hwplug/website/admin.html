@@ -2323,7 +2323,7 @@
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
               <button class="btn btn-danger" style="flex: 1;" onclick="resetProductCounter('${product}')">Reset to 0</button>
               <button class="btn ${isUnavailable ? 'btn-success' : 'btn-warning'}" style="flex: 1;" 
-                      onclick="toggleProductAvailability('${product}', ${!isUnavailable})">
+                      onclick="toggleProductAvailability('${product}', ${isUnavailable})">
                 ${isUnavailable ? 'Mark Available' : 'Mark Not Available'}
               </button>
               ${product === 'Sparx Science' ? `
