@@ -971,12 +971,13 @@
     /* Mobile Responsive */
     @media (max-width: 768px) {
       .sidebar {
-        transform: translateX(-100%);
+        transform: translateX(-100%) !important;
         z-index: 1001;
+        opacity: 1 !important;
       }
 
       .sidebar.open {
-        transform: translateX(0);
+        transform: translateX(0) !important;
       }
 
       .sidebar-close {
