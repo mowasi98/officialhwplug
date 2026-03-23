@@ -3870,9 +3870,9 @@
           console.log('📋 Banned users for comparison:', bannedData);
           const bannedUsers = bannedData.bannedUsers || [];
           
-          if (data.success && data.logins) {
-            console.log('📋 Processing', data.logins.length, 'logins');
-            const loginsList = data.logins.map(login => {
+          if (data.success && data.loginHistory) {
+            console.log('📋 Processing', data.loginHistory.length, 'logins');
+            const loginsList = data.loginHistory.map(login => {
               const isBanned = bannedUsers.includes(login.username);
               return `
                 <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; border-left: 4px solid ${isBanned ? '#e74c3c' : '#6C63FF'}; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
