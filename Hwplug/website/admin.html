@@ -2531,7 +2531,19 @@
       const padding = 50;
       const chartWidth = width - padding * 2;
       const chartHeight = height - padding * 2;
-      const maxDataValue = Math.max(...dataPoints, 1);
+      
+      // Set minimum scale based on period
+      const minScales = {
+        'today': 50,
+        'week': 100,
+        'month': 300,
+        'year': 1000,
+        'all': 1000
+      };
+      
+      const actualMax = Math.max(...dataPoints, 1);
+      const minScale = minScales[period] || 50;
+      const maxDataValue = Math.max(actualMax, minScale);
       
       // Draw grid lines
       ctx.strokeStyle = '#e0e0e0';
