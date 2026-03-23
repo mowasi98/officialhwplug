@@ -2094,17 +2094,21 @@
         });
         const historyData = await historyResponse.json();
         
-        if (historyData.success && historyData.logins) {
+        console.log('📊 Chart data received:', historyData);
+        
+        if (historyData.success && historyData.logins && historyData.logins.length > 0) {
           revenueChartData = historyData.logins;
+          console.log('📊 Drawing chart with', historyData.logins.length, 'purchases');
           // Draw chart after a small delay to ensure canvas is ready
           setTimeout(() => {
             drawLineChart(historyData.logins, currentChartPeriod);
-          }, 100);
+          }, 200);
         } else {
+          console.log('📊 No purchase data, showing empty chart');
           // No data, draw empty chart
           setTimeout(() => {
             drawLineChart([], currentChartPeriod);
-          }, 100);
+          }, 200);
         }
 
         // Update bar chart
