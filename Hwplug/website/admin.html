@@ -2096,12 +2096,15 @@
         
         console.log('📊 Chart data received:', historyData);
         
-        if (historyData.success && historyData.logins && historyData.logins.length > 0) {
-          revenueChartData = historyData.logins;
-          console.log('📊 Drawing chart with', historyData.logins.length, 'purchases');
+        // Handle both 'logins' and 'loginHistory' property names
+        const purchaseData = historyData.loginHistory || historyData.logins || [];
+        
+        if (historyData.success && purchaseData.length > 0) {
+          revenueChartData = purchaseData;
+          console.log('📊 Drawing chart with', purchaseData.length, 'purchases');
           // Draw chart after a small delay to ensure canvas is ready
           setTimeout(() => {
-            drawLineChart(historyData.logins, currentChartPeriod);
+            drawLineChart(purchaseData, currentChartPeriod);
           }, 200);
         } else {
           console.log('📊 No purchase data, showing empty chart');
