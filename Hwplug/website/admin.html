@@ -466,12 +466,14 @@
     .stat-card {
       background: white;
       padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
       animation: scaleIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) backwards;
       position: relative;
       overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
     }
 
     .stat-card::before {
@@ -481,12 +483,30 @@
       left: -100%;
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.1), transparent);
-      transition: left 0.5s ease;
+      background: linear-gradient(90deg, transparent, rgba(108, 99, 255, 0.15), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .stat-card::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, #6C63FF, #8b7dff, #a78bfa);
+      border-radius: 16px;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.4s ease;
     }
 
     .stat-card:hover::before {
       left: 100%;
+    }
+
+    .stat-card:hover::after {
+      opacity: 1;
     }
 
     .stat-card:nth-child(1) { animation-delay: 0.6s; }
@@ -495,8 +515,9 @@
     .stat-card:nth-child(4) { animation-delay: 1.05s; }
 
     .stat-card:hover {
-      transform: translateY(-8px) scale(1.03);
-      box-shadow: 0 12px 32px rgba(108, 99, 255, 0.25);
+      transform: translateY(-10px) scale(1.05);
+      box-shadow: 0 16px 48px rgba(108, 99, 255, 0.3);
+      border-color: transparent;
     }
 
     .stat-icon {
@@ -546,12 +567,13 @@
     .chart-container {
       background: white;
       padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       margin-bottom: 2rem;
       animation: scaleIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) 1.6s backwards;
       position: relative;
       overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .chart-container::before {
@@ -561,22 +583,38 @@
       left: -2px;
       right: -2px;
       bottom: -2px;
-      background: linear-gradient(45deg, #6C63FF, #8b7dff, #6C63FF);
+      background: linear-gradient(45deg, #6C63FF, #8b7dff, #a78bfa, #6C63FF);
       background-size: 300% 300%;
-      border-radius: 12px;
+      border-radius: 16px;
       z-index: -1;
       opacity: 0;
-      animation: gradientFlow 3s ease infinite;
-      transition: opacity 0.3s ease;
+      animation: gradientFlow 4s ease infinite;
+      transition: opacity 0.4s ease;
+    }
+
+    .chart-container:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(108, 99, 255, 0.15);
     }
 
     .chart-container:hover::before {
-      opacity: 0.3;
+      opacity: 0.4;
     }
 
     @keyframes gradientFlow {
       0%, 100% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
+    }
+
+    @keyframes chartPointPulse {
+      0%, 100% { 
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% { 
+        transform: scale(1.3);
+        opacity: 0.8;
+      }
     }
 
     .chart-header {
@@ -589,7 +627,28 @@
     .chart-title {
       font-size: 1.3rem;
       font-weight: 700;
-      color: #2c3e50;
+      background: linear-gradient(135deg, #2c3e50 0%, #6C63FF 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      position: relative;
+      display: inline-block;
+    }
+
+    .chart-title::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6C63FF 0%, #8b7dff 100%);
+      transition: width 0.4s ease;
+      border-radius: 2px;
+    }
+
+    .chart-container:hover .chart-title::after {
+      width: 100%;
     }
 
     .chart-filters {
@@ -601,17 +660,52 @@
       padding: 0.5rem 1rem;
       border: 2px solid #e0e0e0;
       background: white;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
       color: #7f8c8d;
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .filter-btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(108, 99, 255, 0.1);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .filter-btn:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .filter-btn:hover {
+      border-color: #6C63FF;
+      color: #6C63FF;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(108, 99, 255, 0.2);
     }
 
     .filter-btn.active {
-      background: #6C63FF;
+      background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%);
       color: white;
       border-color: #6C63FF;
+      box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .filter-btn.active:hover {
+      background: linear-gradient(135deg, #5548d9 0%, #4437c9 100%);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(108, 99, 255, 0.5);
     }
 
     .chart-placeholder {
@@ -634,11 +728,26 @@
       width: 100%;
       min-height: 300px;
       margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .line-chart:hover {
+      background: linear-gradient(135deg, #f5f7ff 0%, #fafbff 100%);
+      box-shadow: inset 0 0 20px rgba(108, 99, 255, 0.05);
     }
 
     #revenueCanvas {
       width: 100% !important;
       height: 300px !important;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+
+    #revenueCanvas:hover {
+      filter: drop-shadow(0 4px 12px rgba(108, 99, 255, 0.15));
     }
 
     /* Simple Bar Chart */
@@ -711,6 +820,78 @@
       font-weight: 700;
       color: #2c3e50;
       font-size: 0.9rem;
+    }
+
+    /* Dynamic Bar Chart Styles */
+    .bar-fill {
+      width: 100%;
+      border-radius: 12px 12px 0 0;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      position: relative;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .bar-fill::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 12px 12px 0 0;
+    }
+
+    .bar-label {
+      text-align: center;
+      margin-top: 0.5rem;
+      font-weight: 600;
+      color: #7f8c8d;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    .bar-value {
+      text-align: center;
+      font-weight: 700;
+      color: #2c3e50;
+      font-size: 1rem;
+      margin-top: 0.25rem;
+      transition: all 0.3s ease;
+    }
+
+    /* Bar chart container wrapper */
+    #revenueBarChart > div {
+      position: relative;
+    }
+
+    #revenueBarChart > div > div {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 0 0.5rem;
+    }
+
+    #revenueBarChart > div > div:hover {
+      transform: translateY(-8px);
+    }
+
+    #revenueBarChart > div > div:hover .bar-fill {
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+      filter: brightness(1.1);
+    }
+
+    #revenueBarChart > div > div:hover .bar-label {
+      color: #6C63FF;
+      font-weight: 700;
+    }
+
+    #revenueBarChart > div > div:hover .bar-value {
+      color: #6C63FF;
+      transform: scale(1.1);
     }
 
     /* Control Panels */
@@ -2225,6 +2406,12 @@
       }
     }
 
+    // Global variable to store chart data for hover interactions
+    let chartDataPoints = [];
+    let chartLabels = [];
+    let chartCanvas = null;
+    let tooltipElement = null;
+
     function drawLineChart(loginHistory, period = 'today') {
       const canvas = document.getElementById('revenueCanvas');
       if (!canvas) {
@@ -2232,6 +2419,7 @@
         return;
       }
       
+      chartCanvas = canvas;
       const ctx = canvas.getContext('2d');
       const parentWidth = canvas.parentElement.offsetWidth;
       const width = parentWidth > 0 ? parentWidth - 40 : 800;
@@ -2250,6 +2438,8 @@
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('No purchase data available yet', width / 2, height / 2);
+        chartDataPoints = [];
+        chartLabels = [];
         return;
       }
       
@@ -2365,12 +2555,16 @@
         ctx.fillText(`£${value}`, padding - 10, y + 4);
       }
       
-      // Calculate points
+      // Calculate points and store for hover interactions
       const points = dataPoints.map((value, index) => {
         const x = padding + (chartWidth / (dataPoints.length - 1 || 1)) * index;
         const y = padding + chartHeight - (value / maxDataValue) * chartHeight;
-        return { x, y, value };
+        return { x, y, value, label: labels[index] };
       });
+      
+      // Store data globally for hover interactions
+      chartDataPoints = points;
+      chartLabels = labels;
       
       // Draw gradient fill under line
       if (points.length > 1) {
@@ -2437,35 +2631,165 @@
       ctx.fillText(periodLabels[period] || period, padding, padding - 10);
     }
 
+    // Create tooltip element for chart hover
+    function createTooltip() {
+      if (!tooltipElement) {
+        tooltipElement = document.createElement('div');
+        tooltipElement.id = 'chartTooltip';
+        tooltipElement.style.cssText = `
+          position: absolute;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease, transform 0.3s ease;
+          z-index: 1000;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+          white-space: nowrap;
+          transform: translateY(-10px);
+        `;
+        document.body.appendChild(tooltipElement);
+      }
+      return tooltipElement;
+    }
+
+    // Add hover interaction to canvas
+    function setupChartHover() {
+      const canvas = document.getElementById('revenueCanvas');
+      if (!canvas) return;
+      
+      const tooltip = createTooltip();
+      const ctx = canvas.getContext('2d');
+      
+      canvas.addEventListener('mousemove', function(e) {
+        if (chartDataPoints.length === 0) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Scale for canvas resolution
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const scaledX = mouseX * scaleX;
+        const scaledY = mouseY * scaleY;
+        
+        let hoveredPoint = null;
+        let minDistance = 25; // Hover radius
+        
+        // Find closest point
+        chartDataPoints.forEach((point, index) => {
+          const distance = Math.sqrt(
+            Math.pow(scaledX - point.x, 2) + 
+            Math.pow(scaledY - point.y, 2)
+          );
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            hoveredPoint = { ...point, index };
+          }
+        });
+        
+        if (hoveredPoint) {
+          // Redraw chart to highlight hovered point
+          drawLineChart(revenueChartData, currentChartPeriod);
+          
+          // Draw highlighted point
+          ctx.fillStyle = '#FF6B6B';
+          ctx.beginPath();
+          ctx.arc(hoveredPoint.x, hoveredPoint.y, 8, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          
+          // Draw vertical line to show position
+          ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(hoveredPoint.x, 50);
+          ctx.lineTo(hoveredPoint.x, canvas.height - 50);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          
+          // Show tooltip
+          tooltip.innerHTML = `
+            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${hoveredPoint.label}</div>
+            <div style="font-size: 16px; font-weight: 700;">£${hoveredPoint.value}</div>
+          `;
+          tooltip.style.left = e.clientX + 15 + 'px';
+          tooltip.style.top = e.clientY - 50 + 'px';
+          tooltip.style.opacity = '1';
+          tooltip.style.transform = 'translateY(0)';
+          
+          canvas.style.cursor = 'pointer';
+        } else {
+          // No point hovered, hide tooltip
+          tooltip.style.opacity = '0';
+          tooltip.style.transform = 'translateY(-10px)';
+          canvas.style.cursor = 'default';
+        }
+      });
+      
+      canvas.addEventListener('mouseleave', function() {
+        tooltip.style.opacity = '0';
+        tooltip.style.transform = 'translateY(-10px)';
+        canvas.style.cursor = 'default';
+        // Redraw chart to remove highlight
+        if (revenueChartData) {
+          drawLineChart(revenueChartData, currentChartPeriod);
+        }
+      });
+    }
+
+    // Initialize hover functionality when page loads
+    setTimeout(() => {
+      setupChartHover();
+    }, 1000);
+
     function updateRevenueBarChart(data) {
       const chartContainer = document.getElementById('revenueBarChart');
 
       // Calculate max value for scaling
       const maxValue = Math.max(data.today * 2, data.week * 2, data.month * 2, data.total * 2, 1);
 
-      // Create chart bars
+      // Create chart bars with enhanced styling
       chartContainer.innerHTML = `
-        <h3 style="text-align: center; color: #2c3e50; font-size: 1.1rem; margin-bottom: 1rem;">Quick Overview</h3>
-        <div style="display: flex; align-items: flex-end; justify-content: space-around; gap: 1rem; height: 200px; padding: 1rem;">
-          <div class="chart-bar" style="animation-delay: 0.1s;">
-            <div class="bar-fill" style="height: ${(data.today * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #6C63FF 0%, #5548d9 100%);"></div>
-            <div class="bar-label">Today</div>
-            <div class="bar-value">£${data.today * 2}</div>
+        <h3 style="text-align: center; color: #2c3e50; font-size: 1.2rem; margin-bottom: 1.5rem; font-weight: 700;">Quick Overview</h3>
+        <div style="display: flex; align-items: flex-end; justify-content: space-around; gap: 1.5rem; height: 220px; padding: 1rem; background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%); border-radius: 12px;">
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.3s ease; padding: 0 0.5rem;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="bar-fill" style="height: ${(data.today * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #6C63FF 0%, #5548d9 100%); width: 100%; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 12px rgba(108, 99, 255, 0.3); position: relative;">
+              <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: rgba(255, 255, 255, 0.5); border-radius: 12px 12px 0 0;"></div>
+            </div>
+            <div class="bar-label" style="margin-top: 0.5rem; font-weight: 600; color: #7f8c8d; font-size: 0.9rem;">Today</div>
+            <div class="bar-value" style="font-weight: 700; color: #2c3e50; font-size: 1rem; margin-top: 0.25rem;">£${data.today * 2}</div>
           </div>
-          <div class="chart-bar" style="animation-delay: 0.2s;">
-            <div class="bar-fill" style="height: ${(data.week * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #00d2ff 0%, #3a7bd5 100%);"></div>
-            <div class="bar-label">Week</div>
-            <div class="bar-value">£${data.week * 2}</div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.3s ease; padding: 0 0.5rem;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="bar-fill" style="height: ${(data.week * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #00d2ff 0%, #3a7bd5 100%); width: 100%; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 12px rgba(0, 210, 255, 0.3); position: relative;">
+              <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: rgba(255, 255, 255, 0.5); border-radius: 12px 12px 0 0;"></div>
+            </div>
+            <div class="bar-label" style="margin-top: 0.5rem; font-weight: 600; color: #7f8c8d; font-size: 0.9rem;">Week</div>
+            <div class="bar-value" style="font-weight: 700; color: #2c3e50; font-size: 1rem; margin-top: 0.25rem;">£${data.week * 2}</div>
           </div>
-          <div class="chart-bar" style="animation-delay: 0.3s;">
-            <div class="bar-fill" style="height: ${(data.month * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);"></div>
-            <div class="bar-label">Month</div>
-            <div class="bar-value">£${data.month * 2}</div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.3s ease; padding: 0 0.5rem;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="bar-fill" style="height: ${(data.month * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%); width: 100%; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 12px rgba(240, 147, 251, 0.3); position: relative;">
+              <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: rgba(255, 255, 255, 0.5); border-radius: 12px 12px 0 0;"></div>
+            </div>
+            <div class="bar-label" style="margin-top: 0.5rem; font-weight: 600; color: #7f8c8d; font-size: 0.9rem;">Month</div>
+            <div class="bar-value" style="font-weight: 700; color: #2c3e50; font-size: 1rem; margin-top: 0.25rem;">£${data.month * 2}</div>
           </div>
-          <div class="chart-bar" style="animation-delay: 0.4s;">
-            <div class="bar-fill" style="height: ${(data.total * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);"></div>
-            <div class="bar-label">Total</div>
-            <div class="bar-value">£${data.total * 2}</div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: all 0.3s ease; padding: 0 0.5rem;" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div class="bar-fill" style="height: ${(data.total * 2 / maxValue) * 100}%; background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%); width: 100%; border-radius: 12px 12px 0 0; box-shadow: 0 -4px 12px rgba(79, 172, 254, 0.3); position: relative;">
+              <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: rgba(255, 255, 255, 0.5); border-radius: 12px 12px 0 0;"></div>
+            </div>
+            <div class="bar-label" style="margin-top: 0.5rem; font-weight: 600; color: #7f8c8d; font-size: 0.9rem;">All Time</div>
+            <div class="bar-value" style="font-weight: 700; color: #2c3e50; font-size: 1rem; margin-top: 0.25rem;">£${data.total * 2}</div>
           </div>
         </div>
       `;
