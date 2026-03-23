@@ -3564,7 +3564,10 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
           
           const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${BOT_API_SECRET}`
+            },
             body: JSON.stringify({
               productName: productName,
               username: username,
@@ -3920,7 +3923,7 @@ async function sendCashPaymentNotification(data) {
                 <div style="display: inline-block;">
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue & Do NOW</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
                 <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 🤖 Sparksbot | 🧠 SEN AI</p>
               </div>
@@ -3933,7 +3936,7 @@ async function sendCashPaymentNotification(data) {
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
                 <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 🧠 SEN AI</p>
               </div>
@@ -4078,7 +4081,7 @@ async function sendLoginDetailsNotification(data) {
                 <div style="display: inline-block;">
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue & Do NOW</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
                 <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 🤖 Sparksbot | 🧠 SEN AI</p>
               </div>
@@ -4091,9 +4094,9 @@ async function sendLoginDetailsNotification(data) {
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-manual?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 👤 Manual</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 🧠 SEN AI</p>
               </div>
               `) : `
               <!-- No Buttons -->
@@ -4472,7 +4475,10 @@ app.get('/process-order-bot', async (req, res) => {
     console.log(`📡 EMAIL BUTTON: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
     const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
       body: JSON.stringify({
         productName: order.productName,
         username: order.username,
@@ -4535,7 +4541,7 @@ app.get('/process-order-bot', async (req, res) => {
           <div class="container">
             <h1>❌ Bot Error</h1>
             <p>${botResult.error || 'Failed to trigger bot'}</p>
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">Please do this homework manually.</p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">The backend will handle this homework.</p>
           </div>
         </body>
         </html>
@@ -4560,7 +4566,7 @@ app.get('/process-order-bot', async (req, res) => {
           <h1>❌ Connection Error</h1>
           <p>Could not connect to the bot server.</p>
           <p style="color: #666; font-size: 14px;">${botError.message}</p>
-          <p style="color: #666; font-size: 14px; margin-top: 20px;">Please do this homework manually.</p>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">The backend will handle this homework.</p>
         </div>
       </body>
       </html>
@@ -4644,7 +4650,10 @@ app.get('/process-order-skip-queue', async (req, res) => {
     console.log(`📡 SKIP QUEUE: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
     const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
       body: JSON.stringify({
         productName: order.productName,
         username: order.username,
@@ -5120,7 +5129,10 @@ app.get('/redo-order', async (req, res) => {
     console.log(`📡 REDO: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
     const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
       body: JSON.stringify({
         productName: order.productName,
         username: order.username,
@@ -5249,7 +5261,10 @@ app.post('/trigger-bot', async (req, res) => {
     console.log(`📡 TRIGGER: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
     const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
       body: JSON.stringify({
         productName: productName,
         username: username,
