@@ -1449,7 +1449,7 @@
         </div>
         <div class="line-chart" id="revenueChart">
           <!-- Animated line chart will be generated here -->
-          <canvas id="revenueCanvas" style="width: 100%; height: 300px;"></canvas>
+          <canvas id="revenueCanvas" width="800" height="300" style="width: 100%; height: 300px; display: block;"></canvas>
         </div>
         
         <!-- Keep the bar chart for quick overview -->
@@ -2096,7 +2096,15 @@
         
         if (historyData.success && historyData.logins) {
           revenueChartData = historyData.logins;
-          drawLineChart(historyData.logins, currentChartPeriod);
+          // Draw chart after a small delay to ensure canvas is ready
+          setTimeout(() => {
+            drawLineChart(historyData.logins, currentChartPeriod);
+          }, 100);
+        } else {
+          // No data, draw empty chart
+          setTimeout(() => {
+            drawLineChart([], currentChartPeriod);
+          }, 100);
         }
 
         // Update bar chart
@@ -2212,16 +2220,31 @@
 
     function drawLineChart(loginHistory, period = 'today') {
       const canvas = document.getElementById('revenueCanvas');
-      if (!canvas) return;
+      if (!canvas) {
+        console.error('Canvas not found');
+        return;
+      }
       
       const ctx = canvas.getContext('2d');
-      const width = canvas.offsetWidth;
+      const parentWidth = canvas.parentElement.offsetWidth;
+      const width = parentWidth > 0 ? parentWidth - 40 : 800;
       const height = 300;
       canvas.width = width;
       canvas.height = height;
       
+      console.log('Drawing chart:', { width, height, period, dataCount: loginHistory?.length || 0 });
+      
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
+      
+      // If no data, show message
+      if (!loginHistory || loginHistory.length === 0) {
+        ctx.fillStyle = '#7f8c8d';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No purchase data available yet', width / 2, height / 2);
+        return;
+      }
       
       // Process data based on period
       let dataPoints = [];
@@ -2380,8 +2403,11 @@
         ctx.lineWidth = 2;
         ctx.stroke();
         
-        // X-axis labels (show every nth label to avoid crowding)
-        const labelInterval = Math.ceil(labels.length / 10);
+      });
+      
+      // Draw X-axis labels (show strategically to avoid crowding)
+      const labelInterval = labels.length > 20 ? Math.ceil(labels.length / 12) : (labels.length > 10 ? 2 : 1);
+      points.forEach((p, index) => {
         if (index % labelInterval === 0 || index === labels.length - 1) {
           ctx.fillStyle = '#7f8c8d';
           ctx.font = '11px Arial';
@@ -2389,6 +2415,19 @@
           ctx.fillText(labels[index], p.x, height - padding + 20);
         }
       });
+      
+      // Add period label
+      ctx.fillStyle = '#2c3e50';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'left';
+      const periodLabels = {
+        'today': 'Today (Hourly)',
+        'week': 'This Week (Daily)',
+        'month': 'This Month (Daily)',
+        'year': 'Last 12 Months',
+        'all': 'All Time (Monthly)'
+      };
+      ctx.fillText(periodLabels[period] || period, padding, padding - 10);
     }
 
     function updateRevenueBarChart(data) {
