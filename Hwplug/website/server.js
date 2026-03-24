@@ -2652,8 +2652,11 @@ app.post('/admin/get-code-usage', (req, res) => {
 app.get('/get-availability', (req, res) => {
   const availabilityStatus = checkAvailability();
   
-  // availabilityStatus already includes the schedule string from checkAvailability()
-  res.json(availabilityStatus);
+  // Include the raw schedule object for admin panel
+  res.json({
+    ...availabilityStatus,
+    scheduleSettings: availabilitySchedule // Add raw schedule data
+  });
 });
 
 // ====== BAN/UNBAN SYSTEM ======

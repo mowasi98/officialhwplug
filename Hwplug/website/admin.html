@@ -2162,6 +2162,7 @@
           }, 100);
           
           loadDashboardData();
+          loadAvailabilitySchedule();
         }, 500);
 
       } catch (err) {
@@ -3369,29 +3370,91 @@
 
     function saveWeekdaySchedule() {
       const enabled = document.getElementById('weekdayEnabled').checked;
-      const start = document.getElementById('weekdayStart').value;
-      const end = document.getElementById('weekdayEnd').value;
+      const startTime = document.getElementById('weekdayStart').value;
+      const endTime = document.getElementById('weekdayEnd').value;
       
-      fetch(`${BACKEND_URL}/set-weekday-schedule`, {
+      fetch(`${BACKEND_URL}/admin/update-schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled, start, end })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          scheduleType: 'weekday',
+          settings: {
+            enabled: enabled,
+            startTime: startTime,
+            endTime: endTime
+          }
+        })
       })
       .then(res => res.json())
-      .then(data => showAlert('Weekday schedule saved!', 'Success', '✅'));
+      .then(data => {
+        if (data.success) {
+          showAlert('Weekday schedule saved!', 'Success', '✅');
+        } else {
+          showAlert(data.error || 'Failed to save weekday schedule', 'Error', '❌');
+        }
+      })
+      .catch(error => {
+        console.error('Error saving weekday schedule:', error);
+        showAlert('Failed to save weekday schedule', 'Error', '❌');
+      });
     }
 
     function saveWeekendSchedule() {
       const enabled = document.getElementById('weekendEnabled').checked;
       const allDay = document.getElementById('weekendAllDay').checked;
       
-      fetch(`${BACKEND_URL}/set-weekend-schedule`, {
+      fetch(`${BACKEND_URL}/admin/update-schedule`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled, allDay })
+        body: JSON.stringify({ 
+          password: adminPassword,
+          scheduleType: 'weekend',
+          settings: {
+            enabled: enabled,
+            allDay: allDay
+          }
+        })
       })
       .then(res => res.json())
-      .then(data => showAlert('Weekend schedule saved!', 'Success', '✅'));
+      .then(data => {
+        if (data.success) {
+          showAlert('Weekend schedule saved!', 'Success', '✅');
+        } else {
+          showAlert(data.error || 'Failed to save weekend schedule', 'Error', '❌');
+        }
+      })
+      .catch(error => {
+        console.error('Error saving weekend schedule:', error);
+        showAlert('Failed to save weekend schedule', 'Error', '❌');
+      });
+    }
+
+    // Load current availability schedule from server
+    async function loadAvailabilitySchedule() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/get-availability`);
+        const data = await response.json();
+        
+        if (data.scheduleSettings) {
+          // Load weekday settings
+          if (data.scheduleSettings.weekday) {
+            document.getElementById('weekdayEnabled').checked = data.scheduleSettings.weekday.enabled || false;
+            document.getElementById('weekdayStart').value = data.scheduleSettings.weekday.startTime || '15:30';
+            document.getElementById('weekdayEnd').value = data.scheduleSettings.weekday.endTime || '00:00';
+          }
+          
+          // Load weekend settings
+          if (data.scheduleSettings.weekend) {
+            document.getElementById('weekendEnabled').checked = data.scheduleSettings.weekend.enabled || false;
+            document.getElementById('weekendAllDay').checked = data.scheduleSettings.weekend.allDay || false;
+          }
+          
+          console.log('✅ Availability schedule loaded:', data.scheduleSettings);
+        }
+      } catch (error) {
+        console.error('Error loading availability schedule:', error);
+      }
     }
 
     // Giveaway Functions
