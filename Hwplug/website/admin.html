@@ -2805,8 +2805,13 @@
             <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${clickedPoint.label}</div>
             <div style="font-size: 16px; font-weight: 700;">£${clickedPoint.value}</div>
           `;
-          tooltip.style.left = e.clientX + 15 + 'px';
-          tooltip.style.top = e.clientY - 50 + 'px';
+          
+          // Position tooltip relative to the page (accounting for scroll)
+          const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+          const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+          
+          tooltip.style.left = (e.clientX + scrollX + 15) + 'px';
+          tooltip.style.top = (e.clientY + scrollY - 50) + 'px';
           tooltip.style.opacity = '1';
           tooltip.style.transform = 'translateY(0)';
         } else {
