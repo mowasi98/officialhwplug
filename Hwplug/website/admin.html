@@ -2027,6 +2027,22 @@
     </div>
   </div>
 
+  <!-- Custom Prompt Modal -->
+  <div id="customPrompt" class="custom-modal">
+    <div class="modal-content-box">
+      <div class="modal-icon" id="promptIcon">💬</div>
+      <div class="modal-title" id="promptTitle">Enter Information</div>
+      <div class="modal-message" id="promptMessage">Please enter a value:</div>
+      <input type="text" id="promptInput" 
+             style="width: 100%; padding: 0.8rem; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; margin: 1rem 0; box-sizing: border-box;"
+             placeholder="Enter text here...">
+      <div class="modal-buttons">
+        <button class="modal-btn modal-btn-cancel" onclick="closePrompt(null)">Cancel</button>
+        <button class="modal-btn modal-btn-confirm" onclick="closePrompt(document.getElementById('promptInput').value)">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
       ? 'http://localhost:10000' 
@@ -2071,6 +2087,50 @@
       if (confirmCallback) {
         confirmCallback(result);
         confirmCallback = null;
+      }
+    }
+
+    // Custom Prompt Function (replaces browser prompt)
+    let promptCallback = null;
+    function showPrompt(message, title = 'Enter Information', icon = '💬', defaultValue = '') {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('customPrompt');
+        const input = document.getElementById('promptInput');
+        
+        document.getElementById('promptIcon').textContent = icon;
+        document.getElementById('promptTitle').textContent = title;
+        document.getElementById('promptMessage').textContent = message;
+        
+        input.value = defaultValue;
+        input.placeholder = defaultValue || 'Enter text here...';
+        
+        promptCallback = resolve;
+        modal.classList.add('show');
+        
+        // Focus the input after a brief delay (for mobile compatibility)
+        setTimeout(() => input.focus(), 100);
+        
+        // Allow Enter key to submit
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            closePrompt(input.value);
+          } else if (e.key === 'Escape') {
+            closePrompt(null);
+          }
+        };
+      });
+    }
+
+    function closePrompt(result) {
+      const modal = document.getElementById('customPrompt');
+      const input = document.getElementById('promptInput');
+      
+      modal.classList.remove('show');
+      input.onkeydown = null; // Clean up event listener
+      
+      if (promptCallback) {
+        promptCallback(result);
+        promptCallback = null;
       }
     }
 
@@ -3745,11 +3805,21 @@
         if (bannedUsers.length > 0) {
           container.innerHTML = bannedUsers.map(user => {
             const userStr = typeof user === 'string' ? user : (user.username || String(user));
+            const reason = typeof user === 'object' ? (user.reason || 'No reason provided') : 'No reason provided';
+            const bannedAt = typeof user === 'object' && user.bannedAt ? new Date(user.bannedAt).toLocaleString() : 'Unknown';
             console.log('🚫 User item:', user, '→', userStr);
             return `
-              <div style="padding: 0.8rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #e74c3c;">
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                  <span style="font-weight: 600; color: #2c3e50; font-size: 1rem; flex: 1; min-width: 150px;">${userStr}</span>
+              <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #e74c3c;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                  <div style="flex: 1; min-width: 200px;">
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 1rem; margin-bottom: 0.3rem;">${userStr}</div>
+                    <div style="color: #e74c3c; font-size: 0.9rem; margin-bottom: 0.2rem;">
+                      <strong>Reason:</strong> ${reason}
+                    </div>
+                    <div style="color: #7f8c8d; font-size: 0.85rem;">
+                      <strong>Banned:</strong> ${bannedAt}
+                    </div>
+                  </div>
                   <button class="btn btn-success" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; white-space: nowrap; min-width: 100px;" onclick="unbanUser('${userStr}')">Unban</button>
                 </div>
               </div>
@@ -3773,7 +3843,29 @@
         return;
       }
       
-      const confirmed = await showConfirm(`Ban user "${username}"?`, 'Ban User', '🚫', 'Ban', 'modal-btn-danger');
+      // Ask for ban reason using custom prompt
+      const reason = await showPrompt(
+        `Why are you banning "${username}"?`,
+        'Ban Reason',
+        '🚫',
+        'Spamming / Abuse' // Default reason
+      );
+      
+      if (reason === null) {
+        // User cancelled
+        return;
+      }
+      
+      const finalReason = reason.trim() || 'Spamming / Abuse';
+      
+      const confirmed = await showConfirm(
+        `Ban user "${username}"?\n\nReason: ${finalReason}`, 
+        'Confirm Ban', 
+        '🚫', 
+        'Ban', 
+        'modal-btn-danger'
+      );
+      
       if (confirmed) {
         try {
           const response = await fetch(`${BACKEND_URL}/admin/ban-user`, {
@@ -3781,7 +3873,8 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               password: adminPassword,
-              username: username
+              username: username,
+              reason: finalReason
             })
           });
           const data = await response.json();
@@ -3792,7 +3885,7 @@
           }
           
           if (data.success) {
-            showAlert(`User "${username}" has been banned!`, 'User Banned', '🚫');
+            showAlert(`User "${username}" has been banned!\n\nReason: ${finalReason}`, 'User Banned', '🚫');
             usernameInput.value = '';
             loadBannedUsers();
           }

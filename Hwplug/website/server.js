@@ -743,6 +743,7 @@ async function loadData() {
       console.log(`   - Active reservations: ${Object.keys(activeReservations).length}`);
       console.log(`   - Cash payment codes: ${cashPaymentCodes.length}`);
       console.log(`   - Code usage history: ${codeUsageHistory.length}`);
+      console.log(`   - Banned users: ${bannedUsers.length}`);
       console.log(`   - Availability schedule:`, availabilitySchedule);
       console.log(`   - Whitelist mode: ${whitelistMode ? 'ENABLED' : 'disabled'} (${whitelistedUsers.length} users)`);
       console.log(`   - Slot counts:`, Object.entries(dailyLimits).map(([k, v]) => `${k}: ${v.count}${v.extraSlots ? ` (extra: ${v.extraSlots.count}/${v.extraSlots.max})` : ''}`).join(', '));
