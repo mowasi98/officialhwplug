@@ -270,17 +270,22 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
         }
       }
       
-      // Track login history
-      loginHistory.push({
-        username,
-        school: school || 'Not provided',
-        productName: rawProductName || productName || 'Unknown', // Use raw name for display
-        productPrice: productPrice || 'Unknown',
-        paymentMethod: 'Card (Webhook)',
-        timestamp: new Date().toISOString(),
-        isNewLogin
-      });
-      console.log(`📊 WEBHOOK: Login tracked: ${username} (Total: ${loginHistory.length})`);
+      // Track login history (skip if user is whitelisted)
+      const isWhitelisted = username && whitelistedUsers.includes(username);
+      if (!isWhitelisted) {
+        loginHistory.push({
+          username,
+          school: school || 'Not provided',
+          productName: rawProductName || productName || 'Unknown', // Use raw name for display
+          productPrice: productPrice || 'Unknown',
+          paymentMethod: 'Card (Webhook)',
+          timestamp: new Date().toISOString(),
+          isNewLogin
+        });
+        console.log(`📊 WEBHOOK: Login tracked: ${username} (Total: ${loginHistory.length})`);
+      } else {
+        console.log(`📊 WEBHOOK: Skipping login tracking for whitelisted user: ${username}`);
+      }
       
       // Update active session
       if (username && activeSessions[username]) {
@@ -3327,17 +3332,22 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
       // Don't fail the request if email fails
     });
 
-    // Track login history
-    loginHistory.push({
-      username,
-      school: school || 'Not provided',
-      productName: rawProductName || productName || 'Unknown', // Use raw name for display
-      productPrice: productPrice || 'Unknown',
-      paymentMethod: 'Cash',
-      timestamp: new Date().toISOString(),
-      isNewLogin
-    });
-    console.log(`📊 Login tracked: ${username} (Total logins: ${loginHistory.length})`);
+    // Track login history (skip if user is whitelisted)
+    const isWhitelisted = username && whitelistedUsers.includes(username);
+    if (!isWhitelisted) {
+      loginHistory.push({
+        username,
+        school: school || 'Not provided',
+        productName: rawProductName || productName || 'Unknown', // Use raw name for display
+        productPrice: productPrice || 'Unknown',
+        paymentMethod: 'Cash',
+        timestamp: new Date().toISOString(),
+        isNewLogin
+      });
+      console.log(`📊 Login tracked: ${username} (Total logins: ${loginHistory.length})`);
+    } else {
+      console.log(`📊 CASH: Skipping login tracking for whitelisted user: ${username}`);
+    }
 
     // Update active session (if exists) - payment completed
     if (activeSessions[username]) {
@@ -3600,17 +3610,22 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
       console.log(`ℹ️ CARD: Not a bot product, skipping bot automation`);
     }
 
-    // Track login history
-    loginHistory.push({
-      username,
-      school: school || 'Not provided',
-      productName: rawProductName || productName || 'Unknown', // Use raw name for display
-      productPrice: productPrice || 'Unknown',
-      paymentMethod: 'Card',
-      timestamp: new Date().toISOString(),
-      isNewLogin
-    });
-    console.log(`📊 Login tracked: ${username} (Total logins: ${loginHistory.length})`);
+    // Track login history (skip if user is whitelisted)
+    const isWhitelisted = username && whitelistedUsers.includes(username);
+    if (!isWhitelisted) {
+      loginHistory.push({
+        username,
+        school: school || 'Not provided',
+        productName: rawProductName || productName || 'Unknown', // Use raw name for display
+        productPrice: productPrice || 'Unknown',
+        paymentMethod: 'Card',
+        timestamp: new Date().toISOString(),
+        isNewLogin
+      });
+      console.log(`📊 Login tracked: ${username} (Total logins: ${loginHistory.length})`);
+    } else {
+      console.log(`📊 CARD: Skipping login tracking for whitelisted user: ${username}`);
+    }
 
     // Update active session (if exists) - payment completed
     if (activeSessions[username]) {
