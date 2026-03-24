@@ -1199,6 +1199,25 @@
       .chart-filters {
         flex-wrap: wrap;
       }
+
+      .chart-container {
+        padding: 1rem;
+        margin: 0 -0.5rem;
+      }
+
+      .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .chart-title {
+        font-size: 1.1rem;
+      }
+
+      .line-chart {
+        min-height: 250px;
+      }
     }
 
     /* Password Login Screen */
@@ -2733,7 +2752,73 @@
       
       const tooltip = createTooltip();
       const ctx = canvas.getContext('2d');
+      let activePoint = null;
       
+      // Handle both click and hover for better mobile/desktop experience
+      canvas.addEventListener('click', function(e) {
+        if (chartDataPoints.length === 0) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Scale for canvas resolution
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const scaledX = mouseX * scaleX;
+        const scaledY = mouseY * scaleY;
+        
+        let clickedPoint = null;
+        let minDistance = 30;
+        
+        // Find closest point
+        chartDataPoints.forEach((point, index) => {
+          const distance = Math.sqrt(
+            Math.pow(scaledX - point.x, 2) + 
+            Math.pow(scaledY - point.y, 2)
+          );
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            clickedPoint = { ...point, index };
+          }
+        });
+        
+        if (clickedPoint) {
+          activePoint = clickedPoint;
+          
+          // Redraw chart to highlight clicked point
+          drawLineChart(revenueChartData, currentChartPeriod);
+          
+          // Draw highlighted point (larger orange dot)
+          ctx.fillStyle = '#FF6B6B';
+          ctx.beginPath();
+          ctx.arc(clickedPoint.x, clickedPoint.y, 10, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          
+          // Show tooltip (purple popup)
+          tooltip.innerHTML = `
+            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${clickedPoint.label}</div>
+            <div style="font-size: 16px; font-weight: 700;">£${clickedPoint.value}</div>
+          `;
+          tooltip.style.left = e.clientX + 15 + 'px';
+          tooltip.style.top = e.clientY - 50 + 'px';
+          tooltip.style.opacity = '1';
+          tooltip.style.transform = 'translateY(0)';
+        } else {
+          // Clicked outside any point, hide tooltip
+          activePoint = null;
+          tooltip.style.opacity = '0';
+          tooltip.style.transform = 'translateY(-10px)';
+          drawLineChart(revenueChartData, currentChartPeriod);
+        }
+      });
+      
+      // Keep hover effect for desktop (shows cursor pointer near points)
       canvas.addEventListener('mousemove', function(e) {
         if (chartDataPoints.length === 0) return;
         
@@ -2747,73 +2832,25 @@
         const scaledX = mouseX * scaleX;
         const scaledY = mouseY * scaleY;
         
-        let hoveredPoint = null;
-        let minDistance = 25; // Hover radius
+        let nearPoint = false;
         
-        // Find closest point
-        chartDataPoints.forEach((point, index) => {
+        // Check if mouse is near any point
+        chartDataPoints.forEach((point) => {
           const distance = Math.sqrt(
             Math.pow(scaledX - point.x, 2) + 
             Math.pow(scaledY - point.y, 2)
           );
           
-          if (distance < minDistance) {
-            minDistance = distance;
-            hoveredPoint = { ...point, index };
+          if (distance < 30) {
+            nearPoint = true;
           }
         });
         
-        if (hoveredPoint) {
-          // Redraw chart to highlight hovered point
-          drawLineChart(revenueChartData, currentChartPeriod);
-          
-          // Draw highlighted point
-          ctx.fillStyle = '#FF6B6B';
-          ctx.beginPath();
-          ctx.arc(hoveredPoint.x, hoveredPoint.y, 8, 0, Math.PI * 2);
-          ctx.fill();
-          
-          ctx.strokeStyle = 'white';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          
-          // Draw vertical line to show position
-          ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([5, 5]);
-          ctx.beginPath();
-          ctx.moveTo(hoveredPoint.x, 50);
-          ctx.lineTo(hoveredPoint.x, canvas.height - 50);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          
-          // Show tooltip
-          tooltip.innerHTML = `
-            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${hoveredPoint.label}</div>
-            <div style="font-size: 16px; font-weight: 700;">£${hoveredPoint.value}</div>
-          `;
-          tooltip.style.left = e.clientX + 15 + 'px';
-          tooltip.style.top = e.clientY - 50 + 'px';
-          tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateY(0)';
-          
-          canvas.style.cursor = 'pointer';
-        } else {
-          // No point hovered, hide tooltip
-          tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateY(-10px)';
-          canvas.style.cursor = 'default';
-        }
+        canvas.style.cursor = nearPoint ? 'pointer' : 'default';
       });
       
       canvas.addEventListener('mouseleave', function() {
-        tooltip.style.opacity = '0';
-        tooltip.style.transform = 'translateY(-10px)';
         canvas.style.cursor = 'default';
-        // Redraw chart to remove highlight
-        if (revenueChartData) {
-          drawLineChart(revenueChartData, currentChartPeriod);
-        }
       });
     }
 
