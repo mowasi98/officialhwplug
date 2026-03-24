@@ -1647,15 +1647,6 @@
           <!-- Animated line chart will be generated here -->
           <canvas id="revenueCanvas" width="800" height="300" style="width: 100%; height: 300px; display: block;"></canvas>
         </div>
-        
-        <!-- Keep the bar chart for quick overview -->
-        <div class="simple-chart" id="revenueBarChart" style="margin-top: 1.5rem;">
-          <h3 style="text-align: center; color: #2c3e50; font-size: 1.1rem; margin-bottom: 1rem;">Quick Overview</h3>
-          <!-- Chart bars will be generated dynamically from real data -->
-          <div style="text-align: center; color: #7f8c8d; padding: 2rem;">
-            Loading revenue data...
-          </div>
-        </div>
       </div>
 
       <!-- Quick Actions -->
@@ -2371,9 +2362,6 @@
           }, 200);
         }
 
-        // Update bar chart
-        updateRevenueBarChart(data);
-
         // Load other data
         loadProductStatus();
         loadGiveawayData();
@@ -2920,7 +2908,6 @@
       // Show empty charts
       revenueChartData = [];
       drawLineChart([], currentChartPeriod);
-      updateRevenueBarChart({ today: 0, week: 0, month: 0, total: 0 });
     }
 
     // Change chart view
