@@ -761,5 +761,70 @@
       sendHeartbeat();
     }
   </script>
+
+  <!-- DevTools Protection -->
+  <script>
+    (function() {
+      // Disable right-click
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
+
+      // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, Ctrl+U
+      document.addEventListener('keydown', function(e) {
+        // F12
+        if (e.key === 'F12') {
+          e.preventDefault();
+          return false;
+        }
+        
+        // Ctrl+Shift+I (Inspect)
+        if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+          e.preventDefault();
+          return false;
+        }
+        
+        // Ctrl+Shift+J (Console)
+        if (e.ctrlKey && e.shiftKey && e.key === 'J') {
+          e.preventDefault();
+          return false;
+        }
+        
+        // Ctrl+Shift+C (Inspect Element)
+        if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+          e.preventDefault();
+          return false;
+        }
+        
+        // Ctrl+U (View Source)
+        if (e.ctrlKey && e.key === 'u') {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // Detect if DevTools is open (optional - can slow down page)
+      // Uncomment if you want to detect and warn users
+      /*
+      let devtoolsOpen = false;
+      const element = new Image();
+      Object.defineProperty(element, 'id', {
+        get: function() {
+          devtoolsOpen = true;
+          throw new Error('DevTools detected');
+        }
+      });
+      
+      setInterval(function() {
+        devtoolsOpen = false;
+        console.log(element);
+        if (devtoolsOpen) {
+          document.body.innerHTML = '<h1 style="text-align:center;margin-top:50px;">⚠️ Developer tools are not allowed</h1>';
+        }
+      }, 1000);
+      */
+    })();
+  </script>
 </body>
 </html>
