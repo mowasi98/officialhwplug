@@ -20,9 +20,19 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#6C63FF">
   
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1571105591579125"
-     crossorigin="anonymous"></script>
+  <!-- PropellerAds -->
+  <script>
+    // PropellerAds Service Worker Registration (for push notifications)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(function(registration) {
+          console.log('PropellerAds Service Worker registered successfully');
+        })
+        .catch(function(error) {
+          console.log('Service Worker registration failed:', error);
+        });
+    }
+  </script>
   
   <!-- SEO / Social Media Tags -->
   <meta property="og:title" content="hwplug – Your Learning Marketplace">
@@ -1352,17 +1362,13 @@
 </head>
 <body>
   <header>
-    <!-- AdSense Banner Ad - Top of Page -->
-    <div style="text-align: center; margin-bottom: 0.2rem;">
-      <ins class="adsbygoogle"
-           style="display:block"
-           data-ad-client="ca-pub-1571105591579125"
-           data-ad-slot="1234567890"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-      <script>
-           (adsbygoogle = window.adsbygoogle || []).push({});
-      </script>
+    <!-- PropellerAds Banner Ad - Top of Page -->
+    <div style="text-align: center; margin-bottom: 0.2rem; min-height: 90px; display: flex; align-items: center; justify-content: center;">
+      <div id="propeller-banner-ad" style="width: 100%; max-width: 728px;">
+        <!-- PropellerAds Banner/Native Ad Zone -->
+        <!-- TODO: Create a banner or native ad zone in PropellerAds dashboard and paste the code here -->
+        <!-- For now, the push notification service worker (sw.js) is active -->
+      </div>
     </div>
 
     <div class="reset-timer-container">
@@ -4741,6 +4747,16 @@
     <span style="font-size: 1.2rem;">📚</span>
     <span>What We Provide</span>
   </a>
+
+  <!-- PropellerAds Pop-under Script -->
+  <script>
+    (function(d,z,s){
+      s.src='https://'+d+'/400/'+z;
+      try{
+        (document.body||document.documentElement).appendChild(s)
+      }catch(e){}
+    })('3nbf4.com', '10794718', document.createElement('script'))
+  </script>
 
   <!-- DevTools Protection -->
   <script>

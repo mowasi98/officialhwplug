@@ -9,9 +9,14 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="plug-logo.png">
   
-  <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1571105591579125"
-     crossorigin="anonymous"></script>
+  <!-- PropellerAds -->
+  <script>
+    // PropellerAds Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .catch(function(error) { console.log('SW registration failed:', error); });
+    }
+  </script>
   
   <style>
     body {
@@ -605,6 +610,16 @@
       </a>
     </div>
   </div>
+  <!-- PropellerAds Pop-under Script -->
+  <script>
+    (function(d,z,s){
+      s.src='https://'+d+'/400/'+z;
+      try{
+        (document.body||document.documentElement).appendChild(s)
+      }catch(e){}
+    })('3nbf4.com', '10794718', document.createElement('script'))
+  </script>
+
   <!-- DevTools Protection -->
   <script>
     (function() {
