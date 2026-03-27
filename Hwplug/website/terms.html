@@ -9,14 +9,8 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="plug-logo.png">
   
-  <!-- PropellerAds -->
-  <script>
-    // PropellerAds Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .catch(function(error) { console.log('SW registration failed:', error); });
-    }
-  </script>
+  <!-- PropellerAds MultiTag (All-in-One) -->
+  <script>(function(s){s.dataset.zone='10794836',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
   
   <style>
     body {
@@ -325,16 +319,6 @@
       </div>
     </div>
   </div>
-  <!-- PropellerAds Pop-under Script -->
-  <script>
-    (function(d,z,s){
-      s.src='https://'+d+'/400/'+z;
-      try{
-        (document.body||document.documentElement).appendChild(s)
-      }catch(e){}
-    })('3nbf4.com', '10794718', document.createElement('script'))
-  </script>
-
   <!-- DevTools Protection -->
   <script>
     (function() {
