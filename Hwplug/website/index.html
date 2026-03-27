@@ -146,45 +146,88 @@
 
     /* Sequential word-by-word highlight effect */
     .item-title span {
-      transition: all 0.3s ease;
+      display: inline-block;
+    }
+    
+    .item-title span span {
+      display: inline-block;
+      transition: all 0.12s ease-in-out;
     }
 
     /* Card 1 - Pink */
-    .item-card:nth-child(1) .word-1.highlight-active,
-    .item-card:nth-child(1) .word-2.highlight-active {
+    .item-card:nth-child(1) .word-1 span.letter-glow,
+    .item-card:nth-child(1) .word-2 span.letter-glow {
       color: #FF69B4 !important;
       text-shadow: 0 0 20px rgba(255, 105, 180, 0.9), 0 0 40px rgba(255, 105, 180, 0.6);
       font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(1) .word-1 span.letter-trail,
+    .item-card:nth-child(1) .word-2 span.letter-trail {
+      color: #ffb3d9;
+      text-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+      transform: translateY(-2px);
     }
 
     /* Card 2 - Red */
-    .item-card:nth-child(2) .word-1.highlight-active,
-    .item-card:nth-child(2) .word-2.highlight-active {
+    .item-card:nth-child(2) .word-1 span.letter-glow,
+    .item-card:nth-child(2) .word-2 span.letter-glow {
       color: #FF0064 !important;
       text-shadow: 0 0 20px rgba(255, 0, 100, 0.9), 0 0 40px rgba(255, 0, 100, 0.6);
       font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(2) .word-1 span.letter-trail,
+    .item-card:nth-child(2) .word-2 span.letter-trail {
+      color: #ff80a2;
+      text-shadow: 0 0 10px rgba(255, 0, 100, 0.5);
+      transform: translateY(-2px);
     }
 
     /* Card 3 - Blue */
-    .item-card:nth-child(3) .word-1.highlight-active {
+    .item-card:nth-child(3) .word-1 span.letter-glow {
       color: #0096FF !important;
       text-shadow: 0 0 20px rgba(0, 150, 255, 0.9), 0 0 40px rgba(0, 150, 255, 0.6);
       font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(3) .word-1 span.letter-trail {
+      color: #80cbff;
+      text-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+      transform: translateY(-2px);
     }
 
     /* Card 4 - Green */
-    .item-card:nth-child(4) .word-1.highlight-active {
+    .item-card:nth-child(4) .word-1 span.letter-glow {
       color: #00FF64 !important;
       text-shadow: 0 0 20px rgba(0, 255, 100, 0.9), 0 0 40px rgba(0, 255, 100, 0.6);
       font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(4) .word-1 span.letter-trail {
+      color: #80ffb2;
+      text-shadow: 0 0 10px rgba(0, 255, 100, 0.5);
+      transform: translateY(-2px);
     }
 
     /* Card 5 - Purple */
-    .item-card:nth-child(5) .word-1.highlight-active,
-    .item-card:nth-child(5) .word-2.highlight-active {
+    .item-card:nth-child(5) .word-1 span.letter-glow,
+    .item-card:nth-child(5) .word-2 span.letter-glow {
       color: #8A2BE2 !important;
       text-shadow: 0 0 20px rgba(138, 43, 226, 0.9), 0 0 40px rgba(138, 43, 226, 0.6);
       font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(5) .word-1 span.letter-trail,
+    .item-card:nth-child(5) .word-2 span.letter-trail {
+      color: #c595f1;
+      text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+      transform: translateY(-2px);
     }
 
     
@@ -825,6 +868,11 @@
       max-width: 1100px;
       padding: 0 1rem;
     }
+    
+    .item-card-wrapper {
+      position: relative;
+    }
+    
     .item-card {
       background: #fff;
       border-radius: 16px;
@@ -859,11 +907,11 @@
     }
     .extra-slot-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(255, 193, 7, 0.97) 0%, rgba(255, 152, 0, 0.97) 100%);
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(135deg, #673ab7 0%, #5e35b1 100%);
       border-radius: 16px;
       display: none;
       flex-direction: column;
@@ -910,7 +958,8 @@
       }
       .extra-slot-popular-badge {
         font-size: 0.65rem !important;
-        padding: 0.3rem 1rem !important;
+        top: -10px !important;
+        left: -30px !important;
       }
     }
     .extra-slot-overlay.active {
@@ -921,8 +970,119 @@
       font-weight: 800;
       color: #fff;
       margin-bottom: 0.8rem;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      text-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(254, 202, 87, 0.6), 0 0 30px rgba(72, 219, 251, 0.4);
       line-height: 1.2;
+      animation: textGlow 3s linear infinite;
+    }
+    
+    @keyframes textGlow {
+      0% {
+        text-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(255, 107, 107, 0.6), 0 0 30px rgba(255, 107, 107, 0.4);
+      }
+      25% {
+        text-shadow: 0 0 10px rgba(254, 202, 87, 0.8), 0 0 20px rgba(254, 202, 87, 0.6), 0 0 30px rgba(254, 202, 87, 0.4);
+      }
+      50% {
+        text-shadow: 0 0 10px rgba(72, 219, 251, 0.8), 0 0 20px rgba(72, 219, 251, 0.6), 0 0 30px rgba(72, 219, 251, 0.4);
+      }
+      75% {
+        text-shadow: 0 0 10px rgba(255, 159, 243, 0.8), 0 0 20px rgba(255, 159, 243, 0.6), 0 0 30px rgba(255, 159, 243, 0.4);
+      }
+      100% {
+        text-shadow: 0 0 10px rgba(255, 107, 107, 0.8), 0 0 20px rgba(255, 107, 107, 0.6), 0 0 30px rgba(255, 107, 107, 0.4);
+      }
+    }
+    
+    .extra-slot-product-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    
+    .extra-slot-product-name span {
+      display: inline-block;
+    }
+    
+    .extra-slot-product-name span span {
+      display: inline-block;
+      transition: all 0.12s ease-in-out;
+    }
+    
+    /* Extra slot card 1 (Sparx Reader) - Pink glow */
+    .item-card:nth-child(1) .extra-word-1 span.letter-glow,
+    .item-card:nth-child(1) .extra-word-2 span.letter-glow {
+      color: #FF69B4 !important;
+      text-shadow: 0 0 20px rgba(255, 105, 180, 0.9), 0 0 40px rgba(255, 105, 180, 0.6);
+      font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(1) .extra-word-1 span.letter-trail,
+    .item-card:nth-child(1) .extra-word-2 span.letter-trail {
+      color: #ffb3d9;
+      text-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+      transform: translateY(-2px);
+    }
+    
+    /* Extra slot card 2 (Sparx Maths) - Red glow */
+    .item-card:nth-child(2) .extra-word-1 span.letter-glow,
+    .item-card:nth-child(2) .extra-word-2 span.letter-glow {
+      color: #FF0064 !important;
+      text-shadow: 0 0 20px rgba(255, 0, 100, 0.9), 0 0 40px rgba(255, 0, 100, 0.6);
+      font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(2) .extra-word-1 span.letter-trail,
+    .item-card:nth-child(2) .extra-word-2 span.letter-trail {
+      color: #ff80a2;
+      text-shadow: 0 0 10px rgba(255, 0, 100, 0.5);
+      transform: translateY(-2px);
+    }
+    
+    /* Extra slot card 3 (Educate) - Blue glow */
+    .item-card:nth-child(3) .extra-word-1 span.letter-glow {
+      color: #0096FF !important;
+      text-shadow: 0 0 20px rgba(0, 150, 255, 0.9), 0 0 40px rgba(0, 150, 255, 0.6);
+      font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(3) .extra-word-1 span.letter-trail {
+      color: #80cbff;
+      text-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+      transform: translateY(-2px);
+    }
+    
+    /* Extra slot card 4 (Seneca) - Green glow */
+    .item-card:nth-child(4) .extra-word-1 span.letter-glow {
+      color: #00FF64 !important;
+      text-shadow: 0 0 20px rgba(0, 255, 100, 0.9), 0 0 40px rgba(0, 255, 100, 0.6);
+      font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(4) .extra-word-1 span.letter-trail {
+      color: #80ffb2;
+      text-shadow: 0 0 10px rgba(0, 255, 100, 0.5);
+      transform: translateY(-2px);
+    }
+    
+    /* Extra slot card 5 (Sparx Science) - Purple glow */
+    .item-card:nth-child(5) .extra-word-1 span.letter-glow,
+    .item-card:nth-child(5) .extra-word-2 span.letter-glow {
+      color: #8A2BE2 !important;
+      text-shadow: 0 0 20px rgba(138, 43, 226, 0.9), 0 0 40px rgba(138, 43, 226, 0.6);
+      font-weight: 900;
+      transform: translateY(-4px) scale(1.05);
+    }
+    
+    .item-card:nth-child(5) .extra-word-1 span.letter-trail,
+    .item-card:nth-child(5) .extra-word-2 span.letter-trail {
+      color: #c595f1;
+      text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+      transform: translateY(-2px);
     }
     .extra-slot-price {
       font-size: 2.2rem;
@@ -1205,20 +1365,30 @@
     /* Popular badge for extra slot overlay */
     .extra-slot-popular-badge {
       position: absolute;
-      top: 10px;
-      right: -5px;
-      background: linear-gradient(135deg, #fff 0%, #f5f5f5 100%);
-      color: #ff5252;
-      padding: 0.4rem 1.5rem;
-      font-weight: 800;
-      font-size: 0.7rem;
+      top: -12px;
+      left: -35px;
+      background: none;
+      color: #fff;
+      padding: 0;
+      font-weight: 900;
+      font-size: 0.85rem;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      transform: rotate(5deg);
-      box-shadow: 0 4px 15px rgba(255, 255, 255, 0.5);
-      z-index: 15;
-      border-radius: 4px;
-      border: 2px solid rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 10px rgba(138, 43, 226, 0.8), 0 0 20px rgba(138, 43, 226, 0.6), 0 0 30px rgba(138, 43, 226, 0.4);
+      transform: rotate(-35deg);
+      transform-origin: center;
+      z-index: 20;
+      display: none;
+      animation: glow-pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes glow-pulse {
+      0%, 100% {
+        text-shadow: 0 0 10px rgba(138, 43, 226, 0.8), 0 0 20px rgba(138, 43, 226, 0.6), 0 0 30px rgba(138, 43, 226, 0.4);
+      }
+      50% {
+        text-shadow: 0 0 15px rgba(138, 43, 226, 1), 0 0 30px rgba(138, 43, 226, 0.8), 0 0 45px rgba(138, 43, 226, 0.6);
+      }
     }
     
     .extra-slot-popular-badge::before {
@@ -1675,9 +1845,8 @@
       
       <!-- Extra Slot Overlay (only shown when regular slots are full) -->
       <div class="extra-slot-overlay" id="extraSlotOverlay-Sparx Reader">
-        <div class="extra-slot-popular-badge">Most Popular</div>
-        <div class="extra-slot-title">🔥 Slots Finished!</div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Sparx Reader</div>
+        <div class="extra-slot-title">Extra Slots</div>
+        <div class="extra-slot-product-name"><span class="extra-word-1">Sparx</span> <span class="extra-word-2">Reader</span></div>
         <div class="extra-slot-price" id="extraSlotPrice-Sparx Reader">£3</div>
         <div class="extra-slot-badge">Limited Time</div>
         <div class="extra-slot-info">Extra Slot Available</div>
@@ -1697,8 +1866,8 @@
       
       <!-- Extra Slot Overlay (only shown when regular slots are full) -->
       <div class="extra-slot-overlay" id="extraSlotOverlay-Sparx Maths">
-        <div class="extra-slot-title">🔥 Slots Finished!</div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Sparx Maths</div>
+        <div class="extra-slot-title">Extra Slots</div>
+        <div class="extra-slot-product-name"><span class="extra-word-1">Sparx</span> <span class="extra-word-2">Maths</span></div>
         <div class="extra-slot-price" id="extraSlotPrice-Sparx Maths">£3</div>
         <div class="extra-slot-badge">Limited Time</div>
         <div class="extra-slot-info">Extra Slot Available</div>
@@ -1718,8 +1887,8 @@
       
       <!-- Extra Slot Overlay (only shown when regular slots are full) -->
       <div class="extra-slot-overlay" id="extraSlotOverlay-Educate">
-        <div class="extra-slot-title">🔥 Slots Finished!</div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Educate</div>
+        <div class="extra-slot-title">Extra Slots</div>
+        <div class="extra-slot-product-name"><span class="extra-word-1">Educate</span></div>
         <div class="extra-slot-price" id="extraSlotPrice-Educate">£3</div>
         <div class="extra-slot-badge">Limited Time</div>
         <div class="extra-slot-info">Extra Slot Available</div>
@@ -1739,8 +1908,8 @@
       
       <!-- Extra Slot Overlay (only shown when regular slots are full) -->
       <div class="extra-slot-overlay" id="extraSlotOverlay-Seneca">
-        <div class="extra-slot-title">🔥 Slots Finished!</div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Seneca</div>
+        <div class="extra-slot-title">Extra Slots</div>
+        <div class="extra-slot-product-name"><span class="extra-word-1">Seneca</span></div>
         <div class="extra-slot-price" id="extraSlotPrice-Seneca">£3</div>
         <div class="extra-slot-badge">Limited Time</div>
         <div class="extra-slot-info">Extra Slot Available</div>
@@ -1765,8 +1934,8 @@
       
       <!-- Extra Slot Overlay (only shown when regular slots are full) -->
       <div class="extra-slot-overlay" id="extraSlotOverlay-Sparx Science">
-        <div class="extra-slot-title">🔥 Slots Finished!</div>
-        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">Sparx Science</div>
+        <div class="extra-slot-title">Extra Slots</div>
+        <div class="extra-slot-product-name"><span class="extra-word-1">Sparx</span> <span class="extra-word-2">Science</span></div>
         <div class="extra-slot-price" id="extraSlotPrice-Sparx Science">£3</div>
         <div class="extra-slot-badge">Limited Time</div>
         <div class="extra-slot-info">Extra Slot Available</div>
@@ -4352,6 +4521,13 @@
                   }
                   
                   extraSlotOverlay.classList.add('active');
+                  
+                  // Show the popular badge for Sparx Reader
+                  const popularBadge = document.getElementById(`extraSlotPopularBadge-${product}`);
+                  if (popularBadge) {
+                    popularBadge.style.display = 'block';
+                  }
+                  
                   console.log(`✅ Extra slot overlay activated for ${product}`);
                 }
                 slotsDiv.innerHTML = '<div class="slots-message">Regular slots finished</div>';
@@ -4667,56 +4843,111 @@
       typeTagline();
     }, 1000);
 
-    // Word-by-word wave highlight effect
-    function startWordWaveEffect() {
+    // Wrap each letter in a span for letter-by-letter animation
+    function wrapLettersInSpans() {
+      const cards = document.querySelectorAll('.item-card');
+      
+      cards.forEach(card => {
+        // Wrap regular title letters
+        const titleWords = card.querySelectorAll('.item-title > span');
+        titleWords.forEach(word => {
+          if (!word.querySelector('span')) {
+            const text = word.textContent;
+            word.innerHTML = text.split('').map(letter => 
+              letter === ' ' ? ' ' : `<span>${letter}</span>`
+            ).join('');
+          }
+        });
+        
+        // Wrap extra slot product name letters
+        const extraWords = card.querySelectorAll('.extra-slot-product-name > span');
+        extraWords.forEach(word => {
+          if (!word.querySelector('span')) {
+            const text = word.textContent;
+            word.innerHTML = text.split('').map(letter => 
+              letter === ' ' ? ' ' : `<span>${letter}</span>`
+            ).join('');
+          }
+        });
+      });
+    }
+
+    // Letter-by-letter wave highlight effect
+    function startLetterWaveEffect() {
+      wrapLettersInSpans();
+      
       const cards = document.querySelectorAll('.item-card');
       if (cards.length === 0) return;
 
-      // Build sequence of words to highlight
-      const wordSequence = [];
-      cards.forEach((card, cardIndex) => {
-        const words = card.querySelectorAll('.item-title span');
-        words.forEach((word, wordIndex) => {
-          wordSequence.push({ card: cardIndex, word: wordIndex, element: word });
-        });
-      });
-
       let currentIndex = 0;
-      let direction = 1; // 1 for forward, -1 for backward
+      let direction = 1;
 
       function highlightNext() {
-        // Remove highlight from all words
-        wordSequence.forEach(item => {
-          item.element.classList.remove('highlight-active');
+        // Build sequence of letters dynamically
+        const letterSequence = [];
+        cards.forEach((card, cardIndex) => {
+          const extraOverlay = card.querySelector('.extra-slot-overlay.active');
+          
+          if (extraOverlay) {
+            // Extra slot letters
+            const words = card.querySelectorAll('.extra-slot-product-name > span');
+            words.forEach(word => {
+              const letters = word.querySelectorAll('span');
+              letters.forEach(letter => {
+                letterSequence.push({ element: letter });
+              });
+            });
+          } else {
+            // Regular title letters
+            const words = card.querySelectorAll('.item-title > span');
+            words.forEach(word => {
+              const letters = word.querySelectorAll('span');
+              letters.forEach(letter => {
+                letterSequence.push({ element: letter });
+              });
+            });
+          }
         });
         
-        // Add highlight to current word
-        if (wordSequence[currentIndex]) {
-          wordSequence[currentIndex].element.classList.add('highlight-active');
+        // Remove glow and trail from all letters
+        document.querySelectorAll('.item-title span span, .extra-slot-product-name span span').forEach(letter => {
+          letter.classList.remove('letter-glow');
+          letter.classList.remove('letter-trail');
+        });
+        
+        // Add glow to current letter
+        if (letterSequence[currentIndex]) {
+          letterSequence[currentIndex].element.classList.add('letter-glow');
         }
         
-        // Move to next word
+        // Add trail to previous letter
+        if (direction === 1 && currentIndex > 0 && letterSequence[currentIndex - 1]) {
+          letterSequence[currentIndex - 1].element.classList.add('letter-trail');
+        } else if (direction === -1 && currentIndex < letterSequence.length - 1 && letterSequence[currentIndex + 1]) {
+          letterSequence[currentIndex + 1].element.classList.add('letter-trail');
+        }
+        
+        // Move to next letter
         currentIndex += direction;
         
-        // Reverse direction at the ends
-        if (currentIndex >= wordSequence.length) {
-          currentIndex = wordSequence.length - 1;
-          direction = -1; // Start going backward
+        // Reverse at ends
+        if (currentIndex >= letterSequence.length) {
+          currentIndex = letterSequence.length - 1;
+          direction = -1;
         } else if (currentIndex < 0) {
           currentIndex = 0;
-          direction = 1; // Start going forward
+          direction = 1;
         }
         
-        // Continue the wave after 500ms
-        setTimeout(highlightNext, 500);
+        // Continue wave at 117ms per letter (Option 5 speed)
+        setTimeout(highlightNext, 117);
       }
 
-      // Start the wave after page loads
       setTimeout(highlightNext, 2000);
     }
 
-    // Start word wave effect
-    startWordWaveEffect();
+    // Start letter wave effect
+    startLetterWaveEffect();
   </script>
 
   <!-- What We Provide Button (Bottom Left) -->
