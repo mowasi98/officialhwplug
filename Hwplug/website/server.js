@@ -21,12 +21,27 @@ if (!DISCORD_BOT_API_URL) {
 console.log(`🤖 Sparksbot API configured: ${DISCORD_BOT_API_URL}`);
 
 // Homework Plug Official Bot API URL Configuration (for Sparx Reader)
-const HWPLUG_BOT_API_URL = process.env.HWPLUG_BOT_API_URL;
+// Base URL only (e.g. http://host:3002). Strips trailing slashes and a mistaken /submit-homework suffix.
+function normalizeHwplugBotApiBase(raw) {
+  if (!raw) return raw;
+  let u = String(raw).trim().replace(/\/+$/, '');
+  if (u.endsWith('/submit-homework')) {
+    u = u.slice(0, -'/submit-homework'.length).replace(/\/+$/, '');
+  }
+  return u;
+}
+const HWPLUG_BOT_API_URL = normalizeHwplugBotApiBase(process.env.HWPLUG_BOT_API_URL);
 if (!HWPLUG_BOT_API_URL) {
   console.error('❌ HWPLUG_BOT_API_URL environment variable is not set');
   process.exit(1);
 }
 console.log(`🎓 Homework Plug Bot API configured: ${HWPLUG_BOT_API_URL}`);
+if (/^(https?:\/\/)?(localhost|127\.0\.0\.1)(\b|:|\/|$)/i.test(HWPLUG_BOT_API_URL)) {
+  console.warn(
+    '⚠️ HWPLUG_BOT_API_URL points to localhost. On Render (or any cloud), that is THIS machine—not your PC. ' +
+    'Expose the bot with ngrok/Cloudflare Tunnel and set HWPLUG_BOT_API_URL to that HTTPS URL, or run the bot on a host with a public IP.'
+  );
+}
 
 // Bot API Authentication
 const BOT_API_SECRET = process.env.BOT_API_SECRET;
@@ -6512,6 +6527,141 @@ function broadcastToWheelClients(data) {
 }
 
 // ========== END GIVEAWAY API ENDPOINTS ==========
+
+// ========== PDF PROCESSING ENDPOINTS ==========
+
+const pdfProcessor = require('./pdf-processor');
+const multer = require('multer');
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
+
+// Serve PDF processing page
+app.get('/pdf', (req, res) => {
+  res.sendFile(__dirname + '/pdf.html');
+});
+
+// Process uploaded PDF
+app.post('/api/process-pdf-upload', upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file uploaded' });
+    }
+
+    const result = await pdfProcessor.processUploadedFile(
+      req.file.buffer,
+      req.file.originalname
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error processing uploaded PDF:', error);
+    res.status(500).json({ 
+      error: 'Failed to process PDF: ' + error.message 
+    });
+  }
+});
+
+// Process PDF from URL
+app.post('/api/process-pdf-url', express.json(), async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    // Validate URL format
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return res.status(400).json({ error: 'Invalid URL format' });
+    }
+
+    const result = await pdfProcessor.processFromURL(url);
+    res.json(result);
+  } catch (error) {
+    console.error('Error processing PDF from URL:', error);
+    res.status(500).json({ 
+      error: 'Failed to process PDF from URL: ' + error.message 
+    });
+  }
+});
+
+// Download processed PDF
+app.get('/api/download-pdf/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Security: Only allow alphanumeric, dots, dashes, underscores
+    if (!/^[a-zA-Z0-9._-]+\.pdf$/.test(filename)) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    const filePath = pdfProcessor.getProcessedFilePath(filename);
+    
+    res.download(filePath, filename, (err) => {
+      if (err) {
+        console.error('Error downloading PDF:', err);
+        if (!res.headersSent) {
+          res.status(404).json({ error: 'PDF not found' });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in download endpoint:', error);
+    res.status(500).json({ error: 'Failed to download PDF' });
+  }
+});
+
+// List all processed PDFs
+app.get('/api/list-pdfs', async (req, res) => {
+  try {
+    const pdfs = await pdfProcessor.listProcessedPDFs();
+    res.json({ pdfs });
+  } catch (error) {
+    console.error('Error listing PDFs:', error);
+    res.status(500).json({ error: 'Failed to list PDFs' });
+  }
+});
+
+// Cleanup old PDFs (admin only - you can add authentication if needed)
+app.post('/api/admin/cleanup-pdfs', async (req, res) => {
+  try {
+    const { daysOld } = req.body;
+    await pdfProcessor.cleanupOldPDFs(daysOld || 30);
+    res.json({ success: true, message: 'Old PDFs cleaned up' });
+  } catch (error) {
+    console.error('Error cleaning up PDFs:', error);
+    res.status(500).json({ error: 'Failed to cleanup PDFs' });
+  }
+});
+
+// PDF rebrand: fetch remote PDF and serve under /pdf/:id (for HWPlug-branded link)
+app.post('/api/rebrand-pdf', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ error: 'No URL provided' });
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch PDF');
+    const buffer = await response.arrayBuffer();
+    const id = Date.now().toString(36);
+    if (!global.pdfStore) global.pdfStore = {};
+    global.pdfStore[id] = { buffer: Buffer.from(buffer), createdAt: Date.now() };
+    res.json({ success: true, link: `/pdf/${id}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/pdf/:id', (req, res) => {
+  const entry = global.pdfStore?.[req.params.id];
+  if (!entry) return res.status(404).send('PDF not found or expired');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'inline; filename="HWPlug-Maths.pdf"');
+  res.send(entry.buffer);
+});
+
+// ========== END PDF PROCESSING ENDPOINTS ==========
 
 // Root route - serve index.html
 app.get('/', (req, res) => {

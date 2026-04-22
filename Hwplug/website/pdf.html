@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF Rebrand - HWPlug</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #1a1a2e; border: 1px solid #6C63FF44; border-radius: 20px; padding: 50px 40px; max-width: 520px; width: 100%; box-shadow: 0 0 60px #6C63FF22; }
+    .logo { text-align: center; font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .logo span { color: #6C63FF; }
+    .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 36px; }
+    label { display: block; color: #aaa; font-size: 13px; margin-bottom: 8px; }
+    input { width: 100%; padding: 14px 18px; background: #0f0f1a; border: 1px solid #6C63FF55; border-radius: 10px; color: #fff; font-size: 15px; outline: none; transition: border 0.2s; }
+    input:focus { border-color: #6C63FF; }
+    button { width: 100%; margin-top: 18px; padding: 15px; background: #6C63FF; color: white; font-size: 16px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #5a52e0; }
+    button:disabled { background: #444; cursor: not-allowed; }
+    .result { margin-top: 24px; background: #0f0f1a; border: 1px solid #6C63FF44; border-radius: 10px; padding: 18px; display: none; }
+    .result p { color: #aaa; font-size: 13px; margin-bottom: 10px; }
+    .link-box { display: flex; gap: 10px; align-items: center; }
+    .link-box a { color: #6C63FF; font-size: 14px; word-break: break-all; flex: 1; }
+    .copy-btn { padding: 8px 16px; background: #6C63FF22; border: 1px solid #6C63FF55; border-radius: 8px; color: #6C63FF; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    .copy-btn:hover { background: #6C63FF44; }
+    .error { margin-top: 16px; color: #ff6b6b; font-size: 14px; text-align: center; display: none; }
+    .spinner { display: none; text-align: center; margin-top: 16px; color: #6C63FF; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">HW<span>Plug</span> Maths</div>
+    <div class="subtitle">PDF Rebranding Tool</div>
+    <label>Paste your SenAI PDF link</label>
+    <input type="text" id="urlInput" placeholder="https://files.senai.uk/..." />
+    <button id="btn" onclick="rebrand()">✨ Rebrand & Generate Link</button>
+    <div class="spinner" id="spinner">⏳ Fetching PDF...</div>
+    <div class="error" id="error"></div>
+    <div class="result" id="result">
+      <p>✅ Your rebranded PDF link:</p>
+      <div class="link-box">
+        <a id="pdfLink" href="#" target="_blank"></a>
+        <button class="copy-btn" onclick="copyLink()">Copy</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    async function rebrand() {
+      const url = document.getElementById('urlInput').value.trim();
+      const btn = document.getElementById('btn');
+      const spinner = document.getElementById('spinner');
+      const error = document.getElementById('error');
+      const result = document.getElementById('result');
+      if (!url) { showError('Please paste a SenAI link first'); return; }
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      error.style.display = 'none';
+      result.style.display = 'none';
+      try {
+        const res = await fetch('/api/rebrand-pdf', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        const fullLink = window.location.origin + data.link;
+        document.getElementById('pdfLink').href = fullLink;
+        document.getElementById('pdfLink').textContent = fullLink;
+        result.style.display = 'block';
+      } catch (e) { showError('Error: ' + e.message); }
+      finally { btn.disabled = false; spinner.style.display = 'none'; }
+    }
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg; el.style.display = 'block';
+    }
+    function copyLink() {
+      navigator.clipboard.writeText(document.getElementById('pdfLink').href);
+      document.querySelector('.copy-btn').textContent = 'Copied!';
+      setTimeout(() => document.querySelector('.copy-btn').textContent = 'Copy', 2000);
+    }
+  </script>
+</body>
+</html>
