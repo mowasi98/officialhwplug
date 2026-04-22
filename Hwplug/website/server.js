@@ -6553,8 +6553,8 @@ app.post('/api/rebrand-pdf', async (req, res) => {
     const { width, height } = firstPage.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // White rectangle to cover SenAI banner
-    const bannerHeight = height * 0.075;
+    // White rectangle to cover SenAI banner (12% of height — matches Python script)
+    const bannerHeight = height * 0.12;
     firstPage.drawRectangle({
       x: 0, y: height - bannerHeight,
       width: width, height: bannerHeight,
