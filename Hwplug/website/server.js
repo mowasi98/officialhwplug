@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const helmet = require('helmet');
 const WebSocket = require('ws');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 
 // Fetch support (built-in in Node 18+, fallback for older versions)
 const fetch = globalThis.fetch || require('node-fetch');
@@ -6535,18 +6536,62 @@ app.get('/pdf', (req, res) => {
   res.sendFile(__dirname + '/pdf.html');
 });
 
-// PDF rebrand: fetch remote PDF and serve under /pdf/:id (for HWPlug-branded link)
+// PDF rebrand: fetch remote PDF, cover SenAI banner, serve under /pdf/:id
 app.post('/api/rebrand-pdf', async (req, res) => {
   const { url } = req.body;
   if (!url) return res.status(400).json({ error: 'No URL provided' });
   try {
+    // Fetch the original PDF
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch PDF');
-    const buffer = await response.arrayBuffer();
+    const arrayBuffer = await response.arrayBuffer();
+
+    // Load and edit the PDF
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const pages = pdfDoc.getPages();
+    const firstPage = pages[0];
+    const { width, height } = firstPage.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // White rectangle to cover SenAI banner
+    const bannerHeight = height * 0.075;
+    firstPage.drawRectangle({
+      x: 0, y: height - bannerHeight,
+      width: width, height: bannerHeight,
+      color: rgb(1, 1, 1)
+    });
+
+    // Draw rounded-ish box
+    const boxW = 220, boxH = 28;
+    const boxX = (width - boxW) / 2;
+    const boxY = height - bannerHeight + (bannerHeight - boxH) / 2;
+    firstPage.drawRectangle({
+      x: boxX, y: boxY,
+      width: boxW, height: boxH,
+      color: rgb(0.98, 0.98, 1),
+      borderColor: rgb(0.42, 0.39, 1),
+      borderWidth: 1.5
+    });
+
+    // Draw "HWPlug Maths" text
+    const text = 'HWPlug Maths';
+    const fontSize = 16;
+    const textWidth = font.widthOfTextAtSize(text, fontSize);
+    firstPage.drawText(text, {
+      x: (width - textWidth) / 2,
+      y: boxY + (boxH - fontSize) / 2 + 2,
+      size: fontSize,
+      font,
+      color: rgb(0.42, 0.39, 1)
+    });
+
+    // Save and store
+    const editedPdf = await pdfDoc.save();
     const id = Date.now().toString(36);
     if (!global.pdfStore) global.pdfStore = {};
-    global.pdfStore[id] = { buffer: Buffer.from(buffer), createdAt: Date.now() };
+    global.pdfStore[id] = { buffer: Buffer.from(editedPdf), createdAt: Date.now() };
     res.json({ success: true, link: `/pdf/${id}` });
+
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
