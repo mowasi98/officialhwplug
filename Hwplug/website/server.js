@@ -2288,8 +2288,8 @@ app.post('/admin/set-same-product-queue-time', (req, res) => {
     console.log('⏱️ ═══════════════════════════════════════════════════');
     console.log('');
     
-    res.json({
-      success: true,
+    res.json({ 
+      success: true, 
       message: `Same product queue time set to ${displayText}`,
       config: config
     });
@@ -2298,6 +2298,282 @@ app.post('/admin/set-same-product-queue-time', (req, res) => {
     res.status(500).json({ error: 'Error updating queue config' });
   }
 });
+
+// Admin endpoint to set Sparx Maths queue time
+app.post('/admin/set-sparx-maths-queue-time', (req, res) => {
+  const { password, minutes } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!minutes || minutes < 1 || minutes > 1440) {
+    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
+  }
+  
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const configPath = path.join(__dirname, 'queue-config.json');
+    
+    // Load existing config or create new
+    let config = { globalWaitMinutes: 2, sparxMathsWaitMinutes: 15, otherProductsWaitMinutes: 30 };
+    let oldValue = 15;
+    if (fs.existsSync(configPath)) {
+      const data = fs.readFileSync(configPath, 'utf8');
+      config = JSON.parse(data);
+      oldValue = config.sparxMathsWaitMinutes || 15;
+    }
+    
+    // Update Sparx Maths wait time
+    config.sparxMathsWaitMinutes = minutes;
+    
+    // Save config
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    
+    console.log('');
+    console.log('📐 ═══════════════════════════════════════════════════');
+    console.log('📐  SPARX MATHS QUEUE TIME UPDATED');
+    console.log('📐 ═══════════════════════════════════════════════════');
+    console.log(`📐  Wait between SAME Sparx Maths orders:`);
+    console.log(`📐  OLD: ${oldValue} min → NEW: ${minutes} min`);
+    console.log('📐 ═══════════════════════════════════════════════════');
+    console.log('');
+    
+    res.json({ 
+      success: true, 
+      message: `Sparx Maths queue time set to ${minutes} minutes`,
+      config: config
+    });
+  } catch (error) {
+    console.error('Error setting Sparx Maths queue time:', error);
+    res.status(500).json({ error: 'Error updating queue config' });
+  }
+});
+
+// Admin endpoint to set Other Products queue time (Reader/Science/Educate/Seneca)
+app.post('/admin/set-other-products-queue-time', (req, res) => {
+  const { password, minutes } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!minutes || minutes < 1 || minutes > 1440) {
+    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
+  }
+  
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const configPath = path.join(__dirname, 'queue-config.json');
+    
+    // Load existing config or create new
+    let config = { globalWaitMinutes: 2, sparxMathsWaitMinutes: 15, otherProductsWaitMinutes: 30 };
+    let oldValue = 30;
+    if (fs.existsSync(configPath)) {
+      const data = fs.readFileSync(configPath, 'utf8');
+      config = JSON.parse(data);
+      oldValue = config.otherProductsWaitMinutes || 30;
+    }
+    
+    // Update other products wait time
+    config.otherProductsWaitMinutes = minutes;
+    
+    // Save config
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    
+    console.log('');
+    console.log('📚 ═══════════════════════════════════════════════════');
+    console.log('📚  OTHER PRODUCTS QUEUE TIME UPDATED');
+    console.log('📚 ═══════════════════════════════════════════════════');
+    console.log(`📚  Wait between SAME Reader/Science/Educate/Seneca orders:`);
+    console.log(`📚  OLD: ${oldValue} min → NEW: ${minutes} min`);
+    console.log('📚 ═══════════════════════════════════════════════════');
+    console.log('');
+    
+    res.json({ 
+      success: true, 
+      message: `Other products queue time set to ${minutes} minutes`,
+      config: config
+    });
+  } catch (error) {
+    console.error('Error setting other products queue time:', error);
+    res.status(500).json({ error: 'Error updating queue config' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// SENAI AUTOMATIC QUEUE PROCESSOR
+// ═══════════════════════════════════════════════════════
+
+// Load queue configuration
+function loadSenaiQueueConfig() {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const configPath = path.join(__dirname, 'queue-config.json');
+    if (fs.existsSync(configPath)) {
+      const data = fs.readFileSync(configPath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.log('⚠️ Could not load queue config, using defaults');
+  }
+  
+  return {
+    globalWaitMinutes: 2,
+    sparxMathsWaitMinutes: 15,
+    otherProductsWaitMinutes: 30
+  };
+}
+
+// Get wait time for a product (in milliseconds)
+function getSenaiWaitTime(productName) {
+  const config = loadSenaiQueueConfig();
+  
+  // If same product as last submission
+  if (senaiLastSubmissionProduct && productName === senaiLastSubmissionProduct) {
+    if (productName === 'Sparx Maths') {
+      return config.sparxMathsWaitMinutes * 60 * 1000; // 15 min default
+    } else {
+      return config.otherProductsWaitMinutes * 60 * 1000; // 30 min default
+    }
+  }
+  
+  // Different product - use global wait time
+  return config.globalWaitMinutes * 60 * 1000; // 2 min default
+}
+
+// Check if we can process next order in queue
+function canProcessSenaiQueue() {
+  // If already processing, wait
+  if (senaiProcessingNow) {
+    return false;
+  }
+  
+  // If queue is empty, nothing to process
+  if (senaiQueue.length === 0) {
+    return false;
+  }
+  
+  // If no previous submission, can process immediately
+  if (!senaiLastSubmissionTime) {
+    return true;
+  }
+  
+  // Check if enough time has passed
+  const now = Date.now();
+  const nextOrder = senaiQueue[0];
+  const timeSinceLastSubmission = now - senaiLastSubmissionTime;
+  const requiredWaitTime = getSenaiWaitTime(nextOrder.productName);
+  
+  return timeSinceLastSubmission >= requiredWaitTime;
+}
+
+// Process SenAI queue (runs every 30 seconds)
+async function processSenaiQueue() {
+  if (!canProcessSenaiQueue()) {
+    return;
+  }
+  
+  // Get next order from queue
+  const order = senaiQueue.shift(); // Remove from front of queue
+  
+  if (!order) {
+    return;
+  }
+  
+  senaiProcessingNow = true;
+  
+  console.log('');
+  console.log('🧠 ═══════════════════════════════════════════════════');
+  console.log('🧠  SENAI QUEUE: Processing next order');
+  console.log('🧠 ═══════════════════════════════════════════════════');
+  console.log(`🧠  Product: ${order.productName}`);
+  console.log(`🧠  Username: ${order.username}`);
+  console.log(`🧠  Queue position was: #${order.queuePosition}`);
+  console.log(`🧠  Remaining in queue: ${senaiQueue.length}`);
+  console.log('🧠 ═══════════════════════════════════════════════════');
+  console.log('');
+  
+  try {
+    // Call SenAI API
+    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
+      body: JSON.stringify({
+        productName: order.productName,
+        username: order.username,
+        password: order.password,
+        loginType: order.loginType || 'Normal',
+        school: order.school
+      })
+    });
+    
+    const botResult = await botResponse.json();
+    
+    if (botResult.success) {
+      console.log(`✅ SENAI QUEUE: Order processed successfully!`);
+      
+      // Update tracking
+      senaiLastSubmissionTime = Date.now();
+      senaiLastSubmissionProduct = order.productName;
+      
+      // Mark order as processed
+      if (order.orderId && pendingOrders[order.orderId]) {
+        pendingOrders[order.orderId].processed = true;
+        pendingOrders[order.orderId].processedAt = new Date().toISOString();
+        pendingOrders[order.orderId].processedBy = 'senai-auto-queue';
+      }
+    } else {
+      console.error(`❌ SENAI QUEUE: Processing failed: ${botResult.error}`);
+      
+      // If it was a cooldown error, re-queue it
+      if (botResult.error && botResult.error.includes('cooldown')) {
+        console.log(`⏳ SENAI QUEUE: Re-queueing order due to cooldown`);
+        senaiQueue.unshift(order); // Put back at front of queue
+      }
+    }
+  } catch (error) {
+    console.error(`❌ SENAI QUEUE: Error processing order:`, error.message);
+    
+    // Re-queue on network errors
+    console.log(`⏳ SENAI QUEUE: Re-queueing order due to error`);
+    senaiQueue.unshift(order);
+  } finally {
+    senaiProcessingNow = false;
+  }
+}
+
+// Start queue processor - runs every 30 seconds
+setInterval(() => {
+  processSenaiQueue().catch(err => {
+    console.error('❌ SENAI QUEUE: Processor error:', err);
+    senaiProcessingNow = false; // Reset flag on error
+  });
+}, 30000); // Check every 30 seconds
+
+console.log('🧠 ═══════════════════════════════════════════════════');
+console.log('🧠  SENAI AUTOMATIC QUEUE PROCESSOR STARTED');
+console.log('🧠 ═══════════════════════════════════════════════════');
+console.log('🧠  Checks queue every 30 seconds');
+console.log('🧠  Processes orders sequentially with cooldowns');
+console.log('🧠 ═══════════════════════════════════════════════════');
+console.log('');
 
 // Force all users to re-login by incrementing the required version
 app.post('/admin/force-relogin', (req, res) => {
@@ -3956,11 +4232,12 @@ async function sendCashPaymentNotification(data) {
                 <p style="margin: 0 0 10px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Bot is Processing (In Queue...)</p>
                 <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">The bot will start automatically after queue wait time.</p>
                 <div style="display: inline-block;">
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue & Do NOW</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip (Sparksbot)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip (SenAI)</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 🤖 Sparksbot | 🧠 SEN AI</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue (choose bot) | 🔄 REDO if failed</p>
               </div>
               ` : `
               <!-- Email Confirmation Mode with Skip Queue & REDO -->
@@ -3968,12 +4245,13 @@ async function sendCashPaymentNotification(data) {
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
                   ${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot (Queue)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip (Sparksbot)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI (Queue)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(0,188,212,0.4);">⚡ Skip (SenAI)</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 🧠 SEN AI</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot | ' : ''}🤖 Sparksbot | 🧠 SEN AI | ⚡ Skip Queue (choose bot) | 🔄 REDO</p>
               </div>
               `) : ''}
 
@@ -4114,11 +4392,12 @@ async function sendLoginDetailsNotification(data) {
                 <p style="margin: 0 0 10px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Bot is Processing (In Queue...)</p>
                 <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">The bot will start automatically after queue wait time.</p>
                 <div style="display: inline-block;">
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue & Do NOW</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip (Sparksbot)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip (SenAI)</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue | 🔄 REDO if bot failed | 🤖 Sparksbot | 🧠 SEN AI</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue (choose bot) | 🔄 REDO if failed</p>
               </div>
               ` : `
               <!-- Email Confirmation Mode with Skip Queue & REDO -->
@@ -4172,6 +4451,12 @@ async function sendLoginDetailsNotification(data) {
 
 // Store pending orders (orders waiting for manual decision)
 const pendingOrders = {};
+
+// SenAI Queue System - Automatic processing with cooldown
+const senaiQueue = [];
+let senaiLastSubmissionTime = null;
+let senaiLastSubmissionProduct = null;
+let senaiProcessingNow = false;
 
 // Global Bot Automation Mode Setting
 let botAutomationMode = 'auto'; // 'auto' or 'email'
@@ -4786,6 +5071,176 @@ app.get('/process-order-skip-queue', async (req, res) => {
   }
 });
 
+// Email Button Endpoint: Skip Queue & Use Sen AI (clicked from email)
+app.get('/process-order-skip-queue-senai', async (req, res) => {
+  const { orderId } = req.query;
+  
+  console.log(`⚡ EMAIL BUTTON: Skip Queue + Sen AI clicked - Order ID: ${orderId}`);
+  
+  if (!orderId) {
+    return res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Error - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Error</h1>
+          <p>Missing order ID</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  // Check if order exists
+  if (!pendingOrders[orderId]) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Order Not Found - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>⚠️ Order Not Found</h1>
+          <p>This order has already been processed or doesn't exist.</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+  
+  const order = pendingOrders[orderId];
+  
+  // Mark as processed
+  pendingOrders[orderId].processed = true;
+  pendingOrders[orderId].processedAt = new Date().toISOString();
+  pendingOrders[orderId].processedBy = 'senai-skip-queue';
+  
+  console.log(`⚡ SKIP QUEUE: Triggering Sen AI IMMEDIATELY for order: ${orderId}`);
+  console.log(`   Product: ${order.productName}`);
+  console.log(`   Username: ${order.username}`);
+  
+  // Trigger Sen AI bot with skipQueue flag
+  try {
+    console.log(`📡 SKIP QUEUE: Calling Sen AI API: ${DISCORD_BOT_API_URL}/submit-senai`);
+    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
+      body: JSON.stringify({
+        productName: order.productName,
+        username: order.username,
+        password: order.password,
+        loginType: order.loginType || 'Normal',
+        school: order.school,
+        skipQueue: true // ⚡ BYPASS COOLDOWN
+      })
+    });
+    
+    console.log(`📥 SKIP QUEUE: Sen AI API response status: ${botResponse.status}`);
+    const botResult = await botResponse.json();
+    console.log(`📥 SKIP QUEUE: Sen AI API response:`, botResult);
+    
+    if (botResult.success) {
+      console.log(`✅ SKIP QUEUE: Sen AI successfully triggered IMMEDIATELY!`);
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Queue Skipped - Sen AI Started! - hwplug</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            h1 { color: #ff9800; }
+            .info { background: #e0f7fa; padding: 15px; border-radius: 8px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>⚡ Queue Skipped!</h1>
+            <div style="font-size: 64px; margin: 20px 0;">🧠</div>
+            <p><strong>Sen AI is doing the homework IMMEDIATELY!</strong></p>
+            <p style="background: #fff3cd; padding: 15px; border-radius: 8px; color: #856404; margin: 20px 0;">
+              ⚡ Cooldown bypassed - Processing without delay
+            </p>
+            <div class="info">
+              <p><strong>Product:</strong> ${order.productName}</p>
+              <p><strong>Username:</strong> ${order.username}</p>
+              <p><strong>School:</strong> ${order.school || 'N/A'}</p>
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    } else {
+      console.error(`❌ SKIP QUEUE: Sen AI trigger failed: ${botResult.error}`);
+      res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Sen AI Error - hwplug</title>
+          <style>
+            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+            h1 { color: #d9534f; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>❌ Sen AI Error</h1>
+            <p>${botResult.error || 'Failed to trigger Sen AI'}</p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">Please try again or contact support.</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+  } catch (error) {
+    console.error(`❌ SKIP QUEUE: Error calling Sen AI:`, error);
+    res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Connection Error - hwplug</title>
+        <style>
+          body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
+          .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          h1 { color: #d9534f; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>❌ Connection Error</h1>
+          <p>Could not connect to Sen AI server.</p>
+          <p style="color: #666; font-size: 14px; margin-top: 20px;">Error: ${error.message}</p>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
 // Email Button Endpoint: Sen AI (clicked from email)
 app.get('/process-order-senai', async (req, res) => {
   const { orderId } = req.query;
@@ -4865,99 +5320,99 @@ app.get('/process-order-senai', async (req, res) => {
   
   const order = pendingOrders[orderId];
   
-  // Mark as processed
+  // Add order to SenAI queue
+  const queuePosition = senaiQueue.length + 1;
+  senaiQueue.push({
+    orderId: orderId,
+    productName: order.productName,
+    username: order.username,
+    password: order.password,
+    loginType: order.loginType || 'Normal',
+    school: order.school,
+    queuePosition: queuePosition,
+    addedAt: new Date().toISOString()
+  });
+  
+  // Mark as processed (in queue)
   pendingOrders[orderId].processed = true;
   pendingOrders[orderId].processedAt = new Date().toISOString();
-  pendingOrders[orderId].processedBy = 'senai';
+  pendingOrders[orderId].processedBy = 'senai-queued';
+  pendingOrders[orderId].queuePosition = queuePosition;
   
-  console.log(`🧠 EMAIL BUTTON: Triggering Sen AI for order: ${orderId}`);
+  console.log(`🧠 EMAIL BUTTON: Added Sen AI order to queue: ${orderId}`);
   console.log(`   Product: ${order.productName}`);
   console.log(`   Username: ${order.username}`);
+  console.log(`   Queue position: #${queuePosition}`);
+  console.log(`   Total in queue: ${senaiQueue.length}`);
   
-  // Trigger Sen AI bot
+  // Calculate estimated wait time
+  const config = loadSenaiQueueConfig();
+  let estimatedWaitMinutes = 0;
+  
+  if (senaiLastSubmissionTime && queuePosition > 1) {
+    const now = Date.now();
+    const timeSinceLastSubmission = now - senaiLastSubmissionTime;
+    const requiredWaitTime = getSenaiWaitTime(order.productName);
+    const remainingWait = Math.max(0, requiredWaitTime - timeSinceLastSubmission);
+    estimatedWaitMinutes = Math.ceil(remainingWait / 60000);
+    
+    // Add wait time for each person ahead in queue
+    if (queuePosition > 1) {
+      estimatedWaitMinutes += (queuePosition - 1) * 5; // Estimate 5 min per order
+    }
+  }
+  
+  // Send success response
   try {
-    console.log(`📡 EMAIL BUTTON: Calling Sen AI API: ${DISCORD_BOT_API_URL}/submit-senai`);
-    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
-      },
-      body: JSON.stringify({
-        productName: order.productName,
-        username: order.username,
-        password: order.password,
-        loginType: order.loginType || 'Normal',
-        school: order.school
-      })
-    });
-    
-    console.log(`📥 EMAIL BUTTON: Sen AI API response status: ${botResponse.status}`);
-    const botResult = await botResponse.json();
-    console.log(`📥 EMAIL BUTTON: Sen AI API response:`, botResult);
-    
-    if (botResult.success) {
-      console.log(`✅ EMAIL BUTTON: Sen AI successfully triggered!`);
-      res.send(`
+    res.send(`
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="UTF-8">
-          <title>Sen AI Started - hwplug</title>
+          <title>Sen AI Added to Queue - hwplug</title>
           <style>
             body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
             .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
             h1 { color: #00bcd4; }
             .info { background: #e0f7fa; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            .queue-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin: 20px 0; }
+            .queue-number { font-size: 48px; font-weight: 900; margin: 10px 0; }
           </style>
         </head>
         <body>
           <div class="container">
-            <h1>✅ Sen AI Started!</h1>
+            <h1>✅ Added to Sen AI Queue!</h1>
             <div style="font-size: 64px; margin: 20px 0;">🧠</div>
-            <p><strong>Sen AI is now doing the homework!</strong></p>
+            
+            <div class="queue-box">
+              <p style="margin: 0; font-size: 16px; opacity: 0.9;">Your Queue Position</p>
+              <div class="queue-number">#${queuePosition}</div>
+              ${estimatedWaitMinutes > 0 ? `<p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">⏰ Estimated wait: ~${estimatedWaitMinutes} minutes</p>` : `<p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">⚡ Starting soon!</p>`}
+            </div>
+            
             <div class="info">
               <p><strong>Product:</strong> ${order.productName}</p>
               <p><strong>Username:</strong> ${order.username}</p>
               <p><strong>School:</strong> ${order.school || 'N/A'}</p>
             </div>
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now.</p>
+            
+            <p style="background: #fff3cd; padding: 15px; border-radius: 8px; color: #856404; margin-top: 20px;">
+              <strong>📊 Sequential Queue:</strong> The bot will automatically start your homework when it's your turn!
+            </p>
+            
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now. The bot will process your order automatically.</p>
           </div>
         </body>
         </html>
       `);
-    } else {
-      console.error(`❌ EMAIL BUTTON: Sen AI trigger failed: ${botResult.error}`);
-      res.status(500).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Sen AI Error - hwplug</title>
-          <style>
-            body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
-            .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-            h1 { color: #d9534f; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>❌ Sen AI Error</h1>
-            <p>${botResult.error || 'Failed to start Sen AI'}</p>
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">Please try again or contact support.</p>
-          </div>
-        </body>
-        </html>
-      `);
-    }
   } catch (error) {
-    console.error(`❌ EMAIL BUTTON: Error calling Sen AI:`, error);
+    console.error(`❌ EMAIL BUTTON: Error adding to Sen AI queue:`, error);
     res.status(500).send(`
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Connection Error - hwplug</title>
+        <title>Queue Error - hwplug</title>
         <style>
           body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
           .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -4966,8 +5421,8 @@ app.get('/process-order-senai', async (req, res) => {
       </head>
       <body>
         <div class="container">
-          <h1>❌ Connection Error</h1>
-          <p>Could not connect to Sen AI server.</p>
+          <h1>❌ Queue Error</h1>
+          <p>Could not add order to Sen AI queue.</p>
           <p style="color: #666; font-size: 14px; margin-top: 20px;">Error: ${error.message}</p>
         </div>
       </body>

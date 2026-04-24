@@ -1989,23 +1989,31 @@
         <div style="margin-bottom: 1.5rem;">
           <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">⏳ Wait between ANY orders (any product):</label>
           <div class="input-group">
-            <input type="number" id="globalQueueMinutes" min="0" max="60" value="5" style="width: 100px;">
+            <input type="number" id="globalQueueMinutes" min="0" max="60" value="2" style="width: 100px;">
             <span style="display: flex; align-items: center; color: #7f8c8d;">minutes</span>
             <button class="btn btn-primary" onclick="setGlobalQueue()">Update</button>
           </div>
-          <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.5rem;">Example: User buys Sparx Maths, then someone buys Sparx Reader = waits this many minutes</p>
+          <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.5rem;">Example: User buys Sparx Maths, then someone buys Sparx Reader = waits 2 minutes</p>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">📐 Wait between SAME product orders (Sparx Maths):</label>
+          <div class="input-group">
+            <input type="number" id="sparxMathsQueueMinutes" min="0" max="120" value="15" style="width: 100px;">
+            <span style="display: flex; align-items: center; color: #7f8c8d;">minutes</span>
+            <button class="btn btn-primary" onclick="setSparxMathsQueue()">Update</button>
+          </div>
+          <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.5rem;">Timer starts when you're next in line (sequential queue)</p>
         </div>
         
         <div>
-          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">⏳ Wait between SAME product orders:</label>
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">📚 Wait between SAME product orders (Reader/Science/Educate/Seneca):</label>
           <div class="input-group">
-            <input type="number" id="sameProductHours" min="0" max="24" value="1" style="width: 80px;">
-            <span style="display: flex; align-items: center; color: #7f8c8d;">hours</span>
-            <input type="number" id="sameProductMinutes" min="0" max="59" value="0" style="width: 80px;">
+            <input type="number" id="otherProductsQueueMinutes" min="0" max="120" value="30" style="width: 100px;">
             <span style="display: flex; align-items: center; color: #7f8c8d;">minutes</span>
-            <button class="btn btn-primary" onclick="setSameProductQueue()">Update</button>
+            <button class="btn btn-primary" onclick="setOtherProductsQueue()">Update</button>
           </div>
-          <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.5rem;">Example: User buys Sparx Maths, then someone else buys Sparx Maths = waits this long</p>
+          <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.5rem;">Timer starts when you're next in line (sequential queue)</p>
         </div>
       </div>
     </section>
@@ -4377,16 +4385,14 @@
       });
     }
 
-    function setSameProductQueue() {
-      const hours = document.getElementById('sameProductHours').value;
-      const minutes = document.getElementById('sameProductMinutes').value;
+    function setSparxMathsQueue() {
+      const minutes = document.getElementById('sparxMathsQueueMinutes').value;
       
-      fetch(`${BACKEND_URL}/admin/set-same-product-queue-time`, {
+      fetch(`${BACKEND_URL}/admin/set-sparx-maths-queue-time`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           password: adminPassword,
-          hours: parseInt(hours), 
           minutes: parseInt(minutes) 
         })
       })
@@ -4396,10 +4402,35 @@
           showAlert(data.error, 'Error', '❌');
           return;
         }
-        showAlert(`Same product queue time set to ${hours}h ${minutes}m!`, 'Success', '⏱️');
+        showAlert(`Sparx Maths queue time set to ${minutes} minutes!`, 'Success', '📐');
       })
       .catch(err => {
-        console.error('Error setting product queue:', err);
+        console.error('Error setting Sparx Maths queue:', err);
+        showAlert('Failed to set queue time', 'Error', '❌');
+      });
+    }
+
+    function setOtherProductsQueue() {
+      const minutes = document.getElementById('otherProductsQueueMinutes').value;
+      
+      fetch(`${BACKEND_URL}/admin/set-other-products-queue-time`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          password: adminPassword,
+          minutes: parseInt(minutes) 
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          showAlert(data.error, 'Error', '❌');
+          return;
+        }
+        showAlert(`Other products queue time set to ${minutes} minutes!`, 'Success', '📚');
+      })
+      .catch(err => {
+        console.error('Error setting other products queue:', err);
         showAlert('Failed to set queue time', 'Error', '❌');
       });
     }
