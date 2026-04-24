@@ -243,37 +243,25 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
           if (botAutomationMode === 'auto') {
             // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
             try {
-              console.log(`🤖 WEBHOOK: [AUTO MODE] Auto-triggering SenAI bot for ${productName}...`);
-              console.log(`📡 WEBHOOK: Calling bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
-              console.log(`📝 WEBHOOK: Bot payload:`, { productName, username, school: school || 'Not provided' });
+              console.log(`🤖 WEBHOOK: [AUTO MODE] Adding order to SenAI queue for ${productName}...`);
               
-              const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
-                method: 'POST',
-                headers: { 
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${BOT_API_SECRET}`
-                },
-                body: JSON.stringify({
-                  productName: productName,
-                  username: username,
-                  password: password,
-                  loginType: loginType || 'Google', // Default to Google for backwards compatibility
-                  school: school || 'Not provided'
-                })
+              senaiQueue.push({
+                orderId: orderId,
+                productName: productName,
+                username: username,
+                password: password,
+                school: school || 'Not provided',
+                loginType: loginType || 'Google',
+                addedAt: Date.now()
               });
               
-              console.log(`📥 WEBHOOK: Bot API response status: ${botResponse.status}`);
-              const botResult = await botResponse.json();
-              console.log(`📥 WEBHOOK: Bot API response:`, botResult);
+              const position = senaiQueue.length;
+              const waitTime = getSenaiWaitTime();
               
-              if (botResult.success) {
-                console.log(`✅ WEBHOOK: Bot successfully triggered for ${productName}!`);
-                console.log(`   Remaining bot slots: ${botResult.remainingSlots}/${botResult.maxSlots}`);
-              } else {
-                console.error(`❌ WEBHOOK: Bot trigger failed: ${botResult.error}`);
-              }
+              console.log(`✅ WEBHOOK: Order added to queue (Position #${position}, Est. wait: ${Math.ceil(waitTime / 60000)}min)`);
+              console.log(`📋 WEBHOOK: Queue now has ${senaiQueue.length} order(s) pending`);
             } catch (botError) {
-              console.error(`❌ WEBHOOK: Error calling Discord bot:`, botError);
+              console.error(`❌ WEBHOOK: Error adding to queue:`, botError);
               console.error(`   Error message: ${botError.message}`);
               console.error(`   Error stack:`, botError.stack);
             }
@@ -3583,40 +3571,24 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
       // 🤖 BOT AUTOMATION MODE CHECK (after email is sent)
       if (isBotProduct) {
         if (botAutomationMode === 'auto') {
-          // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
-          console.log(`🤖 CASH: [AUTO MODE] Auto-triggering SenAI bot for ${productName}...`);
-          console.log(`📡 CASH: Calling bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
-          fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${BOT_API_SECRET}`
-            },
-            body: JSON.stringify({
-              productName: productName,
-              username: username,
-              password: password,
-              loginType: loginType || 'Google', // Default to Google for backwards compatibility
-              school: school || 'Not provided'
-            })
-          })
-          .then(res => {
-            console.log(`📥 CASH: Bot API response status: ${res.status}`);
-            return res.json();
-          })
-          .then(botResult => {
-            console.log(`📥 CASH: Bot API response:`, botResult);
-            if (botResult.success) {
-              console.log(`✅ CASH: Bot successfully triggered for ${productName}!`);
-              console.log(`   Remaining bot slots: ${botResult.remainingSlots}/${botResult.maxSlots}`);
-            } else {
-              console.error(`❌ CASH: Bot trigger failed: ${botResult.error}`);
-            }
-          })
-          .catch(botError => {
-            console.error(`❌ CASH: Error calling Discord bot:`, botError);
-            console.error(`   Error message: ${botError.message}`);
+          // AUTO MODE: Add to SenAI queue (background processor will handle with cooldowns)
+          console.log(`🤖 CASH: [AUTO MODE] Adding order to SenAI queue for ${productName}...`);
+          
+          senaiQueue.push({
+            orderId: orderId,
+            productName: productName,
+            username: username,
+            password: password,
+            school: school || 'Not provided',
+            loginType: loginType || 'Google',
+            addedAt: Date.now()
           });
+          
+          const position = senaiQueue.length;
+          const waitTime = getSenaiWaitTime();
+          
+          console.log(`✅ CASH: Order added to queue (Position #${position}, Est. wait: ${Math.ceil(waitTime / 60000)}min)`);
+          console.log(`📋 CASH: Queue now has ${senaiQueue.length} order(s) pending`);
         } else {
           // EMAIL MODE: Wait for admin decision via email buttons
           console.log(`📧 CASH: [EMAIL MODE] Awaiting admin decision via email buttons for ${productName}`);
@@ -3862,39 +3834,27 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
     
     if (isBotProduct) {
       if (botAutomationMode === 'auto') {
-        // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
+        // AUTO MODE: Add to SenAI queue (background processor will handle with cooldowns)
         try {
-          console.log(`🤖 CARD: [AUTO MODE] Auto-triggering SenAI bot for ${productName}...`);
-          console.log(`📡 CARD: Calling bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
-          console.log(`📝 CARD: Bot payload:`, { productName, username, school: school || 'Not provided' });
+          console.log(`🤖 CARD: [AUTO MODE] Adding order to SenAI queue for ${productName}...`);
           
-          const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${BOT_API_SECRET}`
-            },
-            body: JSON.stringify({
-              productName: productName,
-              username: username,
-              password: password,
-              loginType: loginType || 'Google', // Default to Google for backwards compatibility
-              school: school || 'Not provided'
-            })
+          senaiQueue.push({
+            orderId: orderId,
+            productName: productName,
+            username: username,
+            password: password,
+            school: school || 'Not provided',
+            loginType: loginType || 'Google',
+            addedAt: Date.now()
           });
           
-          console.log(`📥 CARD: Bot API response status: ${botResponse.status}`);
-          const botResult = await botResponse.json();
-          console.log(`📥 CARD: Bot API response:`, botResult);
+          const position = senaiQueue.length;
+          const waitTime = getSenaiWaitTime();
           
-          if (botResult.success) {
-            console.log(`✅ CARD: Bot successfully triggered for ${productName}!`);
-            console.log(`   Remaining bot slots: ${botResult.remainingSlots}/${botResult.maxSlots}`);
-          } else {
-            console.error(`❌ CARD: Bot trigger failed: ${botResult.error}`);
-          }
+          console.log(`✅ CARD: Order added to queue (Position #${position}, Est. wait: ${Math.ceil(waitTime / 60000)}min)`);
+          console.log(`📋 CARD: Queue now has ${senaiQueue.length} order(s) pending`);
         } catch (botError) {
-          console.error(`❌ CARD: Error calling Discord bot:`, botError);
+          console.error(`❌ CARD: Error adding to queue:`, botError);
           console.error(`   Error message: ${botError.message}`);
           console.error(`   Error stack:`, botError.stack);
         }
