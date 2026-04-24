@@ -5587,6 +5587,23 @@ app.get('/api/giveaway/check-entry', async (req, res) => {
   }
 });
 
+// Password verification endpoint for PDF page
+app.post('/api/verify-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const correctPassword = process.env.PDF_PASSWORD || 'hwplug2025';
+    
+    if (password === correctPassword) {
+      return res.json({ success: true });
+    } else {
+      return res.json({ success: false });
+    }
+  } catch (error) {
+    console.error('Error verifying password:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
 // Submit giveaway entry
 app.post('/api/giveaway/enter', async (req, res) => {
   try {
