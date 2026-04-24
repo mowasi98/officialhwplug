@@ -501,16 +501,82 @@ let bannedUsers = [];
 let availabilitySchedule = {
   weekday: { // Monday to Friday
     enabled: true,
-    startTime: '15:30', // 3:30 PM
+    startTime: '11:00', // 11:00 AM
     endTime: '00:00' // 12:00 AM (midnight)
   },
   weekend: { // Saturday and Sunday
     enabled: true,
     allDay: true // 24/7
-  }
+  },
+  timezone: 'Europe/London' // Default timezone (can be changed from admin panel)
 };
 
 // Check if products are currently available based on schedule
+
+// Helper function to get current date/time in configured timezone
+function getConfiguredTimezoneTime() {
+  const timezone = availabilitySchedule.timezone || 'Europe/London';
+  
+  try {
+    const timezoneTimeStr = new Date().toLocaleString('en-GB', { 
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    // Parse the string: "DD/MM/YYYY, HH:MM:SS"
+    const [datePart, timePart] = timezoneTimeStr.split(', ');
+    const [day, month, year] = datePart.split('/');
+    const [hours, minutes, seconds] = timePart.split(':');
+    
+    return {
+      hours: parseInt(hours, 10),
+      minutes: parseInt(minutes, 10),
+      dayOfWeek: new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}`).getDay(),
+      timeString: `${hours}:${minutes}`,
+      dateString: `${year}-${month}-${day}`,
+      timezone: timezone
+    };
+  } catch (error) {
+    console.error(`❌ Invalid timezone "${timezone}", falling back to Europe/London`, error);
+    availabilitySchedule.timezone = 'Europe/London';
+    return getConfiguredTimezoneTime();
+  }
+}
+
+// Helper function to get date string for daily resets
+function getLondonDateString() {
+  const timezoneTime = getConfiguredTimezoneTime();
+  // Return in same format as toDateString() for compatibility
+  const date = new Date(timezoneTime.dateString);
+  return date.toDateString();
+}
+
+// Helper function to get yesterday's date in configured timezone
+function getLondonYesterdayString() {
+  const timezone = availabilitySchedule.timezone || 'Europe/London';
+  
+  const timezoneTimeStr = new Date().toLocaleString('en-GB', { 
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour12: false
+  });
+  
+  // Parse the date and subtract one day
+  const [datePart] = timezoneTimeStr.split(', ');
+  const [day, month, year] = datePart.split('/');
+  const currentDate = new Date(`${year}-${month}-${day}`);
+  currentDate.setDate(currentDate.getDate() - 1);
+  return currentDate.toDateString();
+}
+
 // Helper function to convert 24-hour time to 12-hour format
 function formatTime12Hour(time24) {
   const [hours, minutes] = time24.split(':').map(Number);
@@ -520,14 +586,14 @@ function formatTime12Hour(time24) {
 }
 
 function checkAvailability() {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const timezoneTime = getConfiguredTimezoneTime();
+  const dayOfWeek = timezoneTime.dayOfWeek; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6); // Sunday or Saturday
   
   // Get current time in HH:MM format
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const currentTime = timezoneTime.timeString;
   
-  console.log(`🕐 Checking availability - Current time: ${currentTime}, Day: ${dayOfWeek}, IsWeekend: ${isWeekend}`);
+  console.log(`🕐 Checking availability - Time (${timezoneTime.timezone}): ${currentTime}, Day: ${dayOfWeek}, IsWeekend: ${isWeekend}`);
   
   // Format schedules for display
   const weekdaySchedule = availabilitySchedule.weekday.enabled 
@@ -837,7 +903,7 @@ setInterval(() => {
 
 // Reset counters if it's a new day
 function resetDailyCountersIfNeeded() {
-  const today = new Date().toDateString();
+  const today = getLondonDateString();
   let hasChanges = false;
   Object.keys(dailyLimits).forEach(product => {
     if (dailyLimits[product].date !== today) {
@@ -1271,7 +1337,7 @@ app.post('/admin/reset-counters', async (req, res) => {
   
   Object.keys(dailyLimits).forEach(product => {
     dailyLimits[product].count = 0;
-    dailyLimits[product].date = new Date().toDateString();
+    dailyLimits[product].date = getLondonDateString();
     
     // Reset extra slots for all products
     if (dailyLimits[product].extraSlots) {
@@ -1348,7 +1414,7 @@ app.post('/admin/reset-product-counter', async (req, res) => {
   });
   
   dailyLimits[targetProduct].count = 0;
-  dailyLimits[targetProduct].date = new Date().toDateString();
+  dailyLimits[targetProduct].date = getLondonDateString();
   
   // Also reset extra slots for all products
   if (dailyLimits[targetProduct].extraSlots) {
@@ -2056,7 +2122,7 @@ app.post('/admin/reset-timer', (req, res) => {
   }
   
   // Reset only the date (timer) but keep the counts
-  const today = new Date().toDateString();
+  const today = getLondonDateString();
   Object.keys(dailyLimits).forEach(product => {
     dailyLimits[product].date = today;
   });
@@ -2099,13 +2165,11 @@ app.post('/admin/set-test-timer', (req, res) => {
   lastTimerResetTime = expiresAt - (24 * 60 * 60 * 1000); // Trick the timer to expire at expiresAt
   
   // IMPORTANT: Set all product dates to YESTERDAY so auto-reset will trigger when timer hits 0
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayString = yesterday.toDateString();
+  const yesterdayString = getLondonYesterdayString();
   
   Object.keys(dailyLimits).forEach(product => {
     dailyLimits[product].date = yesterdayString;
-    console.log(`📅 Set "${product}" date to ${yesterdayString} (yesterday) for test timer`);
+    console.log(`📅 Set "${product}" date to ${yesterdayString} (yesterday, London time) for test timer`);
   });
   
   console.log(`🧪 TEST TIMER SET: Will expire in ${minutes} minute(s) at ${new Date(expiresAt).toISOString()}`);
@@ -2815,17 +2879,28 @@ app.post('/admin/update-schedule', (req, res) => {
       ...availabilitySchedule.weekend,
       ...settings
     };
+  } else if (scheduleType === 'timezone') {
+    // Validate timezone by attempting to use it
+    try {
+      new Date().toLocaleString('en-GB', { timeZone: settings.timezone });
+      availabilitySchedule.timezone = settings.timezone;
+      console.log(`🌍 Admin updated timezone to: ${settings.timezone}`);
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid timezone' });
+    }
   } else {
     return res.status(400).json({ error: 'Invalid schedule type' });
   }
   
   saveData();
   
-  console.log(`⏰ Admin updated ${scheduleType} schedule:`, settings);
+  if (scheduleType !== 'timezone') {
+    console.log(`⏰ Admin updated ${scheduleType} schedule:`, settings);
+  }
   
   res.json({
     success: true,
-    message: `${scheduleType} schedule updated successfully`,
+    message: `${scheduleType} ${scheduleType === 'timezone' ? 'updated' : 'schedule updated'} successfully`,
     schedule: availabilitySchedule
   });
 });
@@ -2853,8 +2928,8 @@ app.post('/admin/auto-reset-slots', async (req, res) => {
   autoResetInProgress = true;
   
   try {
-    const today = new Date().toDateString();
-    console.log(`🔍 Auto-reset triggered - Today is: ${today}`);
+    const today = getLondonDateString();
+    console.log(`🔍 Auto-reset triggered - Today is (London time): ${today}`);
     
     // Check if date has actually changed (prevent multiple resets)
     let hasReset = false;

@@ -1694,6 +1694,43 @@
       <!-- Availability Schedule -->
       <div class="control-card" style="margin-top: 1.5rem;">
         <h3>⏰ Availability Schedule</h3>
+        
+        <!-- Timezone Configuration -->
+        <div style="background: #e8f5e9; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; border: 2px solid #66bb6a;">
+          <h4 style="color: #2e7d32; margin-bottom: 1rem;">🌍 Timezone Configuration</h4>
+          <p style="color: #555; margin-bottom: 1rem; font-size: 0.9rem;">All times are based on the selected timezone. This automatically handles daylight saving time changes.</p>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+            <div style="flex: 1; min-width: 250px;">
+              <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Select Timezone:</label>
+              <select id="timezoneSelect" style="width: 100%; padding: 0.8rem; border: 2px solid #66bb6a; border-radius: 8px; font-size: 1rem; background: white;">
+                <option value="Europe/London">London (GMT/BST)</option>
+                <option value="Europe/Paris">Paris (CET/CEST)</option>
+                <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+                <option value="Europe/Madrid">Madrid (CET/CEST)</option>
+                <option value="Europe/Rome">Rome (CET/CEST)</option>
+                <option value="Europe/Amsterdam">Amsterdam (CET/CEST)</option>
+                <option value="Europe/Brussels">Brussels (CET/CEST)</option>
+                <option value="Europe/Vienna">Vienna (CET/CEST)</option>
+                <option value="Europe/Stockholm">Stockholm (CET/CEST)</option>
+                <option value="Europe/Warsaw">Warsaw (CET/CEST)</option>
+                <option value="America/New_York">New York (EST/EDT)</option>
+                <option value="America/Chicago">Chicago (CST/CDT)</option>
+                <option value="America/Denver">Denver (MST/MDT)</option>
+                <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+                <option value="America/Toronto">Toronto (EST/EDT)</option>
+                <option value="America/Vancouver">Vancouver (PST/PDT)</option>
+                <option value="Asia/Dubai">Dubai (GST)</option>
+                <option value="Asia/Singapore">Singapore (SGT)</option>
+                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+                <option value="Pacific/Auckland">Auckland (NZST/NZDT)</option>
+              </select>
+            </div>
+            <button class="btn btn-success" onclick="saveTimezone()" style="padding: 0.8rem 1.5rem;">Save Timezone</button>
+          </div>
+        </div>
+        
         <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
           <h4 style="color: #6C63FF; margin-bottom: 1rem;">📅 Monday to Friday</h4>
           <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
@@ -1703,7 +1740,7 @@
           <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 150px;">
               <label style="display: block; margin-bottom: 0.5rem; color: #666;">Start Time:</label>
-              <input type="time" id="weekdayStart" value="15:30" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+              <input type="time" id="weekdayStart" value="11:00" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
             </div>
             <div style="flex: 1; min-width: 150px;">
               <label style="display: block; margin-bottom: 0.5rem; color: #666;">End Time:</label>
@@ -3527,6 +3564,34 @@
       });
     }
 
+    function saveTimezone() {
+      const timezone = document.getElementById('timezoneSelect').value;
+      
+      fetch(`${BACKEND_URL}/admin/update-schedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          password: adminPassword,
+          scheduleType: 'timezone',
+          settings: {
+            timezone: timezone
+          }
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showAlert(`Timezone updated to ${timezone}! All times will now be based on this timezone.`, 'Success', '🌍');
+        } else {
+          showAlert(data.error || 'Failed to save timezone', 'Error', '❌');
+        }
+      })
+      .catch(error => {
+        console.error('Error saving timezone:', error);
+        showAlert('Failed to save timezone', 'Error', '❌');
+      });
+    }
+
     // Load current availability schedule from server
     async function loadAvailabilitySchedule() {
       try {
@@ -3534,10 +3599,15 @@
         const data = await response.json();
         
         if (data.scheduleSettings) {
+          // Load timezone setting
+          if (data.scheduleSettings.timezone) {
+            document.getElementById('timezoneSelect').value = data.scheduleSettings.timezone;
+          }
+          
           // Load weekday settings
           if (data.scheduleSettings.weekday) {
             document.getElementById('weekdayEnabled').checked = data.scheduleSettings.weekday.enabled || false;
-            document.getElementById('weekdayStart').value = data.scheduleSettings.weekday.startTime || '15:30';
+            document.getElementById('weekdayStart').value = data.scheduleSettings.weekday.startTime || '11:00';
             document.getElementById('weekdayEnd').value = data.scheduleSettings.weekday.endTime || '00:00';
           }
           
