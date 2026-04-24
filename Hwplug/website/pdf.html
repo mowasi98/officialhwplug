@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔌</text></svg>">
   <title>PDF Rebrand - HWPlug</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,9 +25,25 @@
     .copy-btn:hover { background: #6C63FF44; }
     .error { margin-top: 16px; color: #ff6b6b; font-size: 14px; text-align: center; display: none; }
     .spinner { display: none; text-align: center; margin-top: 16px; color: #6C63FF; font-size: 14px; }
+    .password-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f0f1a; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .password-card { background: #1a1a2e; border: 1px solid #6C63FF44; border-radius: 20px; padding: 50px 40px; max-width: 420px; width: 100%; box-shadow: 0 0 60px #6C63FF22; }
+    .password-card .logo { text-align: center; font-size: 28px; margin-bottom: 12px; }
+    .password-card .title { text-align: center; color: #fff; font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+    .password-card .desc { text-align: center; color: #888; font-size: 14px; margin-bottom: 28px; }
+    .password-error { color: #ff6b6b; font-size: 13px; text-align: center; margin-top: 12px; display: none; }
   </style>
 </head>
 <body>
+  <div class="password-overlay" id="passwordOverlay">
+    <div class="password-card">
+      <div class="logo">🔌</div>
+      <div class="title">Secure Access</div>
+      <div class="desc">Enter password to continue</div>
+      <input type="password" id="passwordInput" placeholder="Enter password" onkeypress="if(event.key==='Enter')checkPassword()" />
+      <button onclick="checkPassword()">🔓 Unlock</button>
+      <div class="password-error" id="passwordError">Incorrect password</div>
+    </div>
+  </div>
   <div class="card">
     <div class="logo">HW<span>Plug</span> Maths</div>
     <div class="subtitle">PDF Rebranding Tool</div>
@@ -44,6 +61,31 @@
     </div>
   </div>
   <script>
+    async function checkPassword() {
+      const password = document.getElementById('passwordInput').value;
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = '⏳ Checking...';
+      try {
+        const res = await fetch('/api/verify-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('passwordOverlay').style.display = 'none';
+        } else {
+          document.getElementById('passwordError').style.display = 'block';
+          document.getElementById('passwordInput').value = '';
+        }
+      } catch (e) {
+        document.getElementById('passwordError').textContent = 'Connection error';
+        document.getElementById('passwordError').style.display = 'block';
+      }
+      btn.disabled = false;
+      btn.textContent = '🔓 Unlock';
+    }
     async function rebrand() {
       const url = document.getElementById('urlInput').value.trim();
       const btn = document.getElementById('btn');
