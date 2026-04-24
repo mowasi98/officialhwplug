@@ -241,13 +241,13 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
         
         if (isBotProduct) {
           if (botAutomationMode === 'auto') {
-            // AUTO MODE: Trigger bot automatically
+            // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
             try {
-              console.log(`🤖 WEBHOOK: [AUTO MODE] Auto-triggering Discord bot for ${productName}...`);
-              console.log(`📡 WEBHOOK: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
+              console.log(`🤖 WEBHOOK: [AUTO MODE] Auto-triggering SenAI bot for ${productName}...`);
+              console.log(`📡 WEBHOOK: Calling bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
               console.log(`📝 WEBHOOK: Bot payload:`, { productName, username, school: school || 'Not provided' });
               
-              const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
+              const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
                 method: 'POST',
                 headers: { 
                   'Content-Type': 'application/json',
@@ -3583,10 +3583,10 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
       // 🤖 BOT AUTOMATION MODE CHECK (after email is sent)
       if (isBotProduct) {
         if (botAutomationMode === 'auto') {
-          // AUTO MODE: Trigger bot automatically
-          console.log(`🤖 CASH: [AUTO MODE] Auto-triggering Discord bot for ${productName}...`);
-          console.log(`📡 CASH: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
-          fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
+          // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
+          console.log(`🤖 CASH: [AUTO MODE] Auto-triggering SenAI bot for ${productName}...`);
+          console.log(`📡 CASH: Calling bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
+          fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -3862,13 +3862,13 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
     
     if (isBotProduct) {
       if (botAutomationMode === 'auto') {
-        // AUTO MODE: Trigger bot automatically
+        // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
         try {
-          console.log(`🤖 CARD: [AUTO MODE] Auto-triggering Discord bot for ${productName}...`);
-          console.log(`📡 CARD: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
+          console.log(`🤖 CARD: [AUTO MODE] Auto-triggering SenAI bot for ${productName}...`);
+          console.log(`📡 CARD: Calling bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
           console.log(`📝 CARD: Bot payload:`, { productName, username, school: school || 'Not provided' });
           
-          const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
+          const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
