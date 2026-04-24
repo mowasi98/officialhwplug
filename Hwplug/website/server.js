@@ -243,27 +243,34 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
           if (botAutomationMode === 'auto') {
             // AUTO MODE: Trigger bot automatically (using SenAI with queue system)
             try {
-              console.log(`🤖 WEBHOOK: [AUTO MODE] Adding order to SenAI queue for ${productName}...`);
+              console.log(`🤖 WEBHOOK: [AUTO MODE] Sending order to AWS SenAI queue for ${productName}...`);
               
-              senaiQueue.push({
-                orderId: orderId,
-                productName: productName,
-                username: username,
-                password: password,
-                school: school || 'Not provided',
-                loginType: loginType || 'Google',
-                addedAt: Date.now()
+              const queueResponse = await fetch(`${DISCORD_BOT_API_URL}/add-to-queue`, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${BOT_API_SECRET}`
+                },
+                body: JSON.stringify({
+                  orderId: orderId,
+                  productName: productName,
+                  username: username,
+                  password: password,
+                  school: school || 'Not provided',
+                  loginType: loginType || 'Google'
+                })
               });
               
-              const position = senaiQueue.length;
-              const waitTime = getSenaiWaitTime();
+              const queueResult = await queueResponse.json();
               
-              console.log(`✅ WEBHOOK: Order added to queue (Position #${position}, Est. wait: ${Math.ceil(waitTime / 60000)}min)`);
-              console.log(`📋 WEBHOOK: Queue now has ${senaiQueue.length} order(s) pending`);
+              if (queueResult.success) {
+                console.log(`✅ WEBHOOK: Order added to AWS queue (Position #${queueResult.position}, Est. wait: ${queueResult.estimatedWaitMinutes}min)`);
+              } else {
+                console.error(`❌ WEBHOOK: Failed to add to queue: ${queueResult.error}`);
+              }
             } catch (botError) {
-              console.error(`❌ WEBHOOK: Error adding to queue:`, botError);
+              console.error(`❌ WEBHOOK: Error calling AWS queue:`, botError);
               console.error(`   Error message: ${botError.message}`);
-              console.error(`   Error stack:`, botError.stack);
             }
           } else {
             // EMAIL MODE: Wait for admin decision via email buttons
@@ -2159,8 +2166,8 @@ app.get('/admin/get-queue-settings', (req, res) => {
   }
 });
 
-// Admin endpoint to set global queue time (wait between ANY orders)
-app.post('/admin/set-global-queue-time', (req, res) => {
+// Admin endpoint to set global queue time (proxies to AWS)
+app.post('/admin/set-global-queue-time', async (req, res) => {
   const { password, minutes } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
   
@@ -2177,391 +2184,110 @@ app.post('/admin/set-global-queue-time', (req, res) => {
   }
   
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const configPath = path.join(__dirname, 'queue-config.json');
-    
-    // Load existing config or create new
-    let config = { globalWaitMinutes: 5, sameProductWaitMinutes: 60 };
-    let oldValue = 5;
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf8');
-      config = JSON.parse(data);
-      oldValue = config.globalWaitMinutes || 5;
-    }
-    
-    // Update global wait time
-    config.globalWaitMinutes = minutes;
-    
-    // Save config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
-    console.log('');
-    console.log('⏱️ ═══════════════════════════════════════════════════');
-    console.log('⏱️  QUEUE TIME SETTINGS UPDATED');
-    console.log('⏱️ ═══════════════════════════════════════════════════');
-    console.log(`⏱️  Wait between ANY product orders:`);
-    console.log(`⏱️  OLD: ${oldValue} minutes → NEW: ${minutes} minutes`);
-    console.log(`⏱️  File location: ${configPath}`);
-    console.log(`⏱️  File exists after write: ${fs.existsSync(configPath)}`);
-    console.log(`⏱️  File contents: ${fs.readFileSync(configPath, 'utf8')}`);
-    console.log('⏱️ ═══════════════════════════════════════════════════');
-    console.log('');
-    
-    res.json({
-      success: true,
-      message: `Global queue time set to ${minutes} minute(s)`,
-      config: config
-    });
-  } catch (error) {
-    console.error('Error setting global queue time:', error);
-    res.status(500).json({ error: 'Error updating queue config' });
-  }
-});
-
-// Admin endpoint to set same product queue time (wait between SAME product orders)
-app.post('/admin/set-same-product-queue-time', (req, res) => {
-  const { password, minutes } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-  
-  if (!ADMIN_PASSWORD) {
-    return res.status(500).json({ error: 'Admin password not configured' });
-  }
-  
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  if (!minutes || minutes < 1 || minutes > 1440) {
-    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
-  }
-  
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const configPath = path.join(__dirname, 'queue-config.json');
-    
-    // Load existing config or create new
-    let config = { globalWaitMinutes: 5, sameProductWaitMinutes: 60 };
-    let oldValue = 60;
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf8');
-      config = JSON.parse(data);
-      oldValue = config.sameProductWaitMinutes || 60;
-    }
-    
-    // Update same product wait time
-    config.sameProductWaitMinutes = minutes;
-    
-    // Save config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
-    const oldHours = Math.floor(oldValue / 60);
-    const oldMins = oldValue % 60;
-    const oldDisplayText = oldHours > 0 ? `${oldHours}h ${oldMins}m` : `${oldValue}m`;
-    
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const displayText = hours > 0 ? `${hours}h ${mins}m` : `${minutes}m`;
-    
-    console.log('');
-    console.log('⏱️ ═══════════════════════════════════════════════════');
-    console.log('⏱️  QUEUE TIME SETTINGS UPDATED');
-    console.log('⏱️ ═══════════════════════════════════════════════════');
-    console.log(`⏱️  Wait between SAME product orders:`);
-    console.log(`⏱️  OLD: ${oldDisplayText} → NEW: ${displayText}`);
-    console.log(`⏱️  File location: ${configPath}`);
-    console.log(`⏱️  File exists after write: ${fs.existsSync(configPath)}`);
-    console.log(`⏱️  File contents: ${fs.readFileSync(configPath, 'utf8')}`);
-    console.log('⏱️ ═══════════════════════════════════════════════════');
-    console.log('');
-    
-    res.json({ 
-      success: true, 
-      message: `Same product queue time set to ${displayText}`,
-      config: config
-    });
-  } catch (error) {
-    console.error('Error setting same product queue time:', error);
-    res.status(500).json({ error: 'Error updating queue config' });
-  }
-});
-
-// Admin endpoint to set Sparx Maths queue time
-app.post('/admin/set-sparx-maths-queue-time', (req, res) => {
-  const { password, minutes } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-  
-  if (!ADMIN_PASSWORD) {
-    return res.status(500).json({ error: 'Admin password not configured' });
-  }
-  
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  if (!minutes || minutes < 1 || minutes > 1440) {
-    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
-  }
-  
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const configPath = path.join(__dirname, 'queue-config.json');
-    
-    // Load existing config or create new
-    let config = { globalWaitMinutes: 2, sparxMathsWaitMinutes: 15, otherProductsWaitMinutes: 30 };
-    let oldValue = 15;
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf8');
-      config = JSON.parse(data);
-      oldValue = config.sparxMathsWaitMinutes || 15;
-    }
-    
-    // Update Sparx Maths wait time
-    config.sparxMathsWaitMinutes = minutes;
-    
-    // Save config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
-    console.log('');
-    console.log('📐 ═══════════════════════════════════════════════════');
-    console.log('📐  SPARX MATHS QUEUE TIME UPDATED');
-    console.log('📐 ═══════════════════════════════════════════════════');
-    console.log(`📐  Wait between SAME Sparx Maths orders:`);
-    console.log(`📐  OLD: ${oldValue} min → NEW: ${minutes} min`);
-    console.log('📐 ═══════════════════════════════════════════════════');
-    console.log('');
-    
-    res.json({ 
-      success: true, 
-      message: `Sparx Maths queue time set to ${minutes} minutes`,
-      config: config
-    });
-  } catch (error) {
-    console.error('Error setting Sparx Maths queue time:', error);
-    res.status(500).json({ error: 'Error updating queue config' });
-  }
-});
-
-// Admin endpoint to set Other Products queue time (Reader/Science/Educate/Seneca)
-app.post('/admin/set-other-products-queue-time', (req, res) => {
-  const { password, minutes } = req.body;
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-  
-  if (!ADMIN_PASSWORD) {
-    return res.status(500).json({ error: 'Admin password not configured' });
-  }
-  
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  if (!minutes || minutes < 1 || minutes > 1440) {
-    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
-  }
-  
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const configPath = path.join(__dirname, 'queue-config.json');
-    
-    // Load existing config or create new
-    let config = { globalWaitMinutes: 2, sparxMathsWaitMinutes: 15, otherProductsWaitMinutes: 30 };
-    let oldValue = 30;
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf8');
-      config = JSON.parse(data);
-      oldValue = config.otherProductsWaitMinutes || 30;
-    }
-    
-    // Update other products wait time
-    config.otherProductsWaitMinutes = minutes;
-    
-    // Save config
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    
-    console.log('');
-    console.log('📚 ═══════════════════════════════════════════════════');
-    console.log('📚  OTHER PRODUCTS QUEUE TIME UPDATED');
-    console.log('📚 ═══════════════════════════════════════════════════');
-    console.log(`📚  Wait between SAME Reader/Science/Educate/Seneca orders:`);
-    console.log(`📚  OLD: ${oldValue} min → NEW: ${minutes} min`);
-    console.log('📚 ═══════════════════════════════════════════════════');
-    console.log('');
-    
-    res.json({ 
-      success: true, 
-      message: `Other products queue time set to ${minutes} minutes`,
-      config: config
-    });
-  } catch (error) {
-    console.error('Error setting other products queue time:', error);
-    res.status(500).json({ error: 'Error updating queue config' });
-  }
-});
-
-// ═══════════════════════════════════════════════════════
-// SENAI AUTOMATIC QUEUE PROCESSOR
-// ═══════════════════════════════════════════════════════
-
-// Load queue configuration
-function loadSenaiQueueConfig() {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    const configPath = path.join(__dirname, 'queue-config.json');
-    if (fs.existsSync(configPath)) {
-      const data = fs.readFileSync(configPath, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (error) {
-    console.log('⚠️ Could not load queue config, using defaults');
-  }
-  
-  return {
-    globalWaitMinutes: 2,
-    sparxMathsWaitMinutes: 15,
-    otherProductsWaitMinutes: 30
-  };
-}
-
-// Get wait time for a product (in milliseconds)
-function getSenaiWaitTime(productName) {
-  const config = loadSenaiQueueConfig();
-  
-  // If same product as last submission
-  if (senaiLastSubmissionProduct && productName === senaiLastSubmissionProduct) {
-    if (productName === 'Sparx Maths') {
-      return config.sparxMathsWaitMinutes * 60 * 1000; // 15 min default
-    } else {
-      return config.otherProductsWaitMinutes * 60 * 1000; // 30 min default
-    }
-  }
-  
-  // Different product - use global wait time
-  return config.globalWaitMinutes * 60 * 1000; // 2 min default
-}
-
-// Check if we can process next order in queue
-function canProcessSenaiQueue() {
-  // If already processing, wait
-  if (senaiProcessingNow) {
-    return false;
-  }
-  
-  // If queue is empty, nothing to process
-  if (senaiQueue.length === 0) {
-    return false;
-  }
-  
-  // If no previous submission, can process immediately
-  if (!senaiLastSubmissionTime) {
-    return true;
-  }
-  
-  // Check if enough time has passed
-  const now = Date.now();
-  const nextOrder = senaiQueue[0];
-  const timeSinceLastSubmission = now - senaiLastSubmissionTime;
-  const requiredWaitTime = getSenaiWaitTime(nextOrder.productName);
-  
-  return timeSinceLastSubmission >= requiredWaitTime;
-}
-
-// Process SenAI queue (runs every 30 seconds)
-async function processSenaiQueue() {
-  if (!canProcessSenaiQueue()) {
-    return;
-  }
-  
-  // Get next order from queue
-  const order = senaiQueue.shift(); // Remove from front of queue
-  
-  if (!order) {
-    return;
-  }
-  
-  senaiProcessingNow = true;
-  
-  console.log('');
-  console.log('🧠 ═══════════════════════════════════════════════════');
-  console.log('🧠  SENAI QUEUE: Processing next order');
-  console.log('🧠 ═══════════════════════════════════════════════════');
-  console.log(`🧠  Product: ${order.productName}`);
-  console.log(`🧠  Username: ${order.username}`);
-  console.log(`🧠  Queue position was: #${order.queuePosition}`);
-  console.log(`🧠  Remaining in queue: ${senaiQueue.length}`);
-  console.log('🧠 ═══════════════════════════════════════════════════');
-  console.log('');
-  
-  try {
-    // Call SenAI API
-    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
+    // Proxy to AWS bot server
+    const awsResponse = await fetch(`${DISCORD_BOT_API_URL}/admin/set-global-queue-time`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+        'Authorization': `Bearer ${BOT_API_SECRET}`
       },
-      body: JSON.stringify({
-        productName: order.productName,
-        username: order.username,
-        password: order.password,
-        loginType: order.loginType || 'Normal',
-        school: order.school
-      })
+      body: JSON.stringify({ minutes })
     });
     
-    const botResult = await botResponse.json();
+    const result = await awsResponse.json();
     
-    if (botResult.success) {
-      console.log(`✅ SENAI QUEUE: Order processed successfully!`);
-      
-      // Update tracking
-      senaiLastSubmissionTime = Date.now();
-      senaiLastSubmissionProduct = order.productName;
-      
-      // Mark order as processed
-      if (order.orderId && pendingOrders[order.orderId]) {
-        pendingOrders[order.orderId].processed = true;
-        pendingOrders[order.orderId].processedAt = new Date().toISOString();
-        pendingOrders[order.orderId].processedBy = 'senai-auto-queue';
-      }
-    } else {
-      console.error(`❌ SENAI QUEUE: Processing failed: ${botResult.error}`);
-      
-      // If it was a cooldown error, re-queue it
-      if (botResult.error && botResult.error.includes('cooldown')) {
-        console.log(`⏳ SENAI QUEUE: Re-queueing order due to cooldown`);
-        senaiQueue.unshift(order); // Put back at front of queue
-      }
-    }
+    console.log(`⏱️ ADMIN: Global queue time set to ${minutes} minutes (AWS)`);
+    
+    res.json(result);
   } catch (error) {
-    console.error(`❌ SENAI QUEUE: Error processing order:`, error.message);
-    
-    // Re-queue on network errors
-    console.log(`⏳ SENAI QUEUE: Re-queueing order due to error`);
-    senaiQueue.unshift(order);
-  } finally {
-    senaiProcessingNow = false;
+    console.error('Error setting global queue time:', error);
+    res.status(500).json({ error: 'Error updating queue config on AWS' });
   }
-}
+});
 
-// Start queue processor - runs every 30 seconds
-setInterval(() => {
-  processSenaiQueue().catch(err => {
-    console.error('❌ SENAI QUEUE: Processor error:', err);
-    senaiProcessingNow = false; // Reset flag on error
-  });
-}, 30000); // Check every 30 seconds
+// Admin endpoint to set Sparx Maths queue time (proxies to AWS)
+app.post('/admin/set-sparx-maths-queue-time', async (req, res) => {
+  const { password, minutes } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!minutes || minutes < 1 || minutes > 1440) {
+    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
+  }
+  
+  try {
+    // Proxy to AWS bot server
+    const awsResponse = await fetch(`${DISCORD_BOT_API_URL}/admin/set-sparx-maths-queue-time`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${BOT_API_SECRET}`
+      },
+      body: JSON.stringify({ minutes })
+    });
+    
+    const result = await awsResponse.json();
+    
+    console.log(`📐 ADMIN: Sparx Maths queue time set to ${minutes} minutes (AWS)`);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error setting Sparx Maths queue time:', error);
+    res.status(500).json({ error: 'Error updating queue config on AWS' });
+  }
+});
 
-console.log('🧠 ═══════════════════════════════════════════════════');
-console.log('🧠  SENAI AUTOMATIC QUEUE PROCESSOR STARTED');
-console.log('🧠 ═══════════════════════════════════════════════════');
-console.log('🧠  Checks queue every 30 seconds');
-console.log('🧠  Processes orders sequentially with cooldowns');
-console.log('🧠 ═══════════════════════════════════════════════════');
-console.log('');
+// Admin endpoint to set Other Products queue time (proxies to AWS)
+app.post('/admin/set-other-products-queue-time', async (req, res) => {
+  const { password, minutes } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!minutes || minutes < 1 || minutes > 1440) {
+    return res.status(400).json({ error: 'Invalid minutes value (must be 1-1440)' });
+  }
+  
+  try {
+    // Proxy to AWS bot server
+    const awsResponse = await fetch(`${DISCORD_BOT_API_URL}/admin/set-other-products-queue-time`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${BOT_API_SECRET}`
+      },
+      body: JSON.stringify({ minutes })
+    });
+    
+    const result = await awsResponse.json();
+    
+    console.log(`📚 ADMIN: Other products queue time set to ${minutes} minutes (AWS)`);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error setting other products queue time:', error);
+    res.status(500).json({ error: 'Error updating queue config on AWS' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+// SENAI QUEUE SYSTEM (Now handled by AWS)
+// ═══════════════════════════════════════════════════════
+// Queue processor moved to AWS bot server (test-server.js)
+// Render backend now calls AWS /add-to-queue endpoint
 
 // Force all users to re-login by incrementing the required version
 app.post('/admin/force-relogin', (req, res) => {
@@ -3571,24 +3297,35 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
       // 🤖 BOT AUTOMATION MODE CHECK (after email is sent)
       if (isBotProduct) {
         if (botAutomationMode === 'auto') {
-          // AUTO MODE: Add to SenAI queue (background processor will handle with cooldowns)
-          console.log(`🤖 CASH: [AUTO MODE] Adding order to SenAI queue for ${productName}...`);
+          // AUTO MODE: Send to AWS SenAI queue
+          console.log(`🤖 CASH: [AUTO MODE] Sending order to AWS SenAI queue for ${productName}...`);
           
-          senaiQueue.push({
-            orderId: orderId,
-            productName: productName,
-            username: username,
-            password: password,
-            school: school || 'Not provided',
-            loginType: loginType || 'Google',
-            addedAt: Date.now()
+          fetch(`${DISCORD_BOT_API_URL}/add-to-queue`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${BOT_API_SECRET}`
+            },
+            body: JSON.stringify({
+              orderId: orderId,
+              productName: productName,
+              username: username,
+              password: password,
+              school: school || 'Not provided',
+              loginType: loginType || 'Google'
+            })
+          })
+          .then(res => res.json())
+          .then(queueResult => {
+            if (queueResult.success) {
+              console.log(`✅ CASH: Order added to AWS queue (Position #${queueResult.position}, Est. wait: ${queueResult.estimatedWaitMinutes}min)`);
+            } else {
+              console.error(`❌ CASH: Failed to add to queue: ${queueResult.error}`);
+            }
+          })
+          .catch(err => {
+            console.error(`❌ CASH: Error calling AWS queue:`, err.message);
           });
-          
-          const position = senaiQueue.length;
-          const waitTime = getSenaiWaitTime();
-          
-          console.log(`✅ CASH: Order added to queue (Position #${position}, Est. wait: ${Math.ceil(waitTime / 60000)}min)`);
-          console.log(`📋 CASH: Queue now has ${senaiQueue.length} order(s) pending`);
         } else {
           // EMAIL MODE: Wait for admin decision via email buttons
           console.log(`📧 CASH: [EMAIL MODE] Awaiting admin decision via email buttons for ${productName}`);
@@ -3834,29 +3571,35 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
     
     if (isBotProduct) {
       if (botAutomationMode === 'auto') {
-        // AUTO MODE: Add to SenAI queue (background processor will handle with cooldowns)
+        // AUTO MODE: Send to AWS SenAI queue
         try {
-          console.log(`🤖 CARD: [AUTO MODE] Adding order to SenAI queue for ${productName}...`);
+          console.log(`🤖 CARD: [AUTO MODE] Sending order to AWS SenAI queue for ${productName}...`);
           
-          senaiQueue.push({
-            orderId: orderId,
-            productName: productName,
-            username: username,
-            password: password,
-            school: school || 'Not provided',
-            loginType: loginType || 'Google',
-            addedAt: Date.now()
+          const queueResponse = await fetch(`${DISCORD_BOT_API_URL}/add-to-queue`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${BOT_API_SECRET}`
+            },
+            body: JSON.stringify({
+              orderId: orderId,
+              productName: productName,
+              username: username,
+              password: password,
+              school: school || 'Not provided',
+              loginType: loginType || 'Google'
+            })
           });
           
-          const position = senaiQueue.length;
-          const waitTime = getSenaiWaitTime();
+          const queueResult = await queueResponse.json();
           
-          console.log(`✅ CARD: Order added to queue (Position #${position}, Est. wait: ${Math.ceil(waitTime / 60000)}min)`);
-          console.log(`📋 CARD: Queue now has ${senaiQueue.length} order(s) pending`);
+          if (queueResult.success) {
+            console.log(`✅ CARD: Order added to AWS queue (Position #${queueResult.position}, Est. wait: ${queueResult.estimatedWaitMinutes}min)`);
+          } else {
+            console.error(`❌ CARD: Failed to add to queue: ${queueResult.error}`);
+          }
         } catch (botError) {
-          console.error(`❌ CARD: Error adding to queue:`, botError);
-          console.error(`   Error message: ${botError.message}`);
-          console.error(`   Error stack:`, botError.stack);
+          console.error(`❌ CARD: Error calling AWS queue:`, botError.message);
         }
       } else {
         // EMAIL MODE: Wait for admin decision via email buttons
@@ -4411,12 +4154,6 @@ async function sendLoginDetailsNotification(data) {
 
 // Store pending orders (orders waiting for manual decision)
 const pendingOrders = {};
-
-// SenAI Queue System - Automatic processing with cooldown
-const senaiQueue = [];
-let senaiLastSubmissionTime = null;
-let senaiLastSubmissionProduct = null;
-let senaiProcessingNow = false;
 
 // Global Bot Automation Mode Setting
 let botAutomationMode = 'auto'; // 'auto' or 'email'
