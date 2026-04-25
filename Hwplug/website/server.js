@@ -5377,10 +5377,10 @@ app.get('/redo-order', async (req, res) => {
   console.log(`   Product: ${order.productName}`);
   console.log(`   Username: ${order.username}`);
   
-  // Trigger the bot with skipQueue flag (skip queue for redo attempts)
+  // Trigger SenAI bot with skipQueue flag (skip queue for redo attempts)
   try {
-    console.log(`📡 REDO: Calling bot API: ${DISCORD_BOT_API_URL}/submit-homework`);
-    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-homework`, {
+    console.log(`📡 REDO: Calling SenAI bot API: ${DISCORD_BOT_API_URL}/submit-senai`);
+    const botResponse = await fetch(`${DISCORD_BOT_API_URL}/submit-senai`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -5390,7 +5390,7 @@ app.get('/redo-order', async (req, res) => {
         productName: order.productName,
         username: order.username,
         password: order.password,
-        loginType: order.loginType || 'Google',
+        loginType: order.loginType || 'Normal',
         school: order.school,
         skipQueue: true // Skip queue for redo attempts
       })
@@ -5401,7 +5401,7 @@ app.get('/redo-order', async (req, res) => {
     console.log(`📥 REDO: Bot API response:`, botResult);
     
     if (botResult.success) {
-      console.log(`✅ REDO: Bot successfully triggered for ${order.productName}!`);
+      console.log(`✅ REDO: SenAI bot successfully triggered for ${order.productName}!`);
       
       // Show success page
       res.send(`
@@ -5423,13 +5423,13 @@ app.get('/redo-order', async (req, res) => {
           <div class="container">
             <div class="emoji">🔄</div>
             <h1>Homework Resubmitted!</h1>
-            <p style="font-size: 18px; color: #28a745; font-weight: 600;">Bot is reprocessing your homework now!</p>
+            <p style="font-size: 18px; color: #28a745; font-weight: 600;">🧠 SenAI bot is reprocessing your homework now!</p>
             <div class="info">
               <p style="margin: 5px 0;"><strong>Product:</strong> ${order.productName}</p>
               <p style="margin: 5px 0;"><strong>Username:</strong> ${order.username}</p>
               <p style="margin: 5px 0;"><strong>Redo Attempt:</strong> #${pendingOrders[orderId].redoCount}</p>
             </div>
-            <p style="color: #666;">The bot has started working on your homework again, bypassing queue wait times.</p>
+            <p style="color: #666;">⚡ SenAI bot has started working on your homework again, bypassing queue wait times.</p>
             <div class="warning">
               <p style="margin: 0; font-weight: 600;">📱 Check your Discord DM for progress updates!</p>
             </div>
