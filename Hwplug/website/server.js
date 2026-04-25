@@ -4007,15 +4007,14 @@ async function sendCashPaymentNotification(data) {
               ${orderId ? (botMode === 'auto' ? `
               <!-- Auto Mode with Skip Queue Option -->
               <div style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); padding: 25px; border-radius: 12px; border: 3px solid #28a745; margin-bottom: 25px; box-shadow: 0 6px 20px rgba(40,167,69,0.3); text-align: center;">
-                <p style="margin: 0 0 10px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Bot is Processing (In Queue...)</p>
+                <p style="margin: 0 0 10px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 SenAI Bot is Processing (In Queue...)</p>
                 <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">The bot will start automatically after queue wait time.</p>
                 <div style="display: inline-block;">
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip (Sparksbot)</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip (SenAI)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue (choose bot) | 🔄 REDO if failed</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue to start immediately | 🔄 REDO if failed</p>
               </div>
               ` : `
               <!-- Email Confirmation Mode with Skip Queue & REDO -->
@@ -4023,13 +4022,11 @@ async function sendCashPaymentNotification(data) {
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
                   ${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot (Queue)</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip (Sparksbot)</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI (Queue)</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(0,188,212,0.4);">⚡ Skip (SenAI)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🧠 SenAI (Queue)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot | ' : ''}🤖 Sparksbot | 🧠 SEN AI | ⚡ Skip Queue (choose bot) | 🔄 REDO</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(productName === 'Sparx Reader' || productName.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot | ' : ''}🧠 SenAI with queue | ⚡ Skip Queue to start immediately | 🔄 REDO if failed</p>
               </div>
               `) : ''}
 
@@ -4167,15 +4164,14 @@ async function sendLoginDetailsNotification(data) {
               ${orderId ? (botMode === 'auto' ? `
               <!-- Auto Mode with Skip Queue & REDO Option -->
               <div style="background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); padding: 25px; border-radius: 12px; border: 3px solid #28a745; margin-bottom: 25px; box-shadow: 0 6px 20px rgba(40,167,69,0.3); text-align: center;">
-                <p style="margin: 0 0 10px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Bot is Processing (In Queue...)</p>
+                <p style="margin: 0 0 10px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 SenAI Bot is Processing (In Queue...)</p>
                 <p style="margin: 0 0 20px 0; color: rgba(255,255,255,0.9); font-size: 14px;">The bot will start automatically after queue wait time.</p>
                 <div style="display: inline-block;">
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip (Sparksbot)</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip (SenAI)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue (choose bot) | 🔄 REDO if failed</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">⚡ Skip Queue to start immediately | 🔄 REDO if failed</p>
               </div>
               ` : `
               <!-- Email Confirmation Mode with Skip Queue & REDO -->
@@ -4183,12 +4179,11 @@ async function sendLoginDetailsNotification(data) {
                 <p style="margin: 0 0 15px 0; color: #fff; font-size: 18px; font-weight: 700;">🤖 Choose How to Process:</p>
                 <div style="display: inline-block;">
                   ${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? `<a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-hwplug-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(156,39,176,0.4);">🎓 Homework Plug Bot</a>` : ''}
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-bot?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🤖 Sparksbot</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #ff6f00 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(255,152,0,0.4);">⚡ Skip Queue</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #6C63FF 0%, #5548d9 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(108,99,255,0.3);">🧠 SenAI (Queue)</a>
+                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-skip-queue-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #ff6f00 0%, #e65100 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(230,81,0,0.4);">⚡ Skip Queue</a>
                   <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/redo-order?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: #fff; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 10px 15px 0; box-shadow: 0 4px 12px rgba(23,162,184,0.4);">🔄 REDO</a>
-                  <a href="${process.env.BACKEND_URL || 'https://test2-adsw.onrender.com'}/process-order-senai?orderId=${orderId}" style="display: inline-block; background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); color: #333; padding: 15px 30px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; margin: 0 0 15px 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">🧠 SEN AI</a>
                 </div>
-                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot (AI-powered) | ' : ''}🤖 Sparksbot | ⚡ Skip Queue | 🔄 REDO | 🧠 SEN AI</p>
+                <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px;">${(platform === 'Sparx Reader' || platform.startsWith('Sparx Reader')) ? '🎓 Homework Plug Bot | ' : ''}🧠 SenAI with queue | ⚡ Skip Queue to start immediately | 🔄 REDO if failed</p>
               </div>
               `) : `
               <!-- No Buttons -->
@@ -5102,18 +5097,19 @@ app.get('/process-order-senai', async (req, res) => {
   console.log(`   Username: ${order.username}`);
   console.log(`   School: ${order.school}`);
 
-  // Send directly to AWS bot API
+  // Add to AWS queue
   try {
     const botApiUrl = process.env.DISCORD_BOT_API_URL || 'http://35.178.204.9:3001';
-    console.log(`📡 Sen AI: Calling AWS bot API: ${botApiUrl}/submit-senai`);
+    console.log(`📡 Sen AI: Adding to AWS queue: ${botApiUrl}/add-to-queue`);
     
-    const botResponse = await fetch(`${botApiUrl}/submit-senai`, {
+    const botResponse = await fetch(`${botApiUrl}/add-to-queue`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
       },
       body: JSON.stringify({
+        orderId: orderId,
         productName: order.productName,
         username: order.username,
         password: order.password,
@@ -5128,15 +5124,15 @@ app.get('/process-order-senai', async (req, res) => {
       throw new Error(botResult.error || botResult.message || 'Bot API returned error');
     }
 
-    console.log(`✅ Sen AI: Successfully sent to AWS bot`);
+    console.log(`✅ Sen AI: Successfully added to AWS queue (Position #${botResult.position}, Wait: ${botResult.estimatedWaitMinutes}min)`);
     
-    // Send success response
+    // Send success response with queue position
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="UTF-8">
-          <title>Sen AI Added to Queue - hwplug</title>
+          <title>Added to SenAI Queue - hwplug</title>
           <style>
             body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
             .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -5148,12 +5144,14 @@ app.get('/process-order-senai', async (req, res) => {
         </head>
         <body>
           <div class="container">
-            <h1>✅ Sen AI Order Sent!</h1>
+            <h1>✅ Added to SenAI Queue!</h1>
             <div style="font-size: 64px; margin: 20px 0;">🧠</div>
             
-            <p style="font-size: 18px; color: #00bcd4; margin: 20px 0;">
-              Your homework has been sent to the Sen AI bot!
-            </p>
+            <div class="queue-box">
+              <p style="margin: 0; font-size: 16px; opacity: 0.9;">Queue Position</p>
+              <div class="queue-number">#${botResult.position}</div>
+              <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Estimated wait: ~${botResult.estimatedWaitMinutes} min</p>
+            </div>
             
             <div class="info">
               <p><strong>Product:</strong> ${order.productName}</p>
@@ -5161,11 +5159,11 @@ app.get('/process-order-senai', async (req, res) => {
               <p><strong>School:</strong> ${order.school || 'N/A'}</p>
             </div>
             
-            <p style="background: #d1ecf1; padding: 15px; border-radius: 8px; color: #0c5460; margin-top: 20px;">
-              <strong>🤖 Processing:</strong> The bot on AWS will handle your homework automatically. The queue is managed on the server.
+            <p style="background: #fff3cd; padding: 15px; border-radius: 8px; color: #856404; margin-top: 20px;">
+              <strong>📊 Sequential Queue:</strong> The bot will automatically start your homework when it's your turn!
             </p>
             
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now. Your homework will be completed automatically.</p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now. The bot will process your order automatically.</p>
           </div>
         </body>
         </html>
