@@ -497,83 +497,8 @@ let codeUsageHistory = [];
 // Banned users list: { username, reason, bannedAt, bannedBy }
 let bannedUsers = [];
 
-// Sen AI submission queue
-let senaiQueue = [];
-let senaiLastSubmissionTime = null;
-let senaiProcessing = false;
-
-// Function to get Sen AI wait time based on product
-function getSenaiWaitTime(productName) {
-  // Default wait time of 5 minutes between submissions
-  return 5 * 60 * 1000; // 5 minutes in milliseconds
-}
-
-// Process Sen AI Queue
-async function processSenaiQueue() {
-  if (senaiProcessing || senaiQueue.length === 0) {
-    return; // Already processing or queue is empty
-  }
-
-  // Check if we need to wait before next submission
-  if (senaiLastSubmissionTime) {
-    const timeSinceLastSubmission = Date.now() - senaiLastSubmissionTime;
-    const requiredWaitTime = getSenaiWaitTime();
-    if (timeSinceLastSubmission < requiredWaitTime) {
-      const remainingWait = Math.ceil((requiredWaitTime - timeSinceLastSubmission) / 1000);
-      console.log(`⏳ Sen AI: Waiting ${remainingWait}s before next submission`);
-      return;
-    }
-  }
-
-  senaiProcessing = true;
-  const order = senaiQueue.shift(); // Get first order from queue
-
-  console.log(`\n🧠 Sen AI: Processing queued order`);
-  console.log(`   Order ID: ${order.orderId}`);
-  console.log(`   Product: ${order.productName}`);
-  console.log(`   Username: ${order.username}`);
-  console.log(`   Remaining in queue: ${senaiQueue.length}`);
-
-  try {
-    const botApiUrl = process.env.HWPLUG_BOT_API_URL || 'http://35.178.204.9:3002';
-    console.log(`📡 Sen AI: Calling bot API: ${botApiUrl}/submit-senai`);
-    
-    const response = await fetch(`${botApiUrl}/submit-senai`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
-      },
-      body: JSON.stringify({
-        productName: order.productName,
-        username: order.username,
-        password: order.password,
-        loginType: order.loginType,
-        school: order.school
-      })
-    });
-
-    const result = await response.json();
-    
-    if (response.ok && result.success) {
-      console.log(`✅ Sen AI: Order processed successfully`);
-      senaiLastSubmissionTime = Date.now();
-    } else {
-      console.error(`❌ Sen AI: Bot returned error:`, result.error || result.message);
-      // Re-add to queue on failure
-      senaiQueue.unshift(order);
-    }
-  } catch (error) {
-    console.error(`❌ Sen AI: Error calling bot API:`, error.message);
-    // Re-add to queue on error
-    senaiQueue.unshift(order);
-  } finally {
-    senaiProcessing = false;
-  }
-}
-
-// Check queue every 10 seconds
-setInterval(processSenaiQueue, 10000);
+// Banned users list: { username, reason, bannedAt, bannedBy }
+let bannedUsers = [];
 
 // Availability Schedule Configuration
 let availabilitySchedule = {
@@ -5169,50 +5094,46 @@ app.get('/process-order-senai', async (req, res) => {
   }
   
   const order = pendingOrders[orderId];
-  
-  // Add order to SenAI queue
-  const queuePosition = senaiQueue.length + 1;
-  senaiQueue.push({
-    orderId: orderId,
-    productName: order.productName,
-    username: order.username,
-    password: order.password,
-    loginType: order.loginType || 'Normal',
-    school: order.school,
-    queuePosition: queuePosition,
-    addedAt: new Date().toISOString()
-  });
-  
-  // Mark as processed (in queue)
+
+  // Mark as processed
   pendingOrders[orderId].processed = true;
   pendingOrders[orderId].processedAt = new Date().toISOString();
-  pendingOrders[orderId].processedBy = 'senai-queued';
-  pendingOrders[orderId].queuePosition = queuePosition;
+  pendingOrders[orderId].processedBy = 'senai';
   
-  console.log(`🧠 EMAIL BUTTON: Added Sen AI order to queue: ${orderId}`);
+  console.log(`🧠 EMAIL BUTTON: Sending Sen AI order to AWS bot: ${orderId}`);
   console.log(`   Product: ${order.productName}`);
   console.log(`   Username: ${order.username}`);
-  console.log(`   Queue position: #${queuePosition}`);
-  console.log(`   Total in queue: ${senaiQueue.length}`);
-  
-  // Calculate estimated wait time
-  let estimatedWaitMinutes = 0;
-  
-  if (senaiLastSubmissionTime && queuePosition > 1) {
-    const now = Date.now();
-    const timeSinceLastSubmission = now - senaiLastSubmissionTime;
-    const requiredWaitTime = getSenaiWaitTime(order.productName);
-    const remainingWait = Math.max(0, requiredWaitTime - timeSinceLastSubmission);
-    estimatedWaitMinutes = Math.ceil(remainingWait / 60000);
-    
-    // Add wait time for each person ahead in queue
-    if (queuePosition > 1) {
-      estimatedWaitMinutes += (queuePosition - 1) * 5; // Estimate 5 min per order
-    }
-  }
-  
-  // Send success response
+  console.log(`   School: ${order.school}`);
+
+  // Send directly to AWS bot API
   try {
+    const botApiUrl = process.env.HWPLUG_BOT_API_URL || 'http://35.178.204.9:3002';
+    console.log(`📡 Sen AI: Calling AWS bot API: ${botApiUrl}/submit-senai`);
+    
+    const botResponse = await fetch(`${botApiUrl}/submit-senai`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
+      body: JSON.stringify({
+        productName: order.productName,
+        username: order.username,
+        password: order.password,
+        loginType: order.loginType || 'Normal',
+        school: order.school
+      })
+    });
+
+    const botResult = await botResponse.json();
+    
+    if (!botResponse.ok || !botResult.success) {
+      throw new Error(botResult.error || botResult.message || 'Bot API returned error');
+    }
+
+    console.log(`✅ Sen AI: Successfully sent to AWS bot`);
+    
+    // Send success response
     res.send(`
         <!DOCTYPE html>
         <html>
@@ -5230,14 +5151,12 @@ app.get('/process-order-senai', async (req, res) => {
         </head>
         <body>
           <div class="container">
-            <h1>✅ Added to Sen AI Queue!</h1>
+            <h1>✅ Sen AI Order Sent!</h1>
             <div style="font-size: 64px; margin: 20px 0;">🧠</div>
             
-            <div class="queue-box">
-              <p style="margin: 0; font-size: 16px; opacity: 0.9;">Your Queue Position</p>
-              <div class="queue-number">#${queuePosition}</div>
-              ${estimatedWaitMinutes > 0 ? `<p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">⏰ Estimated wait: ~${estimatedWaitMinutes} minutes</p>` : `<p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">⚡ Starting soon!</p>`}
-            </div>
+            <p style="font-size: 18px; color: #00bcd4; margin: 20px 0;">
+              Your homework has been sent to the Sen AI bot!
+            </p>
             
             <div class="info">
               <p><strong>Product:</strong> ${order.productName}</p>
@@ -5245,23 +5164,23 @@ app.get('/process-order-senai', async (req, res) => {
               <p><strong>School:</strong> ${order.school || 'N/A'}</p>
             </div>
             
-            <p style="background: #fff3cd; padding: 15px; border-radius: 8px; color: #856404; margin-top: 20px;">
-              <strong>📊 Sequential Queue:</strong> The bot will automatically start your homework when it's your turn!
+            <p style="background: #d1ecf1; padding: 15px; border-radius: 8px; color: #0c5460; margin-top: 20px;">
+              <strong>🤖 Processing:</strong> The bot on AWS will handle your homework automatically. The queue is managed on the server.
             </p>
             
-            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now. The bot will process your order automatically.</p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">You can close this page now. Your homework will be completed automatically.</p>
           </div>
         </body>
         </html>
       `);
   } catch (error) {
-    console.error(`❌ EMAIL BUTTON: Error adding to Sen AI queue:`, error);
+    console.error(`❌ Sen AI: Error sending to AWS bot:`, error);
     res.status(500).send(`
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Queue Error - hwplug</title>
+        <title>Connection Error - hwplug</title>
         <style>
           body { font-family: Arial, sans-serif; background: #f6f7fb; padding: 50px; text-align: center; }
           .container { background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -5270,8 +5189,8 @@ app.get('/process-order-senai', async (req, res) => {
       </head>
       <body>
         <div class="container">
-          <h1>❌ Queue Error</h1>
-          <p>Could not add order to Sen AI queue.</p>
+          <h1>❌ Connection Error</h1>
+          <p>Could not connect to Sen AI bot on AWS.</p>
           <p style="color: #666; font-size: 14px; margin-top: 20px;">Error: ${error.message}</p>
         </div>
       </body>
