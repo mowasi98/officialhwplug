@@ -497,6 +497,9 @@ let codeUsageHistory = [];
 // Banned users list: { username, reason, bannedAt, bannedBy }
 let bannedUsers = [];
 
+// Sen AI submission queue
+let senaiQueue = [];
+
 // Availability Schedule Configuration
 let availabilitySchedule = {
   weekday: { // Monday to Friday
