@@ -499,6 +499,13 @@ let bannedUsers = [];
 
 // Sen AI submission queue
 let senaiQueue = [];
+let senaiLastSubmissionTime = null;
+
+// Function to get Sen AI wait time based on product
+function getSenaiWaitTime(productName) {
+  // Default wait time of 5 minutes between submissions
+  return 5 * 60 * 1000; // 5 minutes in milliseconds
+}
 
 // Availability Schedule Configuration
 let availabilitySchedule = {
@@ -5121,7 +5128,6 @@ app.get('/process-order-senai', async (req, res) => {
   console.log(`   Total in queue: ${senaiQueue.length}`);
   
   // Calculate estimated wait time
-  const config = loadSenaiQueueConfig();
   let estimatedWaitMinutes = 0;
   
   if (senaiLastSubmissionTime && queuePosition > 1) {
