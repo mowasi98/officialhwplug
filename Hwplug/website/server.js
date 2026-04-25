@@ -497,9 +497,6 @@ let codeUsageHistory = [];
 // Banned users list: { username, reason, bannedAt, bannedBy }
 let bannedUsers = [];
 
-// Banned users list: { username, reason, bannedAt, bannedBy }
-let bannedUsers = [];
-
 // Availability Schedule Configuration
 let availabilitySchedule = {
   weekday: { // Monday to Friday
