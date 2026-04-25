@@ -500,12 +500,80 @@ let bannedUsers = [];
 // Sen AI submission queue
 let senaiQueue = [];
 let senaiLastSubmissionTime = null;
+let senaiProcessing = false;
 
 // Function to get Sen AI wait time based on product
 function getSenaiWaitTime(productName) {
   // Default wait time of 5 minutes between submissions
   return 5 * 60 * 1000; // 5 minutes in milliseconds
 }
+
+// Process Sen AI Queue
+async function processSenaiQueue() {
+  if (senaiProcessing || senaiQueue.length === 0) {
+    return; // Already processing or queue is empty
+  }
+
+  // Check if we need to wait before next submission
+  if (senaiLastSubmissionTime) {
+    const timeSinceLastSubmission = Date.now() - senaiLastSubmissionTime;
+    const requiredWaitTime = getSenaiWaitTime();
+    if (timeSinceLastSubmission < requiredWaitTime) {
+      const remainingWait = Math.ceil((requiredWaitTime - timeSinceLastSubmission) / 1000);
+      console.log(`⏳ Sen AI: Waiting ${remainingWait}s before next submission`);
+      return;
+    }
+  }
+
+  senaiProcessing = true;
+  const order = senaiQueue.shift(); // Get first order from queue
+
+  console.log(`\n🧠 Sen AI: Processing queued order`);
+  console.log(`   Order ID: ${order.orderId}`);
+  console.log(`   Product: ${order.productName}`);
+  console.log(`   Username: ${order.username}`);
+  console.log(`   Remaining in queue: ${senaiQueue.length}`);
+
+  try {
+    const botApiUrl = process.env.HWPLUG_BOT_API_URL || 'http://35.178.204.9:3002';
+    console.log(`📡 Sen AI: Calling bot API: ${botApiUrl}/submit-senai`);
+    
+    const response = await fetch(`${botApiUrl}/submit-senai`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BOT_API_SECRET}`
+      },
+      body: JSON.stringify({
+        productName: order.productName,
+        username: order.username,
+        password: order.password,
+        loginType: order.loginType,
+        school: order.school
+      })
+    });
+
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      console.log(`✅ Sen AI: Order processed successfully`);
+      senaiLastSubmissionTime = Date.now();
+    } else {
+      console.error(`❌ Sen AI: Bot returned error:`, result.error || result.message);
+      // Re-add to queue on failure
+      senaiQueue.unshift(order);
+    }
+  } catch (error) {
+    console.error(`❌ Sen AI: Error calling bot API:`, error.message);
+    // Re-add to queue on error
+    senaiQueue.unshift(order);
+  } finally {
+    senaiProcessing = false;
+  }
+}
+
+// Check queue every 10 seconds
+setInterval(processSenaiQueue, 10000);
 
 // Availability Schedule Configuration
 let availabilitySchedule = {
