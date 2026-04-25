@@ -5104,7 +5104,7 @@ app.get('/process-order-senai', async (req, res) => {
 
   // Send directly to AWS bot API
   try {
-    const botApiUrl = process.env.HWPLUG_BOT_API_URL || 'http://35.178.204.9:3002';
+    const botApiUrl = process.env.DISCORD_BOT_API_URL || 'http://35.178.204.9:3001';
     console.log(`📡 Sen AI: Calling AWS bot API: ${botApiUrl}/submit-senai`);
     
     const botResponse = await fetch(`${botApiUrl}/submit-senai`, {
