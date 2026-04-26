@@ -2348,6 +2348,115 @@ app.post('/admin/set-other-products-queue-time', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════
+// SENAI QUEUE ADMIN PROXY ENDPOINTS (All proxy to AWS)
+// ═══════════════════════════════════════════════════════
+
+// Helper: proxy authenticated request to AWS bot server
+async function proxyToAWS(endpoint, method = 'GET', body = null) {
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${BOT_API_SECRET}`
+    }
+  };
+  if (body) options.body = JSON.stringify(body);
+  const response = await fetch(`${DISCORD_BOT_API_URL}${endpoint}`, options);
+  return response.json();
+}
+
+// Helper: validate admin password middleware
+function requireAdmin(req, res, next) {
+  const { password } = req.body || req.query;
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+// Get full queue status
+app.get('/admin/queue-full-status', async (req, res) => {
+  const { password } = req.query;
+  if (password !== process.env.ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const result = await proxyToAWS('/admin/queue-full-status');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Pause queue
+app.post('/admin/queue-pause', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-pause', 'POST');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Resume queue
+app.post('/admin/queue-resume', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-resume', 'POST');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Remove order from queue
+app.post('/admin/queue-remove', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-remove', 'POST', { position: req.body.position });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Move order to front
+app.post('/admin/queue-move-to-front', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-move-to-front', 'POST', { position: req.body.position });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Start order now
+app.post('/admin/queue-start-now', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-start-now', 'POST', { position: req.body.position });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Adjust wait time
+app.post('/admin/queue-adjust-wait', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-adjust-wait', 'POST', { minutes: req.body.minutes });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// Clear queue
+app.post('/admin/queue-clear', requireAdmin, async (req, res) => {
+  try {
+    const result = await proxyToAWS('/admin/queue-clear', 'POST');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Could not reach AWS bot server' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════
 // SENAI QUEUE SYSTEM (Now handled by AWS)
 // ═══════════════════════════════════════════════════════
 // Queue processor moved to AWS bot server (test-server.js)

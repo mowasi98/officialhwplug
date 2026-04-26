@@ -2053,6 +2053,60 @@
           <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 0.5rem;">Timer starts when you're next in line (sequential queue)</p>
         </div>
       </div>
+
+      <!-- ═══ QUEUE MANAGER ═══ -->
+      <div class="control-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 style="margin: 0;">🧠 SenAI Queue Manager</h3>
+            <p style="color: #7f8c8d; margin: 0.3rem 0 0 0; font-size: 0.9rem;">Live view and control of the homework queue on AWS</p>
+          </div>
+          <button class="btn btn-primary" onclick="refreshQueue()" style="white-space: nowrap;">🔄 Refresh</button>
+        </div>
+
+        <!-- Queue Status Bar -->
+        <div id="queueStatusBar" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+          <div style="flex: 1; min-width: 130px; background: #f8f9fa; border-radius: 10px; padding: 1rem; text-align: center; border: 2px solid #e9ecef;">
+            <div style="font-size: 1.8rem; font-weight: 800;" id="queueStatusIcon">⏳</div>
+            <div style="font-size: 0.8rem; color: #7f8c8d; margin-top: 0.3rem;">Status</div>
+            <div style="font-weight: 700; font-size: 0.95rem;" id="queueStatusText">Loading...</div>
+          </div>
+          <div style="flex: 1; min-width: 130px; background: #f8f9fa; border-radius: 10px; padding: 1rem; text-align: center; border: 2px solid #e9ecef;">
+            <div style="font-size: 1.8rem; font-weight: 800;" id="queueLengthNum">-</div>
+            <div style="font-size: 0.8rem; color: #7f8c8d; margin-top: 0.3rem;">Orders Waiting</div>
+          </div>
+          <div style="flex: 1; min-width: 130px; background: #f8f9fa; border-radius: 10px; padding: 1rem; text-align: center; border: 2px solid #e9ecef;">
+            <div style="font-size: 1.1rem; font-weight: 800; color: #6C63FF;" id="queueNextWait">-</div>
+            <div style="font-size: 0.8rem; color: #7f8c8d; margin-top: 0.3rem;">Next Starts In</div>
+          </div>
+        </div>
+
+        <!-- Queue Controls -->
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+          <button id="pauseResumeBtn" class="btn btn-warning" onclick="toggleQueuePause()" style="flex: 1; min-width: 120px;">⏸️ Pause Queue</button>
+          <button class="btn btn-danger" onclick="clearQueue()" style="flex: 1; min-width: 120px;">🗑️ Clear Queue</button>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex: 2; min-width: 200px; background: #f8f9fa; border-radius: 8px; padding: 0.5rem 1rem; border: 2px solid #e9ecef;">
+            <span style="font-size: 0.85rem; color: #7f8c8d; white-space: nowrap;">⏱️ Adjust next wait:</span>
+            <input type="number" id="adjustWaitMinutes" value="0" style="width: 70px; padding: 0.3rem 0.5rem; border: 1px solid #ddd; border-radius: 6px; text-align: center;">
+            <span style="font-size: 0.8rem; color: #7f8c8d;">min</span>
+            <button class="btn btn-primary" onclick="adjustQueueWait()" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Apply</button>
+          </div>
+        </div>
+
+        <!-- Currently Processing -->
+        <div id="currentlyProcessingDiv" style="display: none; background: linear-gradient(135deg, #28a745 0%, #34ce57 100%); border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; color: white;">
+          <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.4rem;">🤖 Currently Processing:</div>
+          <div id="currentlyProcessingText" style="font-size: 0.9rem; opacity: 0.95;"></div>
+        </div>
+
+        <!-- Queue List -->
+        <div id="queueListContainer">
+          <div style="text-align: center; color: #7f8c8d; padding: 2rem;">
+            <div style="font-size: 2rem;">📋</div>
+            <div>Click Refresh to load queue</div>
+          </div>
+        </div>
+      </div>
     </section>
 
   </main>
@@ -4388,17 +4442,17 @@
           document.getElementById('currentBotMode').textContent = modeText;
         }
         
-        // Load queue settings
-        const queueResponse = await fetch(`${BACKEND_URL}/admin/get-queue-settings`);
-        const queueData = await queueResponse.json();
-        
-        if (queueData.success) {
-          document.getElementById('globalQueueMinutes').value = queueData.globalQueueMinutes || 5;
-          
-          const sameProductHours = Math.floor(queueData.sameProductQueueMinutes / 60);
-          const sameProductMinutes = queueData.sameProductQueueMinutes % 60;
-          document.getElementById('sameProductHours').value = sameProductHours;
-          document.getElementById('sameProductMinutes').value = sameProductMinutes;
+        // Load queue settings from AWS (via full status endpoint)
+        try {
+          const queueResponse = await fetch(`${BACKEND_URL}/admin/queue-full-status?password=${encodeURIComponent(adminPassword)}`);
+          const queueData = await queueResponse.json();
+          if (queueData.success && queueData.config) {
+            document.getElementById('globalQueueMinutes').value = queueData.config.globalMinutes ?? 2;
+            document.getElementById('sparxMathsQueueMinutes').value = queueData.config.sparxMathsMinutes ?? 15;
+            document.getElementById('otherProductsQueueMinutes').value = queueData.config.otherProductsMinutes ?? 30;
+          }
+        } catch (queueErr) {
+          console.warn('Could not load queue settings from AWS:', queueErr.message);
         }
       } catch (error) {
         console.error('Error loading bot settings:', error);
@@ -4503,6 +4557,251 @@
         console.error('Error setting other products queue:', err);
         showAlert('Failed to set queue time', 'Error', '❌');
       });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // QUEUE MANAGER FUNCTIONS
+    // ═══════════════════════════════════════════════════════
+
+    let queueIsPaused = false;
+
+    function formatTime(ms) {
+      if (ms <= 0) return 'Ready now';
+      const m = Math.ceil(ms / 60000);
+      if (m < 60) return `${m} min`;
+      const h = Math.floor(m / 60), rem = m % 60;
+      return `${h}h ${rem}m`;
+    }
+
+    function formatDateTime(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function refreshQueue() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/queue-full-status?password=${encodeURIComponent(adminPassword)}`);
+        const data = await res.json();
+
+        if (!data.success) {
+          showAlert(data.error || 'Failed to load queue', 'Error', '❌');
+          return;
+        }
+
+        // Update status bar
+        queueIsPaused = data.paused;
+        const isPaused = data.paused;
+        const isProcessing = data.processingNow;
+        const qLen = data.queueLength;
+
+        document.getElementById('queueLengthNum').textContent = qLen;
+        document.getElementById('pauseResumeBtn').textContent = isPaused ? '▶️ Resume Queue' : '⏸️ Pause Queue';
+        document.getElementById('pauseResumeBtn').className = isPaused ? 'btn btn-success' : 'btn btn-warning';
+
+        if (isPaused) {
+          document.getElementById('queueStatusIcon').textContent = '⏸️';
+          document.getElementById('queueStatusText').textContent = 'Paused';
+          document.getElementById('queueStatusText').style.color = '#e67e22';
+        } else if (isProcessing) {
+          document.getElementById('queueStatusIcon').textContent = '🤖';
+          document.getElementById('queueStatusText').textContent = 'Processing';
+          document.getElementById('queueStatusText').style.color = '#27ae60';
+        } else if (qLen === 0) {
+          document.getElementById('queueStatusIcon').textContent = '✅';
+          document.getElementById('queueStatusText').textContent = 'Idle';
+          document.getElementById('queueStatusText').style.color = '#27ae60';
+        } else {
+          document.getElementById('queueStatusIcon').textContent = '⏳';
+          document.getElementById('queueStatusText').textContent = 'Waiting';
+          document.getElementById('queueStatusText').style.color = '#3498db';
+        }
+
+        // Next wait time
+        const nextMs = data.queue.length > 0 ? (data.queue[0].estimatedWaitMinutes * 60000) : 0;
+        document.getElementById('queueNextWait').textContent = data.queue.length > 0 
+          ? formatTime(data.queue[0].estimatedWaitMinutes * 60000)
+          : 'No orders';
+
+        // Currently processing banner
+        const cpDiv = document.getElementById('currentlyProcessingDiv');
+        if (isProcessing && data.currentOrder) {
+          cpDiv.style.display = 'block';
+          document.getElementById('currentlyProcessingText').textContent =
+            `${data.currentOrder.productName} — started at ${formatDateTime(data.currentOrder.startedAt)}`;
+        } else {
+          cpDiv.style.display = 'none';
+        }
+
+        // Render queue list
+        const container = document.getElementById('queueListContainer');
+        if (data.queue.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; color: #7f8c8d; padding: 2.5rem; background: #f8f9fa; border-radius: 10px;">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+              <div style="font-weight: 600;">Queue is empty — all done!</div>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = data.queue.map(order => `
+          <div style="background: #f8f9fa; border-radius: 10px; padding: 1rem 1.2rem; margin-bottom: 0.75rem; border-left: 4px solid ${order.position === 1 ? '#28a745' : '#6C63FF'}; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            
+            <div style="min-width: 30px; text-align: center;">
+              <span style="background: ${order.position === 1 ? '#28a745' : '#6C63FF'}; color: white; border-radius: 50%; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">${order.position}</span>
+            </div>
+
+            <div style="flex: 1; min-width: 180px;">
+              <div style="font-weight: 700; color: #2c3e50;">${order.username}</div>
+              <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 0.1rem;">
+                📚 ${order.productName} &nbsp;|&nbsp; 🏫 ${order.school}
+              </div>
+              <div style="font-size: 0.82rem; color: #95a5a6; margin-top: 0.15rem;">
+                Added: ${formatDateTime(order.addedAt)} &nbsp;·&nbsp; Starts ~${formatDateTime(order.estimatedStartTime)}
+                &nbsp;·&nbsp; <strong style="color: ${order.estimatedWaitMinutes <= 0 ? '#27ae60' : '#e67e22'}">${order.estimatedWaitMinutes <= 0 ? '✅ Ready' : '⏳ ' + order.estimatedWaitMinutes + ' min'}</strong>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end;">
+              <button onclick="queueStartNow(${order.position})" title="Start Now (skip queue)" style="background: #27ae60; color: white; border: none; border-radius: 6px; padding: 0.35rem 0.65rem; cursor: pointer; font-size: 0.8rem;">⚡ Now</button>
+              <button onclick="queueMoveToFront(${order.position})" title="Move to Front" style="background: #3498db; color: white; border: none; border-radius: 6px; padding: 0.35rem 0.65rem; cursor: pointer; font-size: 0.8rem;">⬆️ Front</button>
+              <button onclick="queueRemove(${order.position})" title="Remove from Queue" style="background: #e74c3c; color: white; border: none; border-radius: 6px; padding: 0.35rem 0.65rem; cursor: pointer; font-size: 0.8rem;">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (err) {
+        console.error('Queue refresh error:', err);
+        showAlert('Could not connect to AWS bot server', 'Error', '❌');
+      }
+    }
+
+    async function toggleQueuePause() {
+      const endpoint = queueIsPaused ? '/admin/queue-resume' : '/admin/queue-pause';
+      const label = queueIsPaused ? 'Resumed' : 'Paused';
+      try {
+        const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`Queue ${label} successfully`, 'Queue Control', queueIsPaused ? '▶️' : '⏸️');
+          refreshQueue();
+        } else {
+          showAlert(data.error || 'Failed', 'Error', '❌');
+        }
+      } catch (err) {
+        showAlert('Could not reach AWS server', 'Error', '❌');
+      }
+    }
+
+    async function clearQueue() {
+      const confirmed = await showConfirm('Are you sure you want to clear the entire queue? This cannot be undone.', 'Clear Queue', '⚠️');
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/queue-clear`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`Queue cleared — ${data.cleared} order(s) removed`, 'Queue Cleared', '🗑️');
+          refreshQueue();
+        } else {
+          showAlert(data.error || 'Failed', 'Error', '❌');
+        }
+      } catch (err) {
+        showAlert('Could not reach AWS server', 'Error', '❌');
+      }
+    }
+
+    async function queueRemove(position) {
+      const confirmed = await showConfirm(`Remove order at position #${position} from the queue?`, 'Remove Order', '🗑️');
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/queue-remove`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword, position })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`Removed: ${data.removed.username} - ${data.removed.productName}`, 'Removed', '✅');
+          refreshQueue();
+        } else {
+          showAlert(data.error || 'Failed', 'Error', '❌');
+        }
+      } catch (err) {
+        showAlert('Could not reach AWS server', 'Error', '❌');
+      }
+    }
+
+    async function queueMoveToFront(position) {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/queue-move-to-front`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword, position })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(`Moved to front: ${data.moved.username} - ${data.moved.productName}`, 'Moved', '⬆️');
+          refreshQueue();
+        } else {
+          showAlert(data.error || 'Failed', 'Error', '❌');
+        }
+      } catch (err) {
+        showAlert('Could not reach AWS server', 'Error', '❌');
+      }
+    }
+
+    async function queueStartNow(position) {
+      const confirmed = await showConfirm(`Start order at position #${position} immediately, bypassing the queue?`, 'Start Now', '⚡');
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/queue-start-now`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword, position })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(data.message || 'Order started immediately!', 'Started', '⚡');
+          refreshQueue();
+        } else {
+          showAlert(data.error || 'Failed', 'Error', '❌');
+        }
+      } catch (err) {
+        showAlert('Could not reach AWS server', 'Error', '❌');
+      }
+    }
+
+    async function adjustQueueWait() {
+      const minutes = parseInt(document.getElementById('adjustWaitMinutes').value);
+      if (isNaN(minutes) || minutes === 0) {
+        showAlert('Enter a non-zero number of minutes (negative to reduce wait)', 'Invalid Input', '⚠️');
+        return;
+      }
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/queue-adjust-wait`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword, minutes })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showAlert(data.message, 'Wait Adjusted', '⏱️');
+          document.getElementById('adjustWaitMinutes').value = 0;
+          refreshQueue();
+        } else {
+          showAlert(data.error || 'Failed', 'Error', '❌');
+        }
+      } catch (err) {
+        showAlert('Could not reach AWS server', 'Error', '❌');
+      }
     }
 
     // Individual Product Control Functions
