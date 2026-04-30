@@ -2399,6 +2399,88 @@
       0%   { color: var(--neu-accent) !important; transform: scale(1.05); }
       100% { color: var(--neu-text) !important; transform: scale(1); }
     }
+
+    /* ════════════════════════════════════════════════════════════════════
+       MOBILE POLISH — Neumorphic Premium responsive overrides
+       ════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .page-header,
+      .content-section .page-header,
+      .page-header.page-head-flex {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: .9rem !important;
+      }
+      .page-header > div:last-child,
+      .content-section .page-header > div:last-child {
+        width: 100% !important;
+        flex-wrap: wrap !important;
+      }
+      .page-title { font-size: 1.6rem !important; }
+      .page-subtitle { font-size: .9rem !important; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: .9rem !important; }
+      .control-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+      .stat-card { padding: 1.1rem !important; border-radius: 20px !important; }
+      .stat-icon { width: 48px !important; height: 48px !important; font-size: 1.3rem !important; }
+      .stat-value { font-size: 1.6rem !important; }
+      .control-card { padding: 1.2rem !important; border-radius: 22px !important; }
+
+      /* Chart goes full-bleed comfy on small screens */
+      .chart-container { padding: 1.2rem !important; border-radius: 22px !important; }
+      .chart-header { flex-direction: column !important; align-items: flex-start !important; gap: .8rem !important; }
+      .chart-title { font-size: 1.15rem !important; }
+      .chart-title::before { width: 36px !important; height: 36px !important; font-size: 1rem !important; }
+      .chart-headline { gap: .5rem !important; margin-bottom: .8rem !important; }
+      .chart-headline .total { font-size: 1.9rem !important; }
+      .chart-headline .total-sub { font-size: .7rem !important; }
+      .chart-filters { width: 100% !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+      .chart-filters::-webkit-scrollbar { display: none !important; }
+      .filter-btn { padding: .5rem .85rem !important; font-size: .72rem !important; flex: 0 0 auto !important; }
+      .line-chart { min-height: 240px !important; }
+      #chartTooltip { padding: .75rem 1rem !important; min-width: 130px !important; }
+      #chartTooltip .tt-value { font-size: 1.25rem !important; }
+
+      /* Buttons & inputs touch-friendly */
+      .btn, button.btn, .login-btn, .nav-item {
+        min-height: 44px !important;
+      }
+      .btn { padding: .75rem 1.1rem !important; font-size: .9rem !important; }
+
+      /* Product / list rows stack cleanly */
+      .product-row, .user-row, .login-row, .purchase-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: .6rem !important;
+      }
+
+      /* Tables → horizontal scroll on small viewports */
+      .table-wrap, .data-table, table {
+        display: block !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+
+      /* Sidebar slides in nicely as overlay (already toggled by JS) */
+      .sidebar {
+        width: 84vw !important;
+        max-width: 320px !important;
+      }
+
+      /* Login screen breathing room */
+      .login-box, .login-container {
+        margin: 1rem !important;
+        padding: 2rem 1.6rem !important;
+        max-width: calc(100vw - 2rem) !important;
+      }
+      .login-box h1, .login-container h1 { font-size: 1.4rem !important; }
+    }
+
+    @media (max-width: 520px) {
+      .stats-grid { grid-template-columns: 1fr !important; }
+      .page-title { font-size: 1.4rem !important; }
+      .chart-headline .total { font-size: 1.6rem !important; }
+      .main-content { padding: 1rem !important; }
+    }
   </style>
 </head>
 <body>
