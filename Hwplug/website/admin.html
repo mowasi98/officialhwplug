@@ -1548,6 +1548,20 @@
     /* ── LOGIN SCREEN ── */
     .login-screen {
       background: var(--neu-bg) !important;
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 99999 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    /* Hide the entire admin app + mobile chrome while the login screen is visible */
+    body:has(#loginScreen:not([style*="display: none"])) .app,
+    body:has(#loginScreen:not([style*="display: none"])) .mobile-header,
+    body:has(#loginScreen:not([style*="display: none"])) .sidebar-overlay {
+      display: none !important;
+    }
+    body:has(#loginScreen:not([style*="display: none"])) {
+      overflow: hidden !important;
     }
     .login-box, .login-container {
       background: var(--neu-bg) !important;
