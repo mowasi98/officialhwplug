@@ -1513,6 +1513,878 @@
       font-weight: 600;
       color: #2c3e50;
     }
+
+    /* ════════════════════════════════════════════════════════════════════
+       DESIGN 5 — NEUMORPHIC PREMIUM OVERRIDE
+       Applied last so it wins over admin.html's existing styles.
+       Surface = #e8e9ed ivory. Accent = #6c63ff. Soft pillowy shadows.
+       ════════════════════════════════════════════════════════════════════ */
+
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+    :root {
+      --neu-bg: #e8e9ed;
+      --neu-text: #3a3d4a;
+      --neu-text-soft: #6b6e7a;
+      --neu-accent: #6c63ff;
+      --neu-accent-2: #5548d9;
+      --neu-shadow-light: #ffffff;
+      --neu-shadow-dark: rgba(174,174,192,0.45);
+      --neu-raised: 10px 10px 24px rgba(174,174,192,.4), -10px -10px 24px #fff;
+      --neu-raised-sm: 6px 6px 14px rgba(174,174,192,.35), -6px -6px 14px #fff;
+      --neu-raised-xs: 4px 4px 10px rgba(174,174,192,.3), -4px -4px 10px #fff;
+      --neu-pressed: inset 6px 6px 14px rgba(174,174,192,.5), inset -6px -6px 14px #fff;
+      --neu-pressed-sm: inset 4px 4px 10px rgba(174,174,192,.45), inset -4px -4px 10px #fff;
+      --neu-pressed-xs: inset 2px 2px 5px rgba(174,174,192,.4), inset -2px -2px 5px #fff;
+    }
+
+    body {
+      background: var(--neu-bg) !important;
+      color: var(--neu-text) !important;
+      font-family: 'Manrope', 'Inter', system-ui, sans-serif !important;
+    }
+    body::before { display:none !important; }
+
+    /* ── LOGIN SCREEN ── */
+    .login-screen {
+      background: var(--neu-bg) !important;
+    }
+    .login-box, .login-container {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-raised) !important;
+      border-radius: 28px !important;
+      border: none !important;
+    }
+    .login-box::before, .login-container::before { display:none !important; }
+    .login-title, .login-header h1, .login-box h1, .login-box h2 {
+      color: var(--neu-text) !important;
+      background: none !important;
+      -webkit-text-fill-color: var(--neu-text) !important;
+    }
+    .login-input, #adminPasswordInput {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+      border: none !important;
+      color: var(--neu-text) !important;
+      border-radius: 14px !important;
+      padding: 1rem 1.2rem !important;
+      transition: all .3s ease !important;
+    }
+    .login-input:focus, #adminPasswordInput:focus {
+      box-shadow: var(--neu-pressed) !important;
+      outline: none !important;
+    }
+    .login-btn, button.login-btn {
+      background: linear-gradient(135deg, var(--neu-accent), var(--neu-accent-2)) !important;
+      color: #fff !important;
+      box-shadow: 6px 6px 14px rgba(108,99,255,.3), -6px -6px 14px #fff !important;
+      border-radius: 14px !important;
+      font-weight: 700 !important;
+      letter-spacing: .5px !important;
+      transition: all .3s cubic-bezier(.4,0,.2,1) !important;
+    }
+    .login-btn:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 8px 8px 18px rgba(108,99,255,.4), -8px -8px 18px #fff !important;
+    }
+    .login-btn:active {
+      transform: translateY(0) !important;
+      box-shadow: var(--neu-pressed-sm), inset 0 0 0 1px rgba(255,255,255,.2) !important;
+    }
+
+    /* ── SIDEBAR (left rail) ── */
+    .sidebar {
+      background: var(--neu-bg) !important;
+      box-shadow: 8px 0 24px rgba(174,174,192,.18) !important;
+      border: none !important;
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .sidebar-header { border-bottom: 1px solid rgba(174,174,192,.15) !important; }
+    .sidebar-logo {
+      color: var(--neu-text) !important;
+      opacity: 1 !important;
+      transform: none !important;
+      animation: none !important;
+    }
+    .sidebar-logo img { filter: none !important; animation: pulse 3s ease-in-out infinite; }
+    .nav-item { opacity: 1 !important; transform: none !important; animation: none !important; margin: .35rem .8rem !important; }
+    .nav-link {
+      color: var(--neu-text-soft) !important;
+      border-radius: 14px !important;
+      border-left: none !important;
+      padding: .9rem 1.1rem !important;
+      transition: all .35s cubic-bezier(.4,0,.2,1) !important;
+    }
+    .nav-link::before { display: none !important; }
+    .nav-link:hover {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      color: var(--neu-accent) !important;
+    }
+    .nav-link.active {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+      color: var(--neu-accent) !important;
+      font-weight: 700 !important;
+      border-left: none !important;
+    }
+    .nav-icon { font-size: 1.25rem !important; }
+
+    /* ── MAIN CONTENT ── */
+    .main-content {
+      background: transparent !important;
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .page-title {
+      color: var(--neu-text) !important;
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .page-subtitle { color: var(--neu-text-soft) !important; animation:none !important; opacity:1 !important; }
+
+    /* ── STAT CARDS ── */
+    .stat-card {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-raised) !important;
+      border: none !important;
+      border-radius: 24px !important;
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .stat-card::before, .stat-card::after { display: none !important; }
+    .stat-card:hover {
+      transform: translateY(-4px) !important;
+      box-shadow: 14px 14px 30px rgba(174,174,192,.45), -14px -14px 30px #fff !important;
+    }
+    .stat-icon {
+      background: var(--neu-bg);
+      box-shadow: var(--neu-pressed-sm);
+      width: 56px; height: 56px;
+      border-radius: 18px;
+      display: grid; place-items: center;
+      font-size: 1.6rem !important;
+      margin-bottom: 1rem !important;
+      animation: none !important;
+      color: var(--neu-accent);
+    }
+    .stat-label { color: var(--neu-text-soft) !important; opacity:1 !important; animation:none !important; letter-spacing:1px; text-transform:uppercase; font-size:.75rem !important; font-weight:600 !important; }
+    .stat-value {
+      color: var(--neu-text) !important;
+      animation: none !important;
+      opacity: 1 !important;
+      font-weight: 800 !important;
+      letter-spacing: -.5px !important;
+    }
+    .stat-change.positive { color: #16a34a !important; }
+    .stat-change.negative { color: #dc2626 !important; }
+
+    /* ── CONTROL CARDS ── */
+    .control-card, .control-card-large {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-raised) !important;
+      border: none !important;
+      border-radius: 24px !important;
+    }
+    .control-card h3, .control-card-large h3 {
+      color: var(--neu-text) !important;
+      font-weight: 700 !important;
+    }
+    .control-card p { color: var(--neu-text-soft) !important; }
+
+    /* ── CHART CONTAINER ── */
+    .chart-container {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-raised) !important;
+      border-radius: 24px !important;
+      border: none !important;
+      animation: none !important;
+      opacity: 1 !important;
+    }
+    .chart-container::before { display: none !important; }
+    .chart-title {
+      background: linear-gradient(135deg, var(--neu-text), var(--neu-accent)) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      font-weight: 700 !important;
+    }
+    .line-chart {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+      border-radius: 16px !important;
+    }
+
+    /* ── BUTTONS (universal) ── */
+    .btn {
+      background: var(--neu-bg) !important;
+      color: var(--neu-text) !important;
+      box-shadow: var(--neu-raised-sm) !important;
+      border: none !important;
+      border-radius: 14px !important;
+      padding: .8rem 1.6rem !important;
+      font-weight: 600 !important;
+      font-family: inherit !important;
+      transition: all .3s cubic-bezier(.4,0,.2,1) !important;
+      letter-spacing: .3px !important;
+    }
+    .btn:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 8px 8px 18px rgba(174,174,192,.4), -8px -8px 18px #fff !important;
+    }
+    .btn:active {
+      transform: translateY(0) !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--neu-accent), var(--neu-accent-2)) !important;
+      color: #fff !important;
+      box-shadow: 6px 6px 14px rgba(108,99,255,.3), -6px -6px 14px #fff !important;
+    }
+    .btn-primary:hover {
+      box-shadow: 9px 9px 20px rgba(108,99,255,.4), -9px -9px 20px #fff !important;
+    }
+    .btn-primary:active {
+      box-shadow: inset 4px 4px 10px rgba(85,72,217,.5), inset -4px -4px 10px rgba(255,255,255,.2) !important;
+    }
+    .btn-success {
+      background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+      color: #fff !important;
+      box-shadow: 6px 6px 14px rgba(34,197,94,.3), -6px -6px 14px #fff !important;
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+      color: #fff !important;
+      box-shadow: 6px 6px 14px rgba(239,68,68,.3), -6px -6px 14px #fff !important;
+    }
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+      color: #fff !important;
+      box-shadow: 6px 6px 14px rgba(245,158,11,.3), -6px -6px 14px #fff !important;
+    }
+
+    /* filter chips */
+    .filter-btn {
+      background: var(--neu-bg) !important;
+      color: var(--neu-text-soft) !important;
+      box-shadow: var(--neu-raised-xs) !important;
+      border: none !important;
+      border-radius: 12px !important;
+      padding: .55rem 1.1rem !important;
+      font-weight: 600 !important;
+      transition: all .3s ease !important;
+    }
+    .filter-btn::before, .filter-btn::after { display:none !important; }
+    .filter-btn:hover {
+      color: var(--neu-accent) !important;
+      transform: translateY(-1px) !important;
+    }
+    .filter-btn.active {
+      background: linear-gradient(135deg, var(--neu-accent), var(--neu-accent-2)) !important;
+      color: #fff !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+    }
+
+    /* ── INPUTS / SELECTS / TEXTAREAS ── */
+    input[type="text"], input[type="email"], input[type="password"],
+    input[type="number"], input[type="date"], input[type="time"],
+    input[type="datetime-local"], input[type="search"], input[type="tel"],
+    select, textarea {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      border: none !important;
+      border-radius: 12px !important;
+      color: var(--neu-text) !important;
+      padding: .8rem 1rem !important;
+      transition: all .3s ease !important;
+      font-family: inherit !important;
+    }
+    input:focus, select:focus, textarea:focus {
+      box-shadow: var(--neu-pressed-sm) !important;
+      outline: none !important;
+    }
+    input[type="checkbox"] {
+      width: 22px !important;
+      height: 22px !important;
+      border-radius: 6px !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      background: var(--neu-bg) !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      cursor: pointer !important;
+      position: relative !important;
+      padding: 0 !important;
+    }
+    input[type="checkbox"]:checked {
+      background: linear-gradient(135deg, var(--neu-accent), var(--neu-accent-2)) !important;
+      box-shadow: var(--neu-raised-xs) !important;
+    }
+    input[type="checkbox"]:checked::after {
+      content: '✓';
+      color: #fff;
+      font-weight: 900;
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: .9rem;
+    }
+    input[type="radio"] {
+      width: 22px !important;
+      height: 22px !important;
+      border-radius: 50% !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      background: var(--neu-bg) !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      cursor: pointer !important;
+      position: relative !important;
+    }
+    input[type="radio"]:checked::after {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--neu-accent), var(--neu-accent-2));
+    }
+    label { color: var(--neu-text) !important; }
+
+    /* ── MODALS (custom alert/confirm/prompt) ── */
+    .modal-content-box {
+      background: var(--neu-bg) !important;
+      box-shadow: 20px 20px 60px rgba(174,174,192,.6), -20px -20px 60px #fff !important;
+      border-radius: 28px !important;
+    }
+    .modal-content-box::before { display: none !important; }
+    .modal-title { color: var(--neu-text) !important; }
+    .modal-message { color: var(--neu-text-soft) !important; }
+    .modal-btn {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-raised-sm) !important;
+      border-radius: 12px !important;
+      color: var(--neu-text) !important;
+      transition: all .3s ease !important;
+    }
+    .modal-btn:hover { transform: translateY(-2px); box-shadow: 8px 8px 18px rgba(174,174,192,.4), -8px -8px 18px #fff !important; }
+    .modal-btn:active { box-shadow: var(--neu-pressed-sm) !important; transform: none; }
+    .modal-btn-confirm { background: linear-gradient(135deg, var(--neu-accent), var(--neu-accent-2)) !important; color: #fff !important; box-shadow: 6px 6px 14px rgba(108,99,255,.3), -6px -6px 14px #fff !important; }
+    .modal-btn-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; color:#fff !important; box-shadow: 6px 6px 14px rgba(239,68,68,.3), -6px -6px 14px #fff !important; }
+    .modal-btn-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; color:#fff !important; box-shadow: 6px 6px 14px rgba(34,197,94,.3), -6px -6px 14px #fff !important; }
+    .modal-btn-cancel  { background: var(--neu-bg) !important; color: var(--neu-text) !important; }
+    #promptInput {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+      border: none !important;
+      border-radius: 14px !important;
+    }
+
+    /* ── STATUS BADGES / PILLS ── */
+    .status-badge, .badge, .pill {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      color: var(--neu-accent) !important;
+      border: none !important;
+      border-radius: 999px !important;
+      padding: .35rem .9rem !important;
+      font-weight: 700 !important;
+      letter-spacing: .3px !important;
+    }
+
+    /* ── PRODUCT/USER ROWS — generic backgrounds replaced with soft panels ── */
+    [style*="background: #f8f9fa"], [style*="background:#f8f9fa"],
+    [style*="background: #fff"], [style*="background:#fff"],
+    [style*="background-color: #f8f9fa"], [style*="background-color:#f8f9fa"] {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      border-radius: 14px !important;
+      border-color: transparent !important;
+    }
+    [style*="background: #d1ecf1"], [style*="background:#d1ecf1"],
+    [style*="background: #fff3cd"], [style*="background:#fff3cd"],
+    [style*="background: #d4edda"], [style*="background:#d4edda"],
+    [style*="background: #e8f5e9"], [style*="background:#e8f5e9"] {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-xs) !important;
+      color: var(--neu-text) !important;
+    }
+
+    /* ── CHART BARS / DECORATIVE ── */
+    .chart-bar { background: linear-gradient(180deg, var(--neu-accent), var(--neu-accent-2)) !important; border-radius: 12px 12px 4px 4px !important; }
+
+    /* ── QUICK ACTIONS GRID ── */
+    .quick-action-btn {
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-raised-sm) !important;
+      border: none !important;
+      border-radius: 20px !important;
+      transition: all .3s cubic-bezier(.4,0,.2,1) !important;
+    }
+    .quick-action-btn:hover {
+      transform: translateY(-4px) !important;
+      box-shadow: 12px 12px 26px rgba(174,174,192,.4), -12px -12px 26px #fff !important;
+    }
+    .quick-action-btn:active { box-shadow: var(--neu-pressed-sm) !important; transform: none !important; }
+    .quick-action-icon { color: var(--neu-accent); }
+    .quick-action-label { color: var(--neu-text) !important; }
+
+    /* ── MOBILE HEADER ── */
+    .mobile-header {
+      background: var(--neu-bg) !important;
+      box-shadow: 0 4px 14px rgba(174,174,192,.25) !important;
+    }
+    .menu-toggle, .mobile-title { color: var(--neu-text) !important; }
+    .sidebar-close { background: var(--neu-bg) !important; box-shadow: var(--neu-raised-xs) !important; color: var(--neu-text) !important; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: var(--neu-bg); }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--neu-accent), var(--neu-accent-2)); border-radius: 999px; }
+
+    /* ── disable old purple body gradient + keep page calm ── */
+    body { animation: none !important; }
+    body::before, body::after { animation: none !important; }
+
+    /* ── ensure entry animations don't keep things invisible ── */
+    .sidebar, .sidebar-logo, .nav-item, .main-content, .stat-card, .chart-container,
+    .control-card, .page-title, .page-subtitle, .stat-icon, .stat-label, .stat-value {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       DESIGN 5 LAYOUT POLISH — push closer to the original mockup look
+       ════════════════════════════════════════════════════════════════════ */
+
+    /* Page header: title left, big spacing — mockup-style */
+    .page-header {
+      margin-bottom: 2rem !important;
+      padding-bottom: 1rem !important;
+    }
+    .page-title {
+      font-size: 2.4rem !important;
+      font-weight: 800 !important;
+      letter-spacing: -1px !important;
+      color: var(--neu-text) !important;
+    }
+    .page-subtitle {
+      font-size: 1rem !important;
+      color: var(--neu-text-soft) !important;
+      margin-top: .4rem !important;
+    }
+
+    /* Stat cards: roomier, pressed circular icon well like the mockup */
+    .stats-grid {
+      gap: 1.5rem !important;
+      margin-bottom: 2rem !important;
+    }
+    .stat-card {
+      padding: 1.8rem !important;
+      border-radius: 24px !important;
+    }
+    .stat-icon {
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 50% !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+      background: var(--neu-bg) !important;
+      color: var(--neu-accent) !important;
+      font-size: 1.7rem !important;
+      margin-bottom: 1.2rem !important;
+      display: grid !important;
+      place-items: center !important;
+    }
+    .stat-value {
+      font-size: 2.2rem !important;
+      font-weight: 800 !important;
+      letter-spacing: -.5px !important;
+      margin-bottom: .4rem !important;
+    }
+    .stat-label {
+      font-size: .72rem !important;
+      letter-spacing: 1.4px !important;
+      text-transform: uppercase !important;
+      font-weight: 700 !important;
+      color: var(--neu-text-soft) !important;
+      margin-bottom: .8rem !important;
+    }
+    .stat-change {
+      font-size: .82rem !important;
+      font-weight: 600 !important;
+    }
+
+    /* Control cards: roomier padding, soft generous radii */
+    .control-card, .control-card-large {
+      padding: 1.8rem !important;
+      border-radius: 24px !important;
+      margin-bottom: 1.5rem !important;
+    }
+    .control-card h3 {
+      font-size: 1.1rem !important;
+      font-weight: 700 !important;
+      margin-bottom: 1rem !important;
+      color: var(--neu-text) !important;
+    }
+
+    /* Chart container — roomy and centered */
+    .chart-container {
+      padding: 2rem !important;
+      border-radius: 24px !important;
+    }
+    .chart-header {
+      margin-bottom: 1.5rem !important;
+    }
+    .chart-title {
+      font-size: 1.2rem !important;
+    }
+    .chart-filters {
+      display: flex !important;
+      gap: .5rem !important;
+      flex-wrap: wrap !important;
+    }
+
+    /* Sidebar polish to match mockup */
+    .sidebar {
+      width: 260px !important;
+      padding: 2rem 0 !important;
+    }
+    .sidebar-header {
+      padding: 0 1.5rem 2rem !important;
+      margin-bottom: 1.5rem !important;
+    }
+    .sidebar-logo {
+      font-size: 1.4rem !important;
+      font-weight: 800 !important;
+      color: var(--neu-text) !important;
+    }
+    .sidebar-logo .dot,
+    .sidebar-logo span:first-child {
+      color: var(--neu-accent);
+    }
+    .nav-menu {
+      padding: 0 .8rem !important;
+    }
+
+    /* Main content gutters */
+    .main-content {
+      padding: 2.5rem !important;
+    }
+
+    /* Quick actions row spacing */
+    .quick-actions {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+      gap: 1.2rem !important;
+      margin-bottom: 2rem !important;
+    }
+    .quick-action-btn {
+      padding: 1.6rem !important;
+      border-radius: 22px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: .8rem !important;
+      cursor: pointer !important;
+    }
+    .quick-action-icon {
+      font-size: 2rem !important;
+      width: 60px !important;
+      height: 60px !important;
+      border-radius: 50% !important;
+      background: var(--neu-bg) !important;
+      box-shadow: var(--neu-pressed-sm) !important;
+      display: grid !important;
+      place-items: center !important;
+      color: var(--neu-accent) !important;
+    }
+    .quick-action-label {
+      font-weight: 700 !important;
+      font-size: .9rem !important;
+      color: var(--neu-text) !important;
+    }
+
+    /* Input groups: align nicely with neumorphic buttons */
+    .input-group {
+      display: flex !important;
+      gap: .8rem !important;
+      flex-wrap: wrap !important;
+      align-items: center !important;
+    }
+    .input-group input,
+    .input-group select {
+      flex: 1 !important;
+      min-width: 200px !important;
+    }
+
+    /* Tweak default body styling */
+    body {
+      padding: 0 !important;
+    }
+
+    /* Section page-header: turn into flex so any adjacent action btns sit right */
+    .content-section .page-header,
+    .page-header.page-head-flex {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-end !important;
+      flex-wrap: wrap !important;
+      gap: 1rem !important;
+    }
+    .content-section .page-header > div:first-child,
+    .page-header.page-head-flex > div:first-child {
+      flex: 1 1 auto;
+    }
+
+    /* Ensure stat-card keeps icon flow consistent across all sections */
+    .stat-card .stat-change.positive::before { content: ''; }
+
+    /* Toggle button switches we use in admin (.toggle if present) */
+    .toggle, .switch {
+      width: 48px; height: 26px;
+      border-radius: 999px;
+      background: var(--neu-bg);
+      box-shadow: var(--neu-pressed-xs);
+      position: relative;
+      cursor: pointer;
+      transition: all .3s ease;
+    }
+    .toggle::after, .switch::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--neu-bg);
+      box-shadow: var(--neu-raised-xs);
+      transition: all .3s cubic-bezier(.4,0,.2,1);
+    }
+    .toggle.on, .switch.on {
+      background: linear-gradient(90deg, var(--neu-accent), var(--neu-accent-2));
+    }
+    .toggle.on::after, .switch.on::after { left: 25px; background: #fff; box-shadow: 2px 2px 6px rgba(0,0,0,.15); }
+
+    /* Mobile: collapse sidebar transitions stay clean */
+    @media (max-width: 900px) {
+      .main-content { padding: 1.5rem !important; }
+      .stat-card { padding: 1.4rem !important; }
+      .control-card { padding: 1.4rem !important; }
+      .page-title { font-size: 1.8rem !important; }
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       ANALYTICS CHART — IVORY GOLD (matches neumorphic page)
+       ════════════════════════════════════════════════════════════════════ */
+    .chart-container {
+      position: relative;
+      background: linear-gradient(160deg, #faf7ef 0%, #f5f1e8 55%, #faf7ef 100%) !important;
+      box-shadow: var(--neu-raised) !important;
+      border-radius: 28px !important;
+      padding: 2rem !important;
+      overflow: hidden;
+      color: var(--neu-text) !important;
+    }
+    .chart-container::before, .chart-container::after { display: none !important; }
+    /* subtle warm orb glows on ivory */
+    .chart-container .orb-1, .chart-container .orb-2 {
+      content:''; position: absolute; pointer-events: none; border-radius: 50%;
+      filter: blur(70px); opacity: .55; z-index: 0;
+    }
+    .chart-container .orb-1 { width: 280px; height: 280px; background: radial-gradient(#f4dca8, transparent 65%); top:-100px; right:-70px; }
+    .chart-container .orb-2 { width: 220px; height: 220px; background: radial-gradient(#e8d4c8, transparent 70%); bottom:-90px; left:-60px; opacity: .45; }
+
+    .chart-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      margin-bottom: 1.5rem !important;
+      gap: 1rem !important;
+      flex-wrap: wrap !important;
+      position: relative; z-index: 2;
+    }
+
+    .chart-title {
+      font-family: 'Manrope', sans-serif !important;
+      font-size: 1.4rem !important;
+      font-weight: 800 !important;
+      letter-spacing: -.4px !important;
+      background: linear-gradient(135deg, #8b6914, #d4af37 60%, #b8860b) !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      color: transparent !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: .7rem !important;
+    }
+    .chart-title::before {
+      content: '💰';
+      font-size: 1.2rem;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #fff, #f0eadb);
+      box-shadow: 4px 4px 10px rgba(174,174,192,.35), -4px -4px 10px #fff, inset 0 0 0 1px rgba(212,175,55,0.25);
+      display: grid; place-items: center;
+      color: #b8860b;
+      -webkit-text-fill-color: initial;
+    }
+    .chart-title::after { display: none !important; }
+
+    /* Headline total of period (filled by JS) */
+    .chart-headline {
+      display:flex; align-items:flex-end; gap:.8rem; flex-wrap:wrap;
+      margin-bottom: 1.2rem;
+      position: relative; z-index: 2;
+    }
+    .chart-headline .total {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 2.6rem;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg,#8b6914,#d4af37 55%,#b8860b);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .chart-headline .total-sub {
+      font-size: .8rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--neu-text-soft);
+      font-weight: 700;
+      padding-bottom:.4rem;
+    }
+    .chart-headline .delta-pill {
+      display:inline-flex; align-items:center; gap:.35rem;
+      padding:.35rem .8rem;
+      border-radius:999px;
+      font-size:.75rem;
+      font-weight:700;
+      background: rgba(34,160,80,.12);
+      color: #1f9d55;
+      border: 1px solid rgba(34,160,80,.3);
+      margin-bottom:.5rem;
+    }
+
+    /* SEGMENTED FILTER CONTROL with sliding indicator */
+    .chart-filters {
+      display: flex !important;
+      gap: 0 !important;
+      flex-wrap: nowrap !important;
+      padding: .35rem !important;
+      background: linear-gradient(145deg, #e8e3d6, #f5f1e8) !important;
+      box-shadow: inset 4px 4px 8px rgba(174,174,150,.35), inset -4px -4px 8px rgba(255,255,255,.9) !important;
+      border-radius: 999px !important;
+      position: relative;
+    }
+    .filter-btn {
+      box-shadow: none !important;
+      background: transparent !important;
+      padding: .55rem 1.1rem !important;
+      border-radius: 999px !important;
+      font-size: .78rem !important;
+      font-weight: 700 !important;
+      letter-spacing: .5px !important;
+      color: var(--neu-text-soft) !important;
+      position: relative;
+      z-index: 2;
+      transition: color .35s ease !important;
+    }
+    .filter-btn::before, .filter-btn::after { display: none !important; }
+    .filter-btn:hover { color: #8b6914 !important; transform: none !important; box-shadow: none !important; background: transparent !important; }
+    .filter-btn.active {
+      background: linear-gradient(135deg, #d4af37 0%, #a07c25 100%) !important;
+      color: #fff !important;
+      box-shadow: 0 6px 18px rgba(212,175,55,.45), inset 0 1px 0 rgba(255,255,255,.45) !important;
+      text-shadow: 0 1px 1px rgba(0,0,0,.2);
+    }
+
+    .line-chart {
+      background: transparent !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin-bottom: 0 !important;
+      position: relative;
+      overflow: visible;
+      z-index: 2;
+    }
+    .line-chart::before { display: none !important; }
+    #revenueCanvas {
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 6px 14px rgba(184,134,11,.22)) !important;
+    }
+
+    /* Live pill — gold/green hybrid */
+    .live-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: #1f9d55;
+      padding: .35rem .9rem;
+      background: rgba(34,160,80,.08);
+      border: 1px solid rgba(34,160,80,.3);
+      border-radius: 999px;
+    }
+    .live-pulse::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34,197,94,.6);
+      animation: livePulse 1.4s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
+      50%     { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    }
+
+    /* Fancy chart tooltip — ivory neumorphic */
+    #chartTooltip {
+      background: linear-gradient(160deg, #ffffff 0%, #faf6ec 100%) !important;
+      border: 1px solid rgba(212,175,55,.45) !important;
+      box-shadow: 0 18px 40px rgba(120,100,40,.18), 0 0 24px rgba(212,175,55,.15), inset 0 1px 0 #fff !important;
+      border-radius: 16px !important;
+      padding: 1rem 1.4rem !important;
+      min-width: 160px;
+      font-family: 'Manrope', sans-serif !important;
+      color: var(--neu-text) !important;
+    }
+    #chartTooltip .tt-label {
+      font-size: .65rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--neu-text-soft);
+      font-weight: 700;
+      margin-bottom: .35rem;
+    }
+    #chartTooltip .tt-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -.5px;
+      background: linear-gradient(135deg,#8b6914,#d4af37 55%,#b8860b);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #chartTooltip .tt-meta {
+      font-size: .72rem;
+      color: #1f9d55;
+      margin-top: .35rem;
+      font-weight: 700;
+    }
+
+    /* "tick" highlight when stats refresh */
+    .stat-value.flash { animation: statFlash .6s ease; }
+    @keyframes statFlash {
+      0%   { color: var(--neu-accent) !important; transform: scale(1.05); }
+      100% { color: var(--neu-text) !important; transform: scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -1597,7 +2469,7 @@
     <section id="dashboard" class="content-section active">
       <div class="page-header">
         <h1 class="page-title">Dashboard Overview</h1>
-        <p class="page-subtitle">Track your revenue and performance metrics</p>
+        <p class="page-subtitle">Track your revenue and performance metrics — auto-refreshes every second</p>
       </div>
 
       <!-- Stats Cards -->
@@ -1633,8 +2505,13 @@
 
       <!-- Revenue Chart -->
       <div class="chart-container">
+        <div class="orb-1"></div>
+        <div class="orb-2"></div>
         <div class="chart-header">
-          <h2 class="chart-title">Revenue Analytics</h2>
+          <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;">
+            <h2 class="chart-title">Revenue Analytics</h2>
+            <span class="live-pulse">Live</span>
+          </div>
           <div class="chart-filters">
             <button class="filter-btn active" onclick="changeChartPeriod('today')" data-period="today">Today</button>
             <button class="filter-btn" onclick="changeChartPeriod('week')" data-period="week">Week</button>
@@ -1643,25 +2520,41 @@
             <button class="filter-btn" onclick="changeChartPeriod('all')" data-period="all">All Time</button>
           </div>
         </div>
+
+        <!-- Big total headline -->
+        <div class="chart-headline">
+          <div class="total" id="chartTotal">£0</div>
+          <div class="total-sub" id="chartTotalLabel">Today's Revenue</div>
+          <div class="delta-pill" id="chartDeltaPill">↑ 0 sales</div>
+        </div>
+
         <div class="line-chart" id="revenueChart">
           <!-- Animated line chart will be generated here -->
-          <canvas id="revenueCanvas" width="800" height="300" style="width: 100%; height: 300px; display: block;"></canvas>
+          <canvas id="revenueCanvas" width="800" height="320" style="width: 100%; height: 320px; display: block;"></canvas>
         </div>
       </div>
 
       <!-- Quick Actions -->
       <div class="quick-actions">
-        <button class="quick-action-btn" onclick="showSection('products')">
+        <button class="quick-action-btn" onclick="resetAllCounters()">
           <div class="quick-action-icon">🔄</div>
           <div class="quick-action-label">Reset Slots</div>
         </button>
-        <button class="quick-action-btn" onclick="showSection('giveaway')">
+        <button class="quick-action-btn" onclick="spinWheel()">
           <div class="quick-action-icon">🎡</div>
           <div class="quick-action-label">Spin Wheel</div>
         </button>
-        <button class="quick-action-btn" onclick="showSection('settings')">
+        <button class="quick-action-btn" onclick="toggleTestMode()">
           <div class="quick-action-icon">🧪</div>
           <div class="quick-action-label">Test Mode</div>
+        </button>
+        <button class="quick-action-btn" onclick="forceRelogin()">
+          <div class="quick-action-icon">📤</div>
+          <div class="quick-action-label">Force Re-login</div>
+        </button>
+        <button class="quick-action-btn" onclick="markAllAvailable()">
+          <div class="quick-action-icon">✅</div>
+          <div class="quick-action-label">Mark Available</div>
         </button>
       </div>
     </section>
@@ -1669,13 +2562,42 @@
     <!-- Products & Slots Section -->
     <section id="products" class="content-section">
       <div class="page-header">
-        <h1 class="page-title">Products & Slot Management</h1>
+        <h1 class="page-title">Products & Slots</h1>
         <p class="page-subtitle">Manage product availability and daily slot limits</p>
+      </div>
+
+      <!-- Hero stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-label">Total Products</div>
+          <div class="stat-value">5</div>
+          <div class="stat-change positive">All services tracked</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏰</div>
+          <div class="stat-label">Open Hours</div>
+          <div class="stat-value">11–24</div>
+          <div class="stat-change positive">Mon–Fri schedule</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🌍</div>
+          <div class="stat-label">Timezone</div>
+          <div class="stat-value" style="font-size:1.4rem;">London</div>
+          <div class="stat-change positive">GMT/BST auto-DST</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎉</div>
+          <div class="stat-label">Weekend</div>
+          <div class="stat-value" style="font-size:1.4rem;">24/7</div>
+          <div class="stat-change positive">Sat & Sun open</div>
+        </div>
       </div>
 
       <!-- Global Controls -->
       <div class="control-card" style="margin-bottom: 2rem;">
         <h3>🌐 Global Controls</h3>
+        <p style="color: var(--neu-text-soft); margin-bottom: 1rem;">Bulk actions across every product</p>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
           <button class="btn btn-danger" onclick="resetAllCounters()">Reset All Counters</button>
           <button class="btn btn-warning" onclick="resetTimerOnly()">Reset Timer Only</button>
@@ -1768,25 +2690,52 @@
     <!-- Giveaway Section -->
     <section id="giveaway" class="content-section">
       <div class="page-header">
-        <h1 class="page-title">🎁 Giveaway Management</h1>
-        <p class="page-subtitle">Control the spin the wheel giveaway</p>
+        <h1 class="page-title">Giveaway Management</h1>
+        <p class="page-subtitle">Control the spin-the-wheel campaign and entries</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🎁</div>
+          <div class="stat-label">Total Entries</div>
+          <div class="stat-value"><span id="giveawayEntryCountStat">0</span></div>
+          <div class="stat-change positive">Live count</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-label">Min To Spin</div>
+          <div class="stat-value">15</div>
+          <div class="stat-change positive">Threshold</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚪</div>
+          <div class="stat-label">Max Public</div>
+          <div class="stat-value">30</div>
+          <div class="stat-change positive">Public form limit</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎡</div>
+          <div class="stat-label">Status</div>
+          <div class="stat-value" style="font-size:1.4rem;"><span id="giveawayStatusStat">Inactive</span></div>
+          <div class="stat-change positive">Toggle below</div>
+        </div>
       </div>
 
       <div class="control-grid">
         <div class="control-card">
           <h3>🎯 Giveaway Status</h3>
-          <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+          <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="toggleGiveaway()">
               <span id="giveawayButtonText">Enable Giveaway</span>
             </button>
             <span class="status-badge" id="giveawayStatusBadge">Inactive</span>
           </div>
-          <p style="color: #7f8c8d; font-size: 0.9rem;">Toggle to show/hide giveaway banner on website</p>
+          <p style="color: var(--neu-text-soft); font-size: 0.9rem;">Toggle to show/hide giveaway banner on website</p>
         </div>
 
         <div class="control-card">
           <h3>📊 Current Entries</h3>
-          <div style="font-size: 3rem; font-weight: 900; color: #6C63FF; margin: 1rem 0;">
+          <div style="font-size: 3rem; font-weight: 900; color: var(--neu-accent); margin: 1rem 0;">
             <span id="giveawayEntryCount">0</span>
           </div>
           <button class="btn btn-primary" onclick="viewAllEntries()">View All Entries</button>
@@ -1855,8 +2804,35 @@
     <!-- Users Section -->
     <section id="users" class="content-section">
       <div class="page-header">
-        <h1 class="page-title">👥 User Management</h1>
-        <p class="page-subtitle">Manage user access and permissions</p>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">Whitelist, bans, login history and access control</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-label">Whitelisted</div>
+          <div class="stat-value"><span id="whitelistCountStat">0</span></div>
+          <div class="stat-change positive">VIP access</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🚫</div>
+          <div class="stat-label">Banned</div>
+          <div class="stat-value"><span id="bannedCountStat">0</span></div>
+          <div class="stat-change positive">Blocked accounts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🟢</div>
+          <div class="stat-label">Online Now</div>
+          <div class="stat-value"><span id="onlineCountStat">0</span></div>
+          <div class="stat-change positive">Live browsers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-label">Total Logins</div>
+          <div class="stat-value"><span id="totalLoginsStat">0</span></div>
+          <div class="stat-change positive">All time</div>
+        </div>
       </div>
 
       <div class="control-card">
@@ -1905,8 +2881,35 @@
     <!-- Settings Section -->
     <section id="settings" class="content-section">
       <div class="page-header">
-        <h1 class="page-title">⚙️ Settings</h1>
-        <p class="page-subtitle">Configure system settings and controls</p>
+        <h1 class="page-title">System Settings</h1>
+        <p class="page-subtitle">Test mode, timezones, cash codes and global controls</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🧪</div>
+          <div class="stat-label">Test Mode</div>
+          <div class="stat-value" style="font-size:1.4rem;"><span id="testModeStat">Live</span></div>
+          <div class="stat-change positive">Toggle below</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💵</div>
+          <div class="stat-label">Cash Codes</div>
+          <div class="stat-value"><span id="cashCodeCountStat">0</span></div>
+          <div class="stat-change positive">Active codes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-label">Online Now</div>
+          <div class="stat-value"><span id="settingsOnlineStat">0</span></div>
+          <div class="stat-change positive">Live users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-label">Total Sales</div>
+          <div class="stat-value"><span id="settingsSalesStat">0</span></div>
+          <div class="stat-change positive">All time</div>
+        </div>
       </div>
 
       <div class="control-card">
@@ -1966,10 +2969,10 @@
 
       <div class="control-card">
         <h3>👁️ Who's Online</h3>
-        <p style="color: #7f8c8d; margin-bottom: 1rem;">See who is currently online browsing the website (updates every 15 seconds)</p>
+        <p style="color: var(--neu-text-soft); margin-bottom: 1rem;">See who is currently online browsing the website (updates every 15 seconds)</p>
         <button class="btn btn-success" onclick="showOnlineUsers()">Show Who's Online</button>
         <div id="activeUsersContent" style="margin-top: 1rem; display: none;">
-          <div id="activeUsersStats" style="margin-bottom: 1rem; padding: 1rem; background: #d4edda; border-radius: 8px; color: #155724; font-size: 1.1rem;">
+          <div id="activeUsersStats" style="margin-bottom: 1rem; padding: 1rem; border-radius: 14px; font-size: 1.1rem;">
             <strong>👁️ Currently Browsing:</strong> <span id="totalActive" style="font-size: 1.5rem; font-weight: 700;">0</span> users online
           </div>
           <div id="activeUsersList"></div>
@@ -1988,8 +2991,35 @@
     <!-- Automation Section -->
     <section id="automation" class="content-section">
       <div class="page-header">
-        <h1 class="page-title">🤖 Bot Automation</h1>
-        <p class="page-subtitle">Configure automated homework processing</p>
+        <h1 class="page-title">Bot Automation</h1>
+        <p class="page-subtitle">SenAI homework queue, timing rules and processing modes</p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-label">Mode</div>
+          <div class="stat-value" style="font-size:1.4rem;"><span id="autoModeStat">Auto</span></div>
+          <div class="stat-change positive">Bot mode active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-label">In Queue</div>
+          <div class="stat-value"><span id="autoQueueCountStat">0</span></div>
+          <div class="stat-change positive">Orders waiting</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🤖</div>
+          <div class="stat-label">Processing</div>
+          <div class="stat-value" style="font-size:1.4rem;"><span id="autoProcessingStat">Idle</span></div>
+          <div class="stat-change positive">Current order</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱</div>
+          <div class="stat-label">Next Wait</div>
+          <div class="stat-value" style="font-size:1.4rem;"><span id="autoNextWaitStat">—</span></div>
+          <div class="stat-change positive">Until next start</div>
+        </div>
       </div>
 
       <div class="control-card">
@@ -2059,25 +3089,25 @@
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
           <div>
             <h3 style="margin: 0;">🧠 SenAI Queue Manager</h3>
-            <p style="color: #7f8c8d; margin: 0.3rem 0 0 0; font-size: 0.9rem;">Live view and control of the homework queue on AWS</p>
+            <p style="color: var(--neu-text-soft); margin: 0.3rem 0 0 0; font-size: 0.9rem;">Live view and control of the homework queue on AWS</p>
           </div>
           <button class="btn btn-primary" onclick="refreshQueue()" style="white-space: nowrap;">🔄 Refresh</button>
         </div>
 
         <!-- Queue Status Bar -->
         <div id="queueStatusBar" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-          <div style="flex: 1; min-width: 130px; background: #f8f9fa; border-radius: 10px; padding: 1rem; text-align: center; border: 2px solid #e9ecef;">
+          <div style="flex: 1; min-width: 130px; padding: 1rem; text-align: center;">
             <div style="font-size: 1.8rem; font-weight: 800;" id="queueStatusIcon">⏳</div>
-            <div style="font-size: 0.8rem; color: #7f8c8d; margin-top: 0.3rem;">Status</div>
+            <div style="font-size: 0.8rem; color: var(--neu-text-soft); margin-top: 0.3rem;">Status</div>
             <div style="font-weight: 700; font-size: 0.95rem;" id="queueStatusText">Loading...</div>
           </div>
-          <div style="flex: 1; min-width: 130px; background: #f8f9fa; border-radius: 10px; padding: 1rem; text-align: center; border: 2px solid #e9ecef;">
+          <div style="flex: 1; min-width: 130px; padding: 1rem; text-align: center;">
             <div style="font-size: 1.8rem; font-weight: 800;" id="queueLengthNum">-</div>
-            <div style="font-size: 0.8rem; color: #7f8c8d; margin-top: 0.3rem;">Orders Waiting</div>
+            <div style="font-size: 0.8rem; color: var(--neu-text-soft); margin-top: 0.3rem;">Orders Waiting</div>
           </div>
-          <div style="flex: 1; min-width: 130px; background: #f8f9fa; border-radius: 10px; padding: 1rem; text-align: center; border: 2px solid #e9ecef;">
-            <div style="font-size: 1.1rem; font-weight: 800; color: #6C63FF;" id="queueNextWait">-</div>
-            <div style="font-size: 0.8rem; color: #7f8c8d; margin-top: 0.3rem;">Next Starts In</div>
+          <div style="flex: 1; min-width: 130px; padding: 1rem; text-align: center;">
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--neu-accent);" id="queueNextWait">-</div>
+            <div style="font-size: 0.8rem; color: var(--neu-text-soft); margin-top: 0.3rem;">Next Starts In</div>
           </div>
         </div>
 
@@ -2575,30 +3605,38 @@
     let chartCanvas = null;
     let tooltipElement = null;
 
+    // ── Fancy chart animation state (declared once) ──
+    let __chartAnim = null;
+    let __chartPrevPeriod = null;
+    let __chartLastPulse = 0;
+
     function drawLineChart(loginHistory, period = 'today') {
       const canvas = document.getElementById('revenueCanvas');
       if (!canvas) {
         console.error('Canvas not found');
         return;
       }
-      
+
       chartCanvas = canvas;
-      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
       const parentWidth = canvas.parentElement.offsetWidth;
-      const width = parentWidth > 0 ? parentWidth - 40 : 800;
-      const height = 300;
-      canvas.width = width;
-      canvas.height = height;
-      
-      console.log('Drawing chart:', { width, height, period, dataCount: loginHistory?.length || 0 });
-      
+      const cssW = parentWidth > 0 ? parentWidth - 40 : 800;
+      const cssH = 320;
+      canvas.style.width  = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      canvas.width  = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const width = cssW, height = cssH;
+
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
-      
+
       // If no data, show message
       if (!loginHistory || loginHistory.length === 0) {
-        ctx.fillStyle = '#7f8c8d';
-        ctx.font = '16px Arial';
+        ctx.fillStyle = 'rgba(58,61,74,0.45)';
+        ctx.font = '600 15px Manrope, Inter, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('No purchase data available yet', width / 2, height / 2);
         chartDataPoints = [];
@@ -2694,116 +3732,224 @@
         }
       }
       
-      // Draw chart
-      const padding = 50;
-      const chartWidth = width - padding * 2;
-      const chartHeight = height - padding * 2;
-      
-      // Set minimum scale based on period
-      const minScales = {
-        'today': 50,
-        'week': 100,
-        'month': 300,
-        'year': 1000,
-        'all': 1000
-      };
-      
+      // ── Geometry
+      const padding = { top: 30, right: 28, bottom: 40, left: 60 };
+      const chartWidth  = width  - padding.left - padding.right;
+      const chartHeight = height - padding.top  - padding.bottom;
+
+      const minScales = { 'today': 50, 'week': 100, 'month': 300, 'year': 1000, 'all': 1000 };
       const actualMax = Math.max(...dataPoints, 1);
-      const minScale = minScales[period] || 50;
+      const minScale  = minScales[period] || 50;
       const maxDataValue = Math.max(actualMax, minScale);
-      
-      // Draw grid lines
-      ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= 5; i++) {
-        const y = padding + (chartHeight / 5) * i;
-        ctx.beginPath();
-        ctx.moveTo(padding, y);
-        ctx.lineTo(width - padding, y);
-        ctx.stroke();
-        
-        // Y-axis labels
-        const value = Math.round(maxDataValue * (1 - i / 5));
-        ctx.fillStyle = '#7f8c8d';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(`£${value}`, padding - 10, y + 4);
+
+      // ── Update headline total
+      const totalEl = document.getElementById('chartTotal');
+      const labelEl = document.getElementById('chartTotalLabel');
+      const deltaEl = document.getElementById('chartDeltaPill');
+      const totalSum = dataPoints.reduce((a,b) => a+b, 0);
+      const periodLabelMap = {
+        'today': "Today's Revenue",
+        'week':  "This Week's Revenue",
+        'month': "This Month's Revenue",
+        'year':  'Last 12 Months',
+        'all':   'All Time Revenue'
+      };
+      if (totalEl) totalEl.textContent = '£' + totalSum.toLocaleString();
+      if (labelEl) labelEl.textContent = periodLabelMap[period] || 'Revenue';
+      if (deltaEl) {
+        const salesCount = Math.round(totalSum / 2);
+        deltaEl.textContent = '↑ ' + salesCount + ' sales';
       }
-      
-      // Calculate points and store for hover interactions
+
+      // ── Compute points
       const points = dataPoints.map((value, index) => {
-        const x = padding + (chartWidth / (dataPoints.length - 1 || 1)) * index;
-        const y = padding + chartHeight - (value / maxDataValue) * chartHeight;
+        const x = padding.left + (chartWidth / (dataPoints.length - 1 || 1)) * index;
+        const y = padding.top + chartHeight - (value / maxDataValue) * chartHeight;
         return { x, y, value, label: labels[index] };
       });
-      
-      // Store data globally for hover interactions
       chartDataPoints = points;
       chartLabels = labels;
-      
-      // Draw gradient fill under line
-      if (points.length > 1) {
-        const gradient = ctx.createLinearGradient(0, padding, 0, height - padding);
-        gradient.addColorStop(0, 'rgba(108, 99, 255, 0.3)');
-        gradient.addColorStop(1, 'rgba(108, 99, 255, 0.05)');
-        
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, height - padding);
-        points.forEach(p => ctx.lineTo(p.x, p.y));
-        ctx.lineTo(points[points.length - 1].x, height - padding);
-        ctx.closePath();
-        ctx.fill();
-      }
-      
-      // Draw line
-      ctx.strokeStyle = '#6C63FF';
-      ctx.lineWidth = 3;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      points.forEach((p, i) => {
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      });
-      ctx.stroke();
-      
-      // Draw points
-      points.forEach((p, index) => {
-        ctx.fillStyle = '#6C63FF';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        
-      });
-      
-      // Draw X-axis labels (show strategically to avoid crowding)
-      const labelInterval = labels.length > 20 ? Math.ceil(labels.length / 12) : (labels.length > 10 ? 2 : 1);
-      points.forEach((p, index) => {
-        if (index % labelInterval === 0 || index === labels.length - 1) {
-          ctx.fillStyle = '#7f8c8d';
-          ctx.font = '11px Arial';
-          ctx.textAlign = 'center';
-          ctx.fillText(labels[index], p.x, height - padding + 20);
+
+      // ── Smooth Catmull-Rom → cubic bezier helper
+      function buildSmoothPath(pts){
+        if (pts.length < 2) return null;
+        const path = new Path2D();
+        path.moveTo(pts[0].x, pts[0].y);
+        for (let i = 0; i < pts.length - 1; i++) {
+          const p0 = pts[i - 1] || pts[i];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[i + 2] || p2;
+          const t = 0.18;
+          const cp1x = p1.x + (p2.x - p0.x) * t;
+          const cp1y = p1.y + (p2.y - p0.y) * t;
+          const cp2x = p2.x - (p3.x - p1.x) * t;
+          const cp2y = p2.y - (p3.y - p1.y) * t;
+          path.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
         }
-      });
-      
-      // Add period label
-      ctx.fillStyle = '#2c3e50';
-      ctx.font = 'bold 13px Arial';
-      ctx.textAlign = 'left';
-      const periodLabels = {
-        'today': 'Today (Hourly)',
-        'week': 'This Week (Daily)',
-        'month': 'This Month (Daily)',
-        'year': 'Last 12 Months',
-        'all': 'All Time (Monthly)'
-      };
-      ctx.fillText(periodLabels[period] || period, padding, padding - 10);
+        return path;
+      }
+      const linePath = buildSmoothPath(points);
+
+      // ── Decide animation phase: animate fully on first draw and on period change.
+      const periodChanged = (__chartPrevPeriod !== period);
+      __chartPrevPeriod = period;
+      const animDuration = periodChanged ? 900 : 0;
+      const startTime = performance.now();
+
+      // Cancel any in-flight animation
+      if (__chartAnim) cancelAnimationFrame(__chartAnim);
+
+      function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+      function frame(now){
+        const elapsed = now - startTime;
+        const t = animDuration === 0 ? 1 : Math.min(1, elapsed / animDuration);
+        const k = easeOutCubic(t);
+
+        // Clear and redraw axis grid each frame (cheap)
+        ctx.clearRect(0, 0, width, height);
+
+        // grid + Y labels (gold-tinted on dark)
+        ctx.font = '600 11px Manrope, Inter, sans-serif';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 4; i++) {
+          const y = padding.top + (chartHeight / 4) * i;
+          ctx.strokeStyle = 'rgba(184,134,11,0.18)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 6]);
+          ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(width - padding.right, y); ctx.stroke();
+          ctx.setLineDash([]);
+          const value = Math.round(maxDataValue * (1 - i / 4));
+          ctx.fillStyle = 'rgba(107,110,122,0.85)';
+          ctx.textAlign = 'right';
+          ctx.fillText(`£${value}`, padding.left - 12, y);
+        }
+
+        // Animated gradient fill under the line — warm gold tint on ivory
+        if (points.length > 1 && linePath) {
+          const fillCutX = padding.left + chartWidth * k;
+          const grad = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+          grad.addColorStop(0,   'rgba(212, 175, 55, 0.45)');
+          grad.addColorStop(0.5, 'rgba(212, 175, 55, 0.15)');
+          grad.addColorStop(1,   'rgba(212, 175, 55, 0.0)');
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, fillCutX, height);
+          ctx.clip();
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(points[0].x, padding.top + chartHeight);
+          points.forEach((p,i) => {
+            if (i === 0) ctx.lineTo(p.x, p.y);
+            else {
+              const p0 = points[i-2] || points[i-1];
+              const p1 = points[i-1];
+              const p2 = p;
+              const p3 = points[i+1] || p;
+              const tt = 0.18;
+              const cp1x = p1.x + (p2.x - p0.x) * tt;
+              const cp1y = p1.y + (p2.y - p0.y) * tt;
+              const cp2x = p2.x - (p3.x - p1.x) * tt;
+              const cp2y = p2.y - (p3.y - p1.y) * tt;
+              ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+            }
+          });
+          ctx.lineTo(points[points.length - 1].x, padding.top + chartHeight);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Glowy line — multi-pass for soft outer glow
+        if (linePath) {
+          const lineCutX = padding.left + chartWidth * k;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, 0, lineCutX, height);
+          ctx.clip();
+
+          // outer soft glow — gold
+          ctx.lineJoin = 'round';
+          ctx.lineCap  = 'round';
+          ctx.shadowColor = 'rgba(184,134,11,0.45)';
+          ctx.shadowBlur  = 18;
+
+          const lineGrad = ctx.createLinearGradient(padding.left, 0, width - padding.right, 0);
+          lineGrad.addColorStop(0,   '#d4af37');
+          lineGrad.addColorStop(0.5, '#b8860b');
+          lineGrad.addColorStop(1,   '#8b6914');
+          ctx.strokeStyle = lineGrad;
+          ctx.lineWidth = 3.5;
+          ctx.stroke(linePath);
+
+          // crisp inner highlight (subtle warm shine)
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(255,248,220,0.7)';
+          ctx.lineWidth = 1;
+          ctx.globalAlpha = 0.6;
+          ctx.stroke(linePath);
+          ctx.globalAlpha = 1;
+          ctx.restore();
+        }
+
+        // Data points (only those within reveal range)
+        const revealIndex = (points.length - 1) * k;
+        points.forEach((p, index) => {
+          if (index > revealIndex + 0.001) return;
+          // soft gold halo
+          const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 14);
+          halo.addColorStop(0, 'rgba(212,175,55,0.55)');
+          halo.addColorStop(1, 'rgba(212,175,55,0)');
+          ctx.fillStyle = halo;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI * 2); ctx.fill();
+
+          // dot — white core with deep gold ring (visible on cream)
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = '#b8860b';
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        });
+
+        // X-axis labels
+        const labelInterval = labels.length > 20 ? Math.ceil(labels.length / 12) : (labels.length > 10 ? 2 : 1);
+        ctx.fillStyle = 'rgba(107,110,122,0.85)';
+        ctx.font = '600 11px Manrope, Inter, sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'center';
+        points.forEach((p, index) => {
+          if (index % labelInterval === 0 || index === labels.length - 1) {
+            ctx.fillText(labels[index], p.x, padding.top + chartHeight + 12);
+          }
+        });
+
+        // Pulsing latest point — gold
+        if (points.length > 0 && k >= 1) {
+          const last = points[points.length - 1];
+          const phase = (now / 1200) % 1;
+          const pulseR = 8 + Math.sin(phase * Math.PI * 2) * 4 + 6;
+          const pulseAlpha = 0.5 - (Math.sin(phase * Math.PI * 2) + 1) * 0.2;
+          ctx.fillStyle = `rgba(212,175,55,${Math.max(0,pulseAlpha)})`;
+          ctx.beginPath(); ctx.arc(last.x, last.y, pulseR + 6, 0, Math.PI * 2); ctx.fill();
+
+          // bright core — white→gold→deep gold ring for clean ivory contrast
+          const coreGrad = ctx.createRadialGradient(last.x, last.y, 0, last.x, last.y, 9);
+          coreGrad.addColorStop(0, '#ffffff');
+          coreGrad.addColorStop(0.4, '#f4dca8');
+          coreGrad.addColorStop(1, '#b8860b');
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath(); ctx.arc(last.x, last.y, 7, 0, Math.PI * 2); ctx.fill();
+        }
+
+        if (t < 1 || k >= 1) {
+          // continue animating for the pulsing latest point
+          __chartAnim = requestAnimationFrame(frame);
+        }
+      }
+      __chartAnim = requestAnimationFrame(frame);
     }
 
     // Create tooltip element for chart hover
@@ -2813,19 +3959,12 @@
         tooltipElement.id = 'chartTooltip';
         tooltipElement.style.cssText = `
           position: absolute;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 12px 16px;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 600;
           pointer-events: none;
           opacity: 0;
-          transition: opacity 0.3s ease, transform 0.3s ease;
+          transition: opacity 0.25s ease, transform 0.25s cubic-bezier(.4,0,.2,1);
           z-index: 1000;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.25);
           white-space: nowrap;
-          transform: translateY(-10px);
+          transform: translateY(-10px) scale(.92);
         `;
         document.body.appendChild(tooltipElement);
       }
@@ -2877,35 +4016,33 @@
           // Redraw chart to highlight clicked point
           drawLineChart(revenueChartData, currentChartPeriod);
           
-          // Draw highlighted point (larger orange dot)
-          ctx.fillStyle = '#FF6B6B';
+          // Draw highlighted point — white core with deep-gold ring (visible on ivory)
+          ctx.fillStyle = '#ffffff';
           ctx.beginPath();
-          ctx.arc(clickedPoint.x, clickedPoint.y, 10, 0, Math.PI * 2);
+          ctx.arc(clickedPoint.x, clickedPoint.y, 9, 0, Math.PI * 2);
           ctx.fill();
-          
-          ctx.strokeStyle = 'white';
+          ctx.strokeStyle = '#b8860b';
           ctx.lineWidth = 3;
           ctx.stroke();
-          
-          // Show tooltip (purple popup)
+
+          // Show fancy structured tooltip
           tooltip.innerHTML = `
-            <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">${clickedPoint.label}</div>
-            <div style="font-size: 16px; font-weight: 700;">£${clickedPoint.value}</div>
+            <div class="tt-label">${clickedPoint.label}</div>
+            <div class="tt-value">£${Number(clickedPoint.value).toLocaleString()}</div>
+            <div class="tt-meta">↑ ${Math.round(clickedPoint.value / 2)} sales</div>
           `;
-          
-          // Position tooltip relative to the page (accounting for scroll)
+
           const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
           const scrollY = window.pageYOffset || document.documentElement.scrollTop;
-          
+
           tooltip.style.left = (e.clientX + scrollX + 15) + 'px';
-          tooltip.style.top = (e.clientY + scrollY - 50) + 'px';
+          tooltip.style.top  = (e.clientY + scrollY - 60) + 'px';
           tooltip.style.opacity = '1';
-          tooltip.style.transform = 'translateY(0)';
+          tooltip.style.transform = 'translateY(0) scale(1)';
         } else {
-          // Clicked outside any point, hide tooltip
           activePoint = null;
           tooltip.style.opacity = '0';
-          tooltip.style.transform = 'translateY(-10px)';
+          tooltip.style.transform = 'translateY(-10px) scale(.92)';
           drawLineChart(revenueChartData, currentChartPeriod);
         }
       });
@@ -5269,6 +6406,112 @@
         showAlert('Failed to load purchase history: ' + err.message, 'Error', '❌');
       }
     }
+  </script>
+
+  <!-- 1-second live auto-refresh — only fires AFTER login (when adminPassword set) -->
+  <script>
+    (function(){
+      let lastValues = {};
+      const watchedStatIds = ['todayRevenue','weekRevenue','monthRevenue','totalRevenue','todayChange','weekChange','monthChange','totalSales','giveawayEntryCount','whitelistCount','totalActive','totalCodes','queueLengthNum','queueNextWait'];
+
+      function flashIfChanged(){
+        watchedStatIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          const v = el.textContent;
+          if (lastValues[id] !== undefined && lastValues[id] !== v) {
+            // walk up to nearest .stat-value to flash, else flash the el itself
+            const target = el.closest('.stat-value') || el;
+            target.classList.remove('flash');
+            void target.offsetWidth;
+            target.classList.add('flash');
+          }
+          lastValues[id] = v;
+        });
+      }
+
+      let inFlight = false;
+      async function tick(){
+        if (inFlight) return;
+        if (typeof adminPassword === 'undefined' || !adminPassword) return;
+        inFlight = true;
+        try {
+          if (typeof loadDashboardData === 'function') { try { await loadDashboardData(); } catch(e){} }
+          // Active section — refresh just what's visible
+          const active = document.querySelector('.content-section.active');
+          if (active) {
+            if (active.id === 'automation' && typeof refreshQueue === 'function') { try { await refreshQueue(); } catch(e){} }
+            if (active.id === 'giveaway' && typeof loadGiveawayStatus === 'function') { try { loadGiveawayStatus(); } catch(e){} }
+            if (active.id === 'users' && typeof loadWhitelistedUsers === 'function') { try { loadWhitelistedUsers(); } catch(e){} }
+            if (active.id === 'settings' && typeof loadCashCodes === 'function') { try { loadCashCodes(); } catch(e){} }
+            if (active.id === 'products' && typeof loadProducts === 'function') { try { loadProducts(); } catch(e){} }
+          }
+        } catch(e){}
+        finally { inFlight = false; flashIfChanged(); }
+      }
+
+      // 1-second auto-refresh
+      setInterval(tick, 1000);
+    })();
+  </script>
+
+  <!-- Hero stat mirror — keeps the new mockup-style stat tiles in sync -->
+  <script>
+    (function(){
+      function mirror(srcId, dstId, transform){
+        const src = document.getElementById(srcId);
+        const dst = document.getElementById(dstId);
+        if(!src || !dst) return;
+        const v = transform ? transform(src.textContent) : src.textContent;
+        if(dst.textContent !== v) dst.textContent = v;
+      }
+      function syncHeroStats(){
+        // Giveaway
+        mirror('giveawayEntryCount', 'giveawayEntryCountStat');
+        const gBadge = document.getElementById('giveawayStatusBadge');
+        if(gBadge){
+          const stat = document.getElementById('giveawayStatusStat');
+          if(stat) stat.textContent = (gBadge.textContent || 'Inactive').trim();
+        }
+        const gBtnText = document.getElementById('giveawayButtonText');
+        const gHeader = document.getElementById('giveawayHeaderBtn');
+        if(gBtnText && gHeader) gHeader.textContent = gBtnText.textContent;
+
+        // Users
+        mirror('whitelistCount', 'whitelistCountStat');
+        const banned = document.querySelectorAll('#bannedUsersContainer .banned-user-row, #bannedUsersContainer [data-banned]');
+        const bs = document.getElementById('bannedCountStat'); if(bs) bs.textContent = banned.length;
+        const onl = document.getElementById('totalActive');
+        const ons = document.getElementById('onlineCountStat'); if(onl && ons) ons.textContent = onl.textContent;
+        const sons = document.getElementById('settingsOnlineStat'); if(onl && sons) sons.textContent = onl.textContent;
+        const tlogs = document.querySelectorAll('#loginsContainer .login-row, #loginsContainer [data-login]');
+        const tl = document.getElementById('totalLoginsStat'); if(tl) tl.textContent = tlogs.length;
+
+        // Settings
+        const tmBadge = document.getElementById('testModeStatusBadge');
+        const tms = document.getElementById('testModeStat');
+        if(tmBadge && tms) tms.textContent = (tmBadge.textContent || 'Live').trim();
+        const codeCount = document.getElementById('totalCodes');
+        const ccs = document.getElementById('cashCodeCountStat'); if(codeCount && ccs) ccs.textContent = codeCount.textContent;
+        const ts = document.getElementById('totalSales');
+        const ss = document.getElementById('settingsSalesStat'); if(ts && ss) ss.textContent = ts.textContent;
+
+        // Automation
+        const cbm = document.getElementById('currentBotMode');
+        const ams = document.getElementById('autoModeStat');
+        if(cbm && ams) ams.textContent = (cbm.textContent || 'Auto').replace(/\s*Mode\s*$/i,'').trim();
+        const qLen = document.getElementById('queueLengthNum');
+        const aqc = document.getElementById('autoQueueCountStat'); if(qLen && aqc) aqc.textContent = qLen.textContent;
+        const proc = document.getElementById('currentlyProcessingText');
+        const aps = document.getElementById('autoProcessingStat'); if(aps) aps.textContent = proc && proc.textContent.trim() ? proc.textContent.trim().slice(0,18) : 'Idle';
+        const nw = document.getElementById('queueNextWait');
+        const anw = document.getElementById('autoNextWaitStat'); if(nw && anw) anw.textContent = nw.textContent;
+      }
+      // Run frequently to keep tiles fresh
+      setInterval(syncHeroStats, 1500);
+      document.addEventListener('DOMContentLoaded', syncHeroStats);
+      window.addEventListener('load', syncHeroStats);
+    })();
   </script>
 
   <!-- DevTools Protection -->
