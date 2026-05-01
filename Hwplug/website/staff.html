@@ -3644,11 +3644,20 @@
             switchToSection(firstSection);
           }
           
-          // Load data for the landing section
+          // Load data for ALL sections (not just landing) so stats are populated
           loadAvailabilitySchedule();
-          if (typeof loadCountersStatus === 'function') {
-            loadCountersStatus();
-          }
+          if (typeof loadProductStatus === 'function') loadProductStatus();
+          if (typeof loadWhitelistedUsers === 'function') loadWhitelistedUsers();
+          if (typeof loadBannedUsers === 'function') loadBannedUsers();
+          if (typeof loadBotSettings === 'function') loadBotSettings();
+          if (typeof loadTestModeStatus === 'function') loadTestModeStatus();
+          
+          // Run all stat refreshers immediately
+          if (typeof refreshCashCodeCount === 'function') refreshCashCodeCount();
+          if (typeof refreshActiveUsersCount === 'function') refreshActiveUsersCount();
+          if (typeof refreshLoginHistoryCount === 'function') refreshLoginHistoryCount();
+          if (typeof refreshBannedUsersCount === 'function') refreshBannedUsersCount();
+          if (typeof refreshWhitelistedCount === 'function') refreshWhitelistedCount();
         }, 500);
 
       } catch (err) {
@@ -7116,20 +7125,32 @@
       }
 
       let inFlight = false;
+      let tickCount = 0;
       async function tick(){
         if (inFlight) return;
         if (typeof adminPassword === 'undefined' || !adminPassword) return;
         inFlight = true;
+        tickCount++;
         try {
           if (typeof loadDashboardData === 'function') { try { await loadDashboardData(); } catch(e){} }
-          // Active section — refresh just what's visible
+          
+          // Active section — refresh visible content (every tick = 1s)
           const active = document.querySelector('.content-section.active');
           if (active) {
             if (active.id === 'automation' && typeof refreshQueue === 'function') { try { await refreshQueue(); } catch(e){} }
-            if (active.id === 'giveaway' && typeof loadGiveawayStatus === 'function') { try { loadGiveawayStatus(); } catch(e){} }
+            if (active.id === 'giveaway' && typeof loadGiveawayData === 'function') { try { loadGiveawayData(); } catch(e){} }
             if (active.id === 'users' && typeof loadWhitelistedUsers === 'function') { try { loadWhitelistedUsers(); } catch(e){} }
-            if (active.id === 'settings' && typeof loadCashCodes === 'function') { try { loadCashCodes(); } catch(e){} }
-            if (active.id === 'products' && typeof loadProducts === 'function') { try { loadProducts(); } catch(e){} }
+            if (active.id === 'users' && typeof loadBannedUsers === 'function') { try { loadBannedUsers(); } catch(e){} }
+            if (active.id === 'products' && typeof loadProductStatus === 'function') { try { loadProductStatus(); } catch(e){} }
+          }
+          
+          // Background stats refresh (every 3 ticks = 3s)
+          if (tickCount % 3 === 0) {
+            try { if (typeof refreshCashCodeCount === 'function') refreshCashCodeCount(); } catch(e){}
+            try { if (typeof refreshActiveUsersCount === 'function') refreshActiveUsersCount(); } catch(e){}
+            try { if (typeof refreshLoginHistoryCount === 'function') refreshLoginHistoryCount(); } catch(e){}
+            try { if (typeof refreshBannedUsersCount === 'function') refreshBannedUsersCount(); } catch(e){}
+            try { if (typeof refreshWhitelistedCount === 'function') refreshWhitelistedCount(); } catch(e){}
           }
         } catch(e){}
         finally { inFlight = false; flashIfChanged(); }
@@ -7138,6 +7159,80 @@
       // 1-second auto-refresh
       setInterval(tick, 1000);
     })();
+    
+    // ====== LIGHTWEIGHT BACKGROUND STAT REFRESHERS ======
+    // These hit the API silently and update stat tiles only (no UI modals)
+    
+    async function refreshCashCodeCount() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/get-cash-codes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = data.totalCodes ?? (data.codes ? data.codes.length : 0);
+        const el1 = document.getElementById('totalCodes'); if (el1) el1.textContent = count;
+        const el2 = document.getElementById('cashCodeCountStat'); if (el2) el2.textContent = count;
+      } catch (e) { /* silent */ }
+    }
+    
+    async function refreshActiveUsersCount() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/active-users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = data.activeUsers?.length ?? 0;
+        const el1 = document.getElementById('totalActive'); if (el1) el1.textContent = count;
+        const el2 = document.getElementById('onlineCountStat'); if (el2) el2.textContent = count;
+        const el3 = document.getElementById('settingsOnlineStat'); if (el3) el3.textContent = count;
+      } catch (e) { /* silent */ }
+    }
+    
+    async function refreshLoginHistoryCount() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/login-history`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = data.totalLogins ?? data.loginHistory?.length ?? 0;
+        const el = document.getElementById('totalLoginsStat'); if (el) el.textContent = count;
+        const el2 = document.getElementById('settingsSalesStat'); if (el2) el2.textContent = count;
+      } catch (e) { /* silent */ }
+    }
+    
+    async function refreshBannedUsersCount() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/get-banned-users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: adminPassword })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = (data.bannedUsers || []).length;
+        const el = document.getElementById('bannedCountStat'); if (el) el.textContent = count;
+      } catch (e) { /* silent */ }
+    }
+    
+    async function refreshWhitelistedCount() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/admin/counters-status`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = (data.whitelistedUsers || []).length;
+        const el1 = document.getElementById('whitelistCount'); if (el1) el1.textContent = count;
+        const el2 = document.getElementById('whitelistCountStat'); if (el2) el2.textContent = count;
+      } catch (e) { /* silent */ }
+    }
   </script>
 
   <!-- Hero stat mirror — keeps the new mockup-style stat tiles in sync -->
