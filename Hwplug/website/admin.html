@@ -3719,6 +3719,30 @@
               <div class="staff-perm-toggle"></div>
             </div>
           </label>
+          
+          <label class="staff-perm-card section-card">
+            <input type="checkbox" data-perm="canAccessDashboard" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">📊</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Dashboard</div>
+                <div class="staff-perm-desc">Revenue stats &amp; overview</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+          
+          <label class="staff-perm-card section-card">
+            <input type="checkbox" data-perm="canAccessGiveaway" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">🎁</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Giveaway</div>
+                <div class="staff-perm-desc">Manage giveaways &amp; entries</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
         </div>
       </div>
 
@@ -3983,6 +4007,85 @@
               <div class="staff-perm-info">
                 <div class="staff-perm-title">Clear Entire Queue</div>
                 <div class="staff-perm-desc">⚠️ Destructive - removes all items</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Sub-permissions: Sensitive Actions -->
+      <div class="control-card" style="border-left: 4px solid #e74c3c;">
+        <h3>⚠️ Sensitive Actions</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">High-impact toggles. Only enable for trusted staff — these can affect the whole site.</p>
+        <div class="staff-perm-grid">
+          <label class="staff-perm-card">
+            <input type="checkbox" data-perm="canConfigureDeals" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">🎉</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Configure Deals</div>
+                <div class="staff-perm-desc">Holiday promos &amp; site-wide pricing</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+          
+          <label class="staff-perm-card">
+            <input type="checkbox" data-perm="canToggleTestMode" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">🧪</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Toggle Test Mode</div>
+                <div class="staff-perm-desc">⚠️ Can take the site offline</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+          
+          <label class="staff-perm-card">
+            <input type="checkbox" data-perm="canToggleWhitelistMode" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">🔐</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Toggle Whitelist Mode</div>
+                <div class="staff-perm-desc">⚠️ Can lock out customers</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+          
+          <label class="staff-perm-card">
+            <input type="checkbox" data-perm="canForceRelogin" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">🚪</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Force Re-login</div>
+                <div class="staff-perm-desc">Kicks every active user instantly</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+          
+          <label class="staff-perm-card">
+            <input type="checkbox" data-perm="canClearAllHistory" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">💣</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">Clear All History</div>
+                <div class="staff-perm-desc">⚠️ Wipes the full purchase log</div>
+              </div>
+              <div class="staff-perm-toggle"></div>
+            </div>
+          </label>
+          
+          <label class="staff-perm-card">
+            <input type="checkbox" data-perm="canViewRevenue" class="staff-perm-checkbox">
+            <div class="staff-perm-content">
+              <div class="staff-perm-icon">💷</div>
+              <div class="staff-perm-info">
+                <div class="staff-perm-title">View Revenue</div>
+                <div class="staff-perm-desc">See earnings &amp; money figures</div>
               </div>
               <div class="staff-perm-toggle"></div>
             </div>
@@ -6036,48 +6139,60 @@
     function applyStaffPreset(preset) {
       const presets = {
         full: {
-          // All permissions enabled
+          // All permissions enabled (yes, including the sensitive ones — admin's choice)
           canAccessProducts: true, canAccessUsers: true, canAccessSettings: true, canAccessAutomation: true,
+          canAccessDashboard: true, canAccessGiveaway: true,
           canResetSlots: true, canChangeSlotCounts: true, canChangeProductAvailability: true,
           canChangeExtraSlotPrice: true, canResetTimer: true,
           canManageWhitelist: true, canBanUsers: true, canUnbanUsers: true,
           canViewLoginHistory: true, canRemovePurchaseHistory: true, canViewOnlineUsers: true,
           canManageCashCodes: true, canChangeSchedule: true, canChangeTimezone: true,
           canChangeBotMode: true, canChangeQueueTiming: true, canPauseQueue: true,
-          canRemoveQueueItems: true, canMoveQueueItems: true, canClearQueue: false
+          canRemoveQueueItems: true, canMoveQueueItems: true, canClearQueue: false,
+          canConfigureDeals: true, canToggleTestMode: true, canToggleWhitelistMode: true,
+          canForceRelogin: true, canClearAllHistory: false, canViewRevenue: true
         },
         readonly: {
           // Can see everything but not modify
           canAccessProducts: true, canAccessUsers: true, canAccessSettings: true, canAccessAutomation: true,
+          canAccessDashboard: true, canAccessGiveaway: true,
           canResetSlots: false, canChangeSlotCounts: false, canChangeProductAvailability: false,
           canChangeExtraSlotPrice: false, canResetTimer: false,
           canManageWhitelist: false, canBanUsers: false, canUnbanUsers: false,
           canViewLoginHistory: true, canRemovePurchaseHistory: false, canViewOnlineUsers: true,
           canManageCashCodes: false, canChangeSchedule: false, canChangeTimezone: false,
           canChangeBotMode: false, canChangeQueueTiming: false, canPauseQueue: false,
-          canRemoveQueueItems: false, canMoveQueueItems: false, canClearQueue: false
+          canRemoveQueueItems: false, canMoveQueueItems: false, canClearQueue: false,
+          canConfigureDeals: false, canToggleTestMode: false, canToggleWhitelistMode: false,
+          canForceRelogin: false, canClearAllHistory: false, canViewRevenue: true
         },
         basic: {
           // Just the essentials: products + users (view), no settings/automation
           canAccessProducts: true, canAccessUsers: true, canAccessSettings: false, canAccessAutomation: false,
+          canAccessDashboard: false, canAccessGiveaway: false,
           canResetSlots: true, canChangeSlotCounts: false, canChangeProductAvailability: true,
           canChangeExtraSlotPrice: false, canResetTimer: false,
           canManageWhitelist: false, canBanUsers: true, canUnbanUsers: true,
           canViewLoginHistory: true, canRemovePurchaseHistory: false, canViewOnlineUsers: true,
           canManageCashCodes: false, canChangeSchedule: false, canChangeTimezone: false,
           canChangeBotMode: false, canChangeQueueTiming: false, canPauseQueue: false,
-          canRemoveQueueItems: false, canMoveQueueItems: false, canClearQueue: false
+          canRemoveQueueItems: false, canMoveQueueItems: false, canClearQueue: false,
+          canConfigureDeals: false, canToggleTestMode: false, canToggleWhitelistMode: false,
+          canForceRelogin: false, canClearAllHistory: false, canViewRevenue: false
         },
         lockdown: {
           // Block everything except viewing
           canAccessProducts: false, canAccessUsers: false, canAccessSettings: false, canAccessAutomation: false,
+          canAccessDashboard: false, canAccessGiveaway: false,
           canResetSlots: false, canChangeSlotCounts: false, canChangeProductAvailability: false,
           canChangeExtraSlotPrice: false, canResetTimer: false,
           canManageWhitelist: false, canBanUsers: false, canUnbanUsers: false,
           canViewLoginHistory: false, canRemovePurchaseHistory: false, canViewOnlineUsers: false,
           canManageCashCodes: false, canChangeSchedule: false, canChangeTimezone: false,
           canChangeBotMode: false, canChangeQueueTiming: false, canPauseQueue: false,
-          canRemoveQueueItems: false, canMoveQueueItems: false, canClearQueue: false
+          canRemoveQueueItems: false, canMoveQueueItems: false, canClearQueue: false,
+          canConfigureDeals: false, canToggleTestMode: false, canToggleWhitelistMode: false,
+          canForceRelogin: false, canClearAllHistory: false, canViewRevenue: false
         }
       };
       

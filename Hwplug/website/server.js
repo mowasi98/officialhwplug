@@ -581,6 +581,8 @@ const STAFF_PERMISSION_DEFAULTS = {
   canAccessUsers: true,
   canAccessSettings: true,
   canAccessAutomation: true,
+  canAccessDashboard: false, // Sensitive: revenue numbers — default OFF
+  canAccessGiveaway: false,  // Sensitive: giveaway management — default OFF
   
   // === Products & Slots sub-permissions ===
   canResetSlots: true,
@@ -610,29 +612,20 @@ const STAFF_PERMISSION_DEFAULTS = {
   canMoveQueueItems: true,
   canClearQueue: false, // Default OFF - destructive
   
-  // === ALWAYS ADMIN-ONLY (cannot be enabled for staff) ===
-  // These are hardcoded to false and ignored if set to true
-  // - canConfigureDeals (holiday promotions)
-  // - canToggleTestMode (could disable site)
-  // - canToggleWhitelistMode (could lock out customers)
-  // - canForceRelogin (kicks all users)
-  // - canClearAllHistory (destructive)
-  // - canAccessDashboard (revenue)
-  // - canAccessGiveaway (giveaway management)
+  // === Sensitive actions (configurable but default OFF) ===
+  canConfigureDeals: false,        // Holiday promotions / pricing
+  canToggleTestMode: false,        // Could disable the whole site
+  canToggleWhitelistMode: false,   // Could lock out customers
+  canForceRelogin: false,          // Kicks all users
+  canClearAllHistory: false,       // Destructive bulk delete
+  canViewRevenue: false            // Money figures
 };
 
 let staffPermissions = { ...STAFF_PERMISSION_DEFAULTS };
 
-// List of permissions that are always admin-only (security guard)
-const ADMIN_ONLY_PERMISSIONS = [
-  'canConfigureDeals',
-  'canToggleTestMode',
-  'canToggleWhitelistMode',
-  'canForceRelogin',
-  'canClearAllHistory',
-  'canAccessDashboard',
-  'canAccessGiveaway'
-];
+// (no permissions are locked from staff anymore — every key in
+//  STAFF_PERMISSION_DEFAULTS can be toggled by admin in Staff Management)
+const ADMIN_ONLY_PERMISSIONS = [];
 
 /**
  * Get effective permissions for a given role
@@ -659,11 +652,8 @@ function getEffectivePermissions(role) {
   }
   
   if (role === 'staff') {
-    // Staff gets configured permissions, but admin-only ones are always false
-    const perms = { ...staffPermissions };
-    ADMIN_ONLY_PERMISSIONS.forEach(p => { perms[p] = false; });
-    perms.canViewRevenue = false;
-    return perms;
+    // Staff gets exactly what admin configured — every permission is toggleable
+    return { ...staffPermissions };
   }
   
   return null;
