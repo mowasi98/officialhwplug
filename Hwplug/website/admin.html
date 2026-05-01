@@ -1164,22 +1164,33 @@
 
     /* Mobile Responsive */
     @media (max-width: 768px) {
-      .sidebar {
+      /* CRITICAL: Override animation forwards and ensure sidebar starts hidden on mobile */
+      .sidebar,
+      .sidebar.loaded {
         transform: translateX(-100%) !important;
         z-index: 1001;
         opacity: 1 !important;
+        animation: none !important;
       }
 
-      .sidebar.open {
+      .sidebar.open,
+      .sidebar.loaded.open {
         transform: translateX(0) !important;
       }
 
       .sidebar-close {
         display: flex !important;
+        z-index: 1002 !important;
+        pointer-events: auto !important;
       }
 
       .mobile-header {
         display: flex !important;
+      }
+      
+      /* Lock body scroll when sidebar is open on mobile */
+      body.sidebar-open {
+        overflow: hidden !important;
       }
 
       .main-content {
@@ -3019,6 +3030,87 @@
         </div>
         <p style="color: #7f8c8d; font-size: 0.85rem;">⚠️ Non-whitelisted users see: "🧪 In Test Mode" with login form</p>
       </div>
+      
+      <!-- Site Deal / Holiday Promotion -->
+      <div class="control-card" style="border: 2px solid #ff6b6b; background: linear-gradient(135deg, #fff9f0 0%, #fff5f5 100%);">
+        <h3 style="color: #d63031;">🎉 Holiday Deals & Promotions</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Activate site-wide deals for holidays, bank holidays, or special events. Discount applies to all regular product slots (NOT extra slots).</p>
+        
+        <!-- Status Display -->
+        <div id="siteDealStatusBox" style="background: #fff; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid #ddd;">
+          <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.5rem;">
+            <span id="siteDealStatusIcon" style="font-size: 1.5rem;">⚪</span>
+            <strong style="font-size: 1.1rem;">Status: <span id="siteDealStatusText">Inactive</span></strong>
+          </div>
+          <div id="siteDealStatusDetails" style="color: #666; font-size: 0.9rem;">No active promotion</div>
+        </div>
+        
+        <!-- Enable Toggle -->
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.7); border-radius: 12px;">
+          <label style="display: flex; align-items: center; gap: 0.8rem; cursor: pointer; flex: 1;">
+            <input type="checkbox" id="siteDealEnabled" style="width: 22px; height: 22px; cursor: pointer;">
+            <span style="font-weight: 700; font-size: 1.05rem;">Enable Site-Wide Deal</span>
+          </label>
+          <span id="siteDealLiveBadge" class="status-badge" style="background: #ddd; color: #666;">OFF</span>
+        </div>
+        
+        <!-- Theme Selection -->
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">🎨 Holiday Theme / Animation:</label>
+          <select id="siteDealTheme" style="width: 100%; padding: 0.85rem; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem; background: white; cursor: pointer;">
+            <option value="none">🎁 No Theme (Plain Banner)</option>
+            <option value="christmas">🎄 Christmas (snowflakes, red & green)</option>
+            <option value="bankHoliday">🏖️ Bank Holiday (sun, beach colors)</option>
+            <option value="easter">🐣 Easter (pastels, eggs, bunnies)</option>
+            <option value="newYear">🎊 New Year (fireworks, gold)</option>
+            <option value="valentines">💝 Valentine's Day (hearts, pink/red)</option>
+            <option value="halloween">🎃 Halloween (pumpkins, orange/black)</option>
+            <option value="summer">☀️ Summer Sale (bright, vibrant)</option>
+            <option value="blackFriday">🛍️ Black Friday (dark, premium)</option>
+          </select>
+          <p style="color: #999; font-size: 0.85rem; margin-top: 0.4rem;">Each theme adds custom animations and colors to the website</p>
+        </div>
+        
+        <!-- Discount Amount -->
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">💰 Discount Amount (£ off original price):</label>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="font-size: 1.5rem; font-weight: 700; color: #d63031;">£</span>
+            <input type="number" id="siteDealDiscount" min="0" max="10" step="0.5" value="1" style="flex: 1; padding: 0.85rem; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1.1rem; font-weight: 600;">
+            <span style="color: #666; font-weight: 600;">off</span>
+          </div>
+          <p style="color: #999; font-size: 0.85rem; margin-top: 0.4rem;">Example: £1 off £2 product = customers pay £1</p>
+        </div>
+        
+        <!-- Deal Name -->
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">📝 Deal Name (shown on banner):</label>
+          <input type="text" id="siteDealName" placeholder="e.g., Bank Holiday Special!" maxlength="50" style="width: 100%; padding: 0.85rem; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem;">
+        </div>
+        
+        <!-- Deal Message -->
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333;">💬 Subtitle Message:</label>
+          <input type="text" id="siteDealMessage" placeholder="e.g., Limited Time Offer - Today Only!" maxlength="80" style="width: 100%; padding: 0.85rem; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1rem;">
+        </div>
+        
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <button class="btn btn-success" onclick="saveSiteDeal()" style="flex: 1; min-width: 200px;">💾 Save Deal Settings</button>
+          <button class="btn btn-warning" onclick="previewSiteDeal()" style="flex: 1; min-width: 200px;">👁️ Preview Deal</button>
+        </div>
+        
+        <!-- Help Box -->
+        <div style="margin-top: 1.5rem; padding: 1rem; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+          <strong style="color: #856404;">💡 How it works:</strong>
+          <ul style="margin: 0.5rem 0 0 1.5rem; color: #856404; font-size: 0.9rem;">
+            <li>When enabled, all regular product prices show crossed-out original price + discounted price</li>
+            <li>Stripe checkout will charge the discounted amount automatically</li>
+            <li>Extra slot prices remain unchanged (not affected by deals)</li>
+            <li>Theme animations appear on the homepage when active</li>
+          </ul>
+        </div>
+      </div>
 
       <div class="control-card">
         <h3>🔄 Force Re-login</h3>
@@ -3287,11 +3379,16 @@
     let adminPassword = '';
 
     // Custom Alert Function (replaces browser alert)
-    function showAlert(message, title = 'Success', icon = '✅') {
+    function showAlert(message, title = 'Success', icon = '✅', isHtml = false) {
       const modal = document.getElementById('customAlert');
       document.getElementById('alertIcon').textContent = icon;
       document.getElementById('alertTitle').textContent = title;
-      document.getElementById('alertMessage').textContent = message;
+      const msgEl = document.getElementById('alertMessage');
+      if (isHtml) {
+        msgEl.innerHTML = message;
+      } else {
+        msgEl.textContent = message;
+      }
       modal.classList.add('show');
     }
 
@@ -3507,8 +3604,17 @@
       const sidebar = document.getElementById('sidebar');
       const overlay = document.getElementById('sidebarOverlay');
       
-      sidebar.classList.toggle('open');
-      overlay.classList.toggle('show');
+      const willOpen = !sidebar.classList.contains('open');
+      
+      if (willOpen) {
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
+        document.body.classList.add('sidebar-open');
+      } else {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+        document.body.classList.remove('sidebar-open');
+      }
     }
 
     function closeSidebar() {
@@ -3517,7 +3623,19 @@
       
       sidebar.classList.remove('open');
       overlay.classList.remove('show');
+      document.body.classList.remove('sidebar-open');
     }
+    
+    // Make functions globally available (in case of dynamic loading or scope issues)
+    window.toggleSidebar = toggleSidebar;
+    window.closeSidebar = closeSidebar;
+    
+    // Close sidebar when ESC key is pressed (mobile/desktop)
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeSidebar();
+      }
+    });
 
     // Show different sections
     function showSection(sectionId) {
@@ -3525,7 +3643,10 @@
       document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
       });
-      event.target.closest('.nav-link').classList.add('active');
+      if (event && event.target) {
+        const link = event.target.closest('.nav-link');
+        if (link) link.classList.add('active');
+      }
 
       // Update content sections
       document.querySelectorAll('.content-section').forEach(section => {
@@ -3536,6 +3657,14 @@
       // Close sidebar on mobile
       if (window.innerWidth <= 768) {
         closeSidebar();
+      }
+      
+      // Load section-specific data
+      if (sectionId === 'settings' || sectionId === 'products') {
+        // Refresh site deal status when entering settings or products
+        if (typeof loadSiteDeal === 'function') {
+          loadSiteDeal();
+        }
       }
     }
 
@@ -4888,26 +5017,199 @@
         if (data.scheduleSettings) {
           // Load timezone setting
           if (data.scheduleSettings.timezone) {
-            document.getElementById('timezoneSelect').value = data.scheduleSettings.timezone;
+            const tzEl = document.getElementById('timezoneSelect');
+            if (tzEl) tzEl.value = data.scheduleSettings.timezone;
           }
           
           // Load weekday settings
           if (data.scheduleSettings.weekday) {
-            document.getElementById('weekdayEnabled').checked = data.scheduleSettings.weekday.enabled || false;
-            document.getElementById('weekdayStart').value = data.scheduleSettings.weekday.startTime || '11:00';
-            document.getElementById('weekdayEnd').value = data.scheduleSettings.weekday.endTime || '00:00';
+            const wdEnabled = document.getElementById('weekdayEnabled');
+            const wdStart = document.getElementById('weekdayStart');
+            const wdEnd = document.getElementById('weekdayEnd');
+            if (wdEnabled) wdEnabled.checked = data.scheduleSettings.weekday.enabled || false;
+            if (wdStart) wdStart.value = data.scheduleSettings.weekday.startTime || '11:00';
+            if (wdEnd) wdEnd.value = data.scheduleSettings.weekday.endTime || '00:00';
           }
           
           // Load weekend settings
           if (data.scheduleSettings.weekend) {
-            document.getElementById('weekendEnabled').checked = data.scheduleSettings.weekend.enabled || false;
-            document.getElementById('weekendAllDay').checked = data.scheduleSettings.weekend.allDay || false;
+            const weEnabled = document.getElementById('weekendEnabled');
+            const weAllDay = document.getElementById('weekendAllDay');
+            if (weEnabled) weEnabled.checked = data.scheduleSettings.weekend.enabled || false;
+            if (weAllDay) weAllDay.checked = data.scheduleSettings.weekend.allDay || false;
           }
           
           console.log('✅ Availability schedule loaded:', data.scheduleSettings);
         }
+        
+        // Load site deal settings if present
+        if (data.siteDeal) {
+          loadSiteDealUI(data.siteDeal);
+        }
       } catch (error) {
         console.error('Error loading availability schedule:', error);
+      }
+    }
+    
+    // ====== SITE DEAL / HOLIDAY PROMOTIONS ======
+    
+    function loadSiteDealUI(deal) {
+      if (!deal) return;
+      
+      const enabledEl = document.getElementById('siteDealEnabled');
+      const themeEl = document.getElementById('siteDealTheme');
+      const discountEl = document.getElementById('siteDealDiscount');
+      const nameEl = document.getElementById('siteDealName');
+      const messageEl = document.getElementById('siteDealMessage');
+      
+      if (enabledEl) enabledEl.checked = deal.enabled || false;
+      if (themeEl) themeEl.value = deal.theme || 'none';
+      if (discountEl) discountEl.value = deal.discountAmount ?? 1;
+      if (nameEl) nameEl.value = deal.name || 'Special Deal';
+      if (messageEl) messageEl.value = deal.message || 'Limited Time Offer!';
+      
+      updateSiteDealStatusDisplay(deal);
+    }
+    
+    function updateSiteDealStatusDisplay(deal) {
+      const statusBox = document.getElementById('siteDealStatusBox');
+      const statusIcon = document.getElementById('siteDealStatusIcon');
+      const statusText = document.getElementById('siteDealStatusText');
+      const statusDetails = document.getElementById('siteDealStatusDetails');
+      const liveBadge = document.getElementById('siteDealLiveBadge');
+      
+      if (!statusBox) return;
+      
+      if (deal && deal.enabled) {
+        statusBox.style.borderLeftColor = '#52c41a';
+        statusBox.style.background = '#f6ffed';
+        if (statusIcon) statusIcon.textContent = '🟢';
+        if (statusText) statusText.textContent = 'ACTIVE';
+        if (statusDetails) {
+          const themeLabel = getThemeLabel(deal.theme);
+          statusDetails.innerHTML = `<strong>${deal.name}</strong> - £${deal.discountAmount} off all products${themeLabel ? ' • ' + themeLabel : ''}`;
+        }
+        if (liveBadge) {
+          liveBadge.textContent = 'LIVE';
+          liveBadge.style.background = '#52c41a';
+          liveBadge.style.color = '#fff';
+        }
+      } else {
+        statusBox.style.borderLeftColor = '#ddd';
+        statusBox.style.background = '#fff';
+        if (statusIcon) statusIcon.textContent = '⚪';
+        if (statusText) statusText.textContent = 'INACTIVE';
+        if (statusDetails) statusDetails.textContent = 'No active promotion';
+        if (liveBadge) {
+          liveBadge.textContent = 'OFF';
+          liveBadge.style.background = '#ddd';
+          liveBadge.style.color = '#666';
+        }
+      }
+    }
+    
+    function getThemeLabel(theme) {
+      const themes = {
+        'none': '',
+        'christmas': '🎄 Christmas',
+        'bankHoliday': '🏖️ Bank Holiday',
+        'easter': '🐣 Easter',
+        'newYear': '🎊 New Year',
+        'valentines': '💝 Valentine\'s',
+        'halloween': '🎃 Halloween',
+        'summer': '☀️ Summer',
+        'blackFriday': '🛍️ Black Friday'
+      };
+      return themes[theme] || '';
+    }
+    
+    async function saveSiteDeal() {
+      const enabled = document.getElementById('siteDealEnabled').checked;
+      const theme = document.getElementById('siteDealTheme').value;
+      const discountAmount = parseFloat(document.getElementById('siteDealDiscount').value);
+      const name = document.getElementById('siteDealName').value.trim() || 'Special Deal';
+      const message = document.getElementById('siteDealMessage').value.trim() || 'Limited Time Offer!';
+      
+      if (isNaN(discountAmount) || discountAmount < 0 || discountAmount > 10) {
+        showAlert('Discount amount must be between £0 and £10', 'Invalid Discount', '❌');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/admin/update-site-deal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            password: adminPassword,
+            settings: {
+              enabled,
+              theme,
+              discountAmount,
+              name,
+              message
+            }
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          updateSiteDealStatusDisplay(data.siteDeal);
+          const statusMsg = enabled 
+            ? `🎉 Deal Activated! "${name}" - £${discountAmount} off all products is now LIVE on the website.`
+            : `Deal saved (currently OFF). Toggle "Enable" to activate.`;
+          showAlert(statusMsg, 'Success', '✅');
+        } else {
+          showAlert(data.error || 'Failed to save deal', 'Error', '❌');
+        }
+      } catch (error) {
+        console.error('Error saving site deal:', error);
+        showAlert('Failed to save deal: ' + error.message, 'Error', '❌');
+      }
+    }
+    
+    function previewSiteDeal() {
+      const enabled = document.getElementById('siteDealEnabled').checked;
+      const theme = document.getElementById('siteDealTheme').value;
+      const discountAmount = parseFloat(document.getElementById('siteDealDiscount').value) || 0;
+      const name = document.getElementById('siteDealName').value.trim() || 'Special Deal';
+      const message = document.getElementById('siteDealMessage').value.trim() || 'Limited Time Offer!';
+      
+      const themeLabel = getThemeLabel(theme) || 'No theme';
+      const originalPrice = 2;
+      const newPrice = Math.max(0, originalPrice - discountAmount).toFixed(2);
+      
+      const previewHtml = `
+        <div style="text-align: left;">
+          <h3 style="margin-bottom: 1rem; color: #d63031;">🎉 ${name}</h3>
+          <p style="margin-bottom: 1rem; color: #666;">${message}</p>
+          <div style="background: #f5f5f5; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            <div><strong>Theme:</strong> ${themeLabel}</div>
+            <div><strong>Status:</strong> ${enabled ? '✅ Will be ACTIVE' : '⚠️ Currently OFF'}</div>
+            <div><strong>Discount:</strong> £${discountAmount} off</div>
+          </div>
+          <div style="background: white; padding: 1rem; border: 2px solid #ddd; border-radius: 10px;">
+            <div style="font-size: 0.9rem; color: #999; margin-bottom: 0.3rem;">Customer will see:</div>
+            <div style="font-size: 1.5rem;">
+              <span style="text-decoration: line-through; color: #999;">£${originalPrice}.00</span>
+              <span style="color: #d63031; font-weight: 700; margin-left: 0.5rem;">£${newPrice}</span>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      showAlert(previewHtml, 'Deal Preview', '👁️', true);
+    }
+    
+    async function loadSiteDeal() {
+      try {
+        const response = await fetch(`${BACKEND_URL}/get-site-deal`);
+        const data = await response.json();
+        if (data.success && data.siteDeal) {
+          loadSiteDealUI(data.siteDeal);
+        }
+      } catch (error) {
+        console.error('Error loading site deal:', error);
       }
     }
 

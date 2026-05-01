@@ -1514,6 +1514,346 @@
         font-size: 0.85rem;
       }
     }
+    
+    /* ════════════════════════════════════════════════════════════════════
+       SITE DEAL / HOLIDAY PROMOTIONS - Banner & Theme Animations
+       ════════════════════════════════════════════════════════════════════ */
+    
+    .deal-banner {
+      max-width: 900px;
+      margin: 1rem auto;
+      padding: 1.4rem 1.8rem;
+      border-radius: 18px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      animation: dealBannerPulse 3s ease-in-out infinite;
+    }
+    
+    .deal-banner h2 {
+      margin: 0 0 0.4rem 0;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      position: relative;
+      z-index: 2;
+    }
+    
+    .deal-banner p {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #fff;
+      font-weight: 600;
+      opacity: 0.95;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .deal-banner .deal-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.25);
+      padding: 0.4rem 1rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 0.6rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 2;
+    }
+    
+    @keyframes dealBannerPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.01); }
+    }
+    
+    /* Discount Price Display on Item Cards */
+    .item-card .price-original {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-right: 0.5rem;
+      opacity: 0.7;
+    }
+    
+    .item-card .price-discounted {
+      color: #d63031;
+      font-weight: 900;
+      font-size: 1.8rem;
+      animation: priceDiscountPop 0.5s ease-out;
+    }
+    
+    .item-card .deal-tag {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+      color: #fff;
+      padding: 0.25rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-left: 0.5rem;
+      box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+      vertical-align: middle;
+      animation: dealTagShake 2s ease-in-out infinite;
+    }
+    
+    @keyframes priceDiscountPop {
+      0% { transform: scale(0.8); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    @keyframes dealTagShake {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+    
+    /* ─── THEME: NONE (default red/pink) ─── */
+    .deal-banner.theme-none {
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    }
+    
+    /* ─── THEME: CHRISTMAS ─── */
+    .deal-banner.theme-christmas {
+      background: linear-gradient(135deg, #c0392b 0%, #16a085 100%);
+      border: 3px solid #f1c40f;
+    }
+    .deal-banner.theme-christmas::before {
+      content: '❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️ ❄️';
+      position: absolute;
+      top: -10px;
+      left: 0;
+      right: 0;
+      font-size: 1.2rem;
+      letter-spacing: 1.5rem;
+      animation: snowfall 8s linear infinite;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .deal-banner.theme-christmas::after {
+      content: '🎄';
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 3rem;
+      animation: christmasBounce 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes snowfall {
+      0% { transform: translateY(-30px); }
+      100% { transform: translateY(140px); }
+    }
+    
+    @keyframes christmasBounce {
+      0%, 100% { transform: translateY(-50%) scale(1); }
+      50% { transform: translateY(-60%) scale(1.1); }
+    }
+    
+    /* ─── THEME: BANK HOLIDAY ─── */
+    .deal-banner.theme-bankHoliday {
+      background: linear-gradient(135deg, #fdcb6e 0%, #e17055 50%, #00b894 100%);
+    }
+    .deal-banner.theme-bankHoliday::before {
+      content: '☀️';
+      position: absolute;
+      left: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.5rem;
+      animation: sunSpin 6s linear infinite;
+    }
+    .deal-banner.theme-bankHoliday::after {
+      content: '🏖️';
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.5rem;
+      animation: beachWave 2s ease-in-out infinite;
+    }
+    
+    @keyframes sunSpin {
+      from { transform: translateY(-50%) rotate(0deg); }
+      to { transform: translateY(-50%) rotate(360deg); }
+    }
+    
+    @keyframes beachWave {
+      0%, 100% { transform: translateY(-50%) rotate(0deg); }
+      50% { transform: translateY(-55%) rotate(5deg); }
+    }
+    
+    /* ─── THEME: EASTER ─── */
+    .deal-banner.theme-easter {
+      background: linear-gradient(135deg, #fab1a0 0%, #ffeaa7 50%, #a29bfe 100%);
+    }
+    .deal-banner.theme-easter::before {
+      content: '🐣 🥚 🐰 🌸 🥚 🐣';
+      position: absolute;
+      top: 5px;
+      left: 0;
+      right: 0;
+      font-size: 1.5rem;
+      letter-spacing: 1rem;
+      text-align: center;
+      animation: easterBounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes easterBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    /* ─── THEME: NEW YEAR ─── */
+    .deal-banner.theme-newYear {
+      background: linear-gradient(135deg, #2c3e50 0%, #f39c12 50%, #f1c40f 100%);
+      border: 2px solid gold;
+    }
+    .deal-banner.theme-newYear::before {
+      content: '🎆';
+      position: absolute;
+      left: 1.5rem;
+      top: 0.5rem;
+      font-size: 2.5rem;
+      animation: fireworkPop 1.5s ease-in-out infinite;
+    }
+    .deal-banner.theme-newYear::after {
+      content: '🎇';
+      position: absolute;
+      right: 1.5rem;
+      bottom: 0.5rem;
+      font-size: 2.5rem;
+      animation: fireworkPop 1.5s ease-in-out 0.7s infinite;
+    }
+    
+    @keyframes fireworkPop {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.7; }
+    }
+    
+    /* ─── THEME: VALENTINES ─── */
+    .deal-banner.theme-valentines {
+      background: linear-gradient(135deg, #ff6b9d 0%, #c44569 50%, #ff4757 100%);
+    }
+    .deal-banner.theme-valentines::before {
+      content: '💝 💕 ❤️ 💖 💗 💕 💝';
+      position: absolute;
+      top: 5px;
+      left: 0;
+      right: 0;
+      font-size: 1.5rem;
+      letter-spacing: 1rem;
+      text-align: center;
+      animation: heartFloat 2s ease-in-out infinite;
+    }
+    
+    @keyframes heartFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.1); }
+    }
+    
+    /* ─── THEME: HALLOWEEN ─── */
+    .deal-banner.theme-halloween {
+      background: linear-gradient(135deg, #2c2c54 0%, #ff5722 50%, #1a1a2e 100%);
+      border: 2px solid #ff5722;
+    }
+    .deal-banner.theme-halloween::before {
+      content: '🎃 👻 🦇 🕷️ 🕸️ 👻 🎃';
+      position: absolute;
+      top: 5px;
+      left: 0;
+      right: 0;
+      font-size: 1.4rem;
+      letter-spacing: 0.8rem;
+      text-align: center;
+      animation: halloweenSpook 3s ease-in-out infinite;
+    }
+    
+    @keyframes halloweenSpook {
+      0%, 100% { transform: translateY(0); opacity: 1; }
+      50% { transform: translateY(-5px); opacity: 0.8; }
+    }
+    
+    /* ─── THEME: SUMMER ─── */
+    .deal-banner.theme-summer {
+      background: linear-gradient(135deg, #fdcb6e 0%, #e84393 50%, #00cec9 100%);
+    }
+    .deal-banner.theme-summer::before {
+      content: '☀️ 🌴 🍹 🌺 ☀️';
+      position: absolute;
+      top: 5px;
+      left: 0;
+      right: 0;
+      font-size: 1.5rem;
+      letter-spacing: 1.5rem;
+      text-align: center;
+      animation: summerBreeze 3s ease-in-out infinite;
+    }
+    
+    @keyframes summerBreeze {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      25% { transform: translateX(5px) translateY(-3px); }
+      75% { transform: translateX(-5px) translateY(-3px); }
+    }
+    
+    /* ─── THEME: BLACK FRIDAY ─── */
+    .deal-banner.theme-blackFriday {
+      background: linear-gradient(135deg, #000 0%, #d63031 50%, #2c3e50 100%);
+      border: 2px solid #fff;
+    }
+    .deal-banner.theme-blackFriday::before {
+      content: '🛍️';
+      position: absolute;
+      left: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.5rem;
+      animation: shoppingBagShake 1s ease-in-out infinite;
+    }
+    .deal-banner.theme-blackFriday::after {
+      content: '💰';
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.5rem;
+      animation: moneyBounce 1s ease-in-out infinite alternate;
+    }
+    
+    @keyframes shoppingBagShake {
+      0%, 100% { transform: translateY(-50%) rotate(-5deg); }
+      50% { transform: translateY(-50%) rotate(5deg); }
+    }
+    
+    @keyframes moneyBounce {
+      0% { transform: translateY(-50%) scale(1); }
+      100% { transform: translateY(-50%) scale(1.15); }
+    }
+    
+    /* Mobile adjustments for deal banner */
+    @media (max-width: 768px) {
+      .deal-banner {
+        margin: 0.8rem;
+        padding: 1.1rem 1.2rem;
+      }
+      .deal-banner h2 { font-size: 1.2rem; }
+      .deal-banner p { font-size: 0.9rem; }
+      .deal-banner.theme-christmas::after,
+      .deal-banner.theme-bankHoliday::before,
+      .deal-banner.theme-bankHoliday::after,
+      .deal-banner.theme-newYear::before,
+      .deal-banner.theme-newYear::after,
+      .deal-banner.theme-blackFriday::before,
+      .deal-banner.theme-blackFriday::after {
+        font-size: 1.8rem;
+      }
+      .item-card .price-original { font-size: 1.1rem; }
+      .item-card .price-discounted { font-size: 1.5rem; }
+    }
   </style>
 </head>
 <body>
@@ -1547,6 +1887,13 @@
     <h3 id="availabilityBannerTitle">⏰ Loading...</h3>
     <div id="availabilityScheduleInfo" style="font-size: 1.1rem; color: #e8e6ff; margin-top: 0.5rem;"></div>
     <div id="nextAvailableInfo" style="font-size: 0.95rem; color: #e8e6ff; margin-top: 0.8rem; font-weight: 600;"></div>
+  </div>
+  
+  <!-- Holiday Deal / Promotional Banner -->
+  <div class="deal-banner theme-none" id="dealBanner" style="display: none;">
+    <h2 id="dealBannerTitle">🎉 Special Deal!</h2>
+    <p id="dealBannerMessage">Limited Time Offer</p>
+    <div class="deal-badge" id="dealBannerDiscount">£1 OFF ALL PRODUCTS</div>
   </div>
 
   <div id="errorMessage" style="display: none; max-width: 900px; margin: 2rem auto 0 auto; padding: 1rem 1.5rem; background: #f8d7da; color: #721c24; border-radius: 8px; border-left: 4px solid #f5c6cb; font-weight: 600;"></div>
@@ -2106,6 +2453,11 @@
             nextAvailableInfo.textContent = data.nextAvailableTime ? `📅 Next available: ${data.nextAvailableTime}` : '';
           }
         }
+        
+        // Apply site deal / holiday promotion if active
+        if (data.siteDeal) {
+          applySiteDeal(data.siteDeal);
+        }
       } catch (error) {
         console.error('Error checking availability:', error);
         const banner = document.getElementById('availabilityBanner');
@@ -2115,6 +2467,111 @@
           bannerTitle.textContent = 'Unable to check availability';
         }
       }
+    }
+    
+    // ========== SITE DEAL / HOLIDAY PROMOTION SYSTEM ==========
+    
+    // Track current deal state to avoid unnecessary DOM updates
+    let _currentSiteDeal = null;
+    
+    /**
+     * Apply site deal to the website:
+     *  - Show/hide deal banner with theme animation
+     *  - Update product prices: cross out original, show discounted
+     *  - Update buy button URLs to pass discounted price
+     *  - DO NOT touch extra slot prices (they remain unchanged)
+     */
+    function applySiteDeal(deal) {
+      _currentSiteDeal = deal;
+      
+      const dealBanner = document.getElementById('dealBanner');
+      const dealTitle = document.getElementById('dealBannerTitle');
+      const dealMsg = document.getElementById('dealBannerMessage');
+      const dealDiscount = document.getElementById('dealBannerDiscount');
+      
+      // If deal is disabled or not present, hide banner and reset prices
+      if (!deal || !deal.enabled) {
+        if (dealBanner) dealBanner.style.display = 'none';
+        resetProductPrices();
+        return;
+      }
+      
+      // Show banner with theme
+      if (dealBanner) {
+        // Reset all theme classes, then add the active one
+        dealBanner.className = 'deal-banner theme-' + (deal.theme || 'none');
+        dealBanner.style.display = 'block';
+        if (dealTitle) dealTitle.textContent = '🎉 ' + (deal.name || 'Special Deal');
+        if (dealMsg) dealMsg.textContent = deal.message || 'Limited Time Offer!';
+        if (dealDiscount) dealDiscount.textContent = `£${deal.discountAmount} OFF ALL PRODUCTS`;
+      }
+      
+      // Apply discount to all product cards (NOT extra slots)
+      applyProductDiscounts(deal.discountAmount || 0);
+    }
+    
+    function applyProductDiscounts(discountAmount) {
+      const itemCards = document.querySelectorAll('.item-card');
+      
+      itemCards.forEach(card => {
+        const priceEl = card.querySelector('.price');
+        const buyBtn = card.querySelector('.buy-btn:not(.extra-slot-buy-btn)');
+        
+        if (!priceEl) return;
+        
+        // Get the original price - default to £2
+        let originalPrice = parseFloat(priceEl.getAttribute('data-original-price'));
+        if (!originalPrice) {
+          // First time: extract original price from the displayed text
+          const priceText = (priceEl.textContent || '').replace(/[^\d.]/g, '');
+          originalPrice = parseFloat(priceText) || 2;
+          priceEl.setAttribute('data-original-price', originalPrice);
+        }
+        
+        const newPrice = Math.max(0, originalPrice - discountAmount);
+        
+        // Update price display: crossed-out original + new price
+        priceEl.innerHTML = `
+          <span class="price-original">&pound;${originalPrice.toFixed(originalPrice % 1 === 0 ? 0 : 2)}</span>
+          <span class="price-discounted">&pound;${newPrice.toFixed(newPrice % 1 === 0 ? 0 : 2)}</span>
+          <span class="deal-tag">SAVE £${discountAmount}</span>
+        `;
+        
+        // Update the buy button href to use the new price
+        if (buyBtn) {
+          const currentHref = buyBtn.getAttribute('data-original-href') || buyBtn.getAttribute('href');
+          if (!buyBtn.getAttribute('data-original-href')) {
+            buyBtn.setAttribute('data-original-href', currentHref);
+          }
+          
+          // Replace price=X with price=newPrice in URL
+          const newHref = currentHref.replace(/price=[\d.]+/, `price=${newPrice}`);
+          buyBtn.setAttribute('href', newHref);
+        }
+      });
+    }
+    
+    function resetProductPrices() {
+      const itemCards = document.querySelectorAll('.item-card');
+      
+      itemCards.forEach(card => {
+        const priceEl = card.querySelector('.price');
+        const buyBtn = card.querySelector('.buy-btn:not(.extra-slot-buy-btn)');
+        
+        if (!priceEl) return;
+        
+        // Restore original price display
+        const originalPrice = parseFloat(priceEl.getAttribute('data-original-price')) || 2;
+        priceEl.innerHTML = `&pound;${originalPrice.toFixed(originalPrice % 1 === 0 ? 0 : 2)}`;
+        
+        // Restore original buy button href
+        if (buyBtn) {
+          const originalHref = buyBtn.getAttribute('data-original-href');
+          if (originalHref) {
+            buyBtn.setAttribute('href', originalHref);
+          }
+        }
+      });
     }
 
     // Check availability on load and every 30 seconds

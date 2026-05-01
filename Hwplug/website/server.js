@@ -418,6 +418,7 @@ const DataSchema = new mongoose.Schema({
   cashPaymentCodes: { type: Array, default: [] }, // Array of valid codes for cash payments
   codeUsageHistory: { type: Array, default: [] }, // Track who used which codes
   availabilitySchedule: { type: Object, default: {} }, // Availability timing configuration
+  siteDeal: { type: Object, default: {} }, // Holiday promotion / site-wide deal configuration
   bannedUsers: { type: Array, default: [] }, // List of banned users
   testMode: { type: Boolean, default: false }, // Test mode flag
   whitelistMode: { type: Boolean, default: false }, // Whitelist mode - only approved users can access
@@ -509,6 +510,18 @@ let availabilitySchedule = {
     allDay: true // 24/7
   },
   timezone: 'Europe/London' // Default timezone (can be changed from admin panel)
+};
+
+// ====== SITE DEAL / PROMOTION CONFIGURATION ======
+// Holiday promotions / special deals (Bank Holiday, Christmas, Easter, etc.)
+// When enabled: applies a discount to ALL regular product prices (not extra slots)
+// Themes provide visual animations/banners on the website
+let siteDeal = {
+  enabled: false,
+  discountAmount: 1, // £ off (e.g., £1 off £2 = £1 final price)
+  theme: 'none', // 'none', 'christmas', 'bankHoliday', 'easter', 'newYear', 'valentines', 'halloween', 'summer', 'blackFriday'
+  name: 'Special Deal', // Display name (e.g., "Bank Holiday Sale!")
+  message: 'Limited Time Offer!' // Sub-message shown on banner
 };
 
 // Check if products are currently available based on schedule
@@ -712,6 +725,7 @@ async function saveData() {
       cashPaymentCodes,
       codeUsageHistory,
       availabilitySchedule,
+      siteDeal,
       bannedUsers,
       testMode,
       whitelistMode,
@@ -808,6 +822,16 @@ async function loadData() {
       cashPaymentCodes = data.cashPaymentCodes || [];
       codeUsageHistory = data.codeUsageHistory || [];
       availabilitySchedule = data.availabilitySchedule || availabilitySchedule;
+      // Merge loaded siteDeal with defaults to ensure all fields are present
+      if (data.siteDeal && Object.keys(data.siteDeal).length > 0) {
+        siteDeal = {
+          enabled: data.siteDeal.enabled ?? false,
+          discountAmount: data.siteDeal.discountAmount ?? 1,
+          theme: data.siteDeal.theme || 'none',
+          name: data.siteDeal.name || 'Special Deal',
+          message: data.siteDeal.message || 'Limited Time Offer!'
+        };
+      }
       bannedUsers = data.bannedUsers || [];
       testMode = data.testMode || false;
       whitelistMode = data.whitelistMode || false;
@@ -2835,7 +2859,72 @@ app.get('/get-availability', (req, res) => {
   // Include the raw schedule object for admin panel
   res.json({
     ...availabilityStatus,
-    scheduleSettings: availabilitySchedule // Add raw schedule data
+    scheduleSettings: availabilitySchedule, // Add raw schedule data
+    siteDeal: siteDeal // Holiday/promotional deal configuration
+  });
+});
+
+// ====== SITE DEAL / PROMOTION ENDPOINTS ======
+
+// Get current site deal status (public endpoint)
+app.get('/get-site-deal', (req, res) => {
+  res.json({
+    success: true,
+    siteDeal: siteDeal
+  });
+});
+
+// Update site deal configuration (admin only)
+app.post('/admin/update-site-deal', (req, res) => {
+  const { password, settings } = req.body;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  
+  if (!ADMIN_PASSWORD) {
+    return res.status(500).json({ error: 'Admin password not configured' });
+  }
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (!settings || typeof settings !== 'object') {
+    return res.status(400).json({ error: 'Settings object required' });
+  }
+  
+  // Validate theme
+  const validThemes = ['none', 'christmas', 'bankHoliday', 'easter', 'newYear', 'valentines', 'halloween', 'summer', 'blackFriday'];
+  if (settings.theme && !validThemes.includes(settings.theme)) {
+    return res.status(400).json({ error: `Invalid theme. Must be one of: ${validThemes.join(', ')}` });
+  }
+  
+  // Validate discount amount
+  if (settings.discountAmount !== undefined) {
+    const discount = parseFloat(settings.discountAmount);
+    if (isNaN(discount) || discount < 0 || discount > 10) {
+      return res.status(400).json({ error: 'Discount amount must be between 0 and 10' });
+    }
+    settings.discountAmount = discount;
+  }
+  
+  // Update siteDeal config (merge with existing)
+  siteDeal = {
+    ...siteDeal,
+    ...settings
+  };
+  
+  saveData();
+  
+  console.log(`🎉 Site Deal updated:`, {
+    enabled: siteDeal.enabled,
+    theme: siteDeal.theme,
+    discount: `£${siteDeal.discountAmount}`,
+    name: siteDeal.name
+  });
+  
+  res.json({
+    success: true,
+    message: 'Site deal updated successfully',
+    siteDeal: siteDeal
   });
 });
 
