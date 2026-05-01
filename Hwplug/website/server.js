@@ -381,7 +381,7 @@ app.use(mongoSanitize({
 // Frontend checks availability every 5 seconds, so needs high limit
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // Increased to 2000 requests per 15 min (plenty for normal use)
+  max: 5000, // Increased to 5000 requests per 15 min (plenty for admin panel auto-refresh)
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {

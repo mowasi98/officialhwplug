@@ -7262,11 +7262,10 @@
         inFlight = true;
         tickCount++;
         try {
-          if (typeof loadDashboardData === 'function') { try { await loadDashboardData(); } catch(e){} }
-          
           // Active section — refresh visible content (every tick = 1s)
           const active = document.querySelector('.content-section.active');
           if (active) {
+            if (active.id === 'dashboard' && typeof loadDashboardData === 'function') { try { await loadDashboardData(); } catch(e){} }
             if (active.id === 'automation' && typeof refreshQueue === 'function') { try { await refreshQueue(); } catch(e){} }
             if (active.id === 'giveaway' && typeof loadGiveawayData === 'function') { try { loadGiveawayData(); } catch(e){} }
             if (active.id === 'users' && typeof loadWhitelistedUsers === 'function') { try { loadWhitelistedUsers(); } catch(e){} }
