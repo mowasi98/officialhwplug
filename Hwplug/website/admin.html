@@ -7860,15 +7860,13 @@
         const gHeader = document.getElementById('giveawayHeaderBtn');
         if(gBtnText && gHeader) gHeader.textContent = gBtnText.textContent;
 
-        // Users
+        // Users — bannedCountStat & totalLoginsStat are now updated by API refreshers
+        // (refreshBannedUsersCount / refreshLoginHistoryCount) — do NOT count DOM rows here
+        // (the DOM rows don't have .banned-user-row / .login-row classes, which caused 0/1 flicker)
         mirror('whitelistCount', 'whitelistCountStat');
-        const banned = document.querySelectorAll('#bannedUsersContainer .banned-user-row, #bannedUsersContainer [data-banned]');
-        const bs = document.getElementById('bannedCountStat'); if(bs) bs.textContent = banned.length;
         const onl = document.getElementById('totalActive');
         const ons = document.getElementById('onlineCountStat'); if(onl && ons) ons.textContent = onl.textContent;
         const sons = document.getElementById('settingsOnlineStat'); if(onl && sons) sons.textContent = onl.textContent;
-        const tlogs = document.querySelectorAll('#loginsContainer .login-row, #loginsContainer [data-login]');
-        const tl = document.getElementById('totalLoginsStat'); if(tl) tl.textContent = tlogs.length;
 
         // Settings
         const tmBadge = document.getElementById('testModeStatusBadge');
