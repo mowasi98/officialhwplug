@@ -52,6 +52,53 @@ if (!BOT_API_SECRET) {
 }
 console.log(`🔐 Bot API authentication: ✅ Configured`);
 
+// ====== STAFF / CO-WORKER AUTHENTICATION ======
+// Staff members use STAFF_PASSWORD (separate from ADMIN_PASSWORD)
+// Staff can access: Products & Slots, User Management, Settings (limited), Bot Automation
+// Staff CANNOT access: Holiday Deals config, Test Mode, Whitelist Mode, Force Re-login,
+//                      Clear Purchase History, Giveaway, Revenue/Dashboard
+if (process.env.STAFF_PASSWORD) {
+  console.log(`👥 Staff Portal: ✅ Configured (separate STAFF_PASSWORD set)`);
+} else {
+  console.log(`👥 Staff Portal: ⚠️  Not configured (set STAFF_PASSWORD env var to enable)`);
+}
+
+/**
+ * Check if password is admin OR staff (use for shared endpoints)
+ * @param {string} password
+ * @returns {boolean}
+ */
+function isAuthorized(password) {
+  if (!password) return false;
+  const ADMIN_PWD = process.env.ADMIN_PASSWORD;
+  const STAFF_PWD = process.env.STAFF_PASSWORD;
+  if (ADMIN_PWD && password === ADMIN_PWD) return true;
+  if (STAFF_PWD && password === STAFF_PWD) return true;
+  return false;
+}
+
+/**
+ * Check if password is admin only (use for dangerous/owner-only endpoints)
+ * @param {string} password
+ * @returns {boolean}
+ */
+function isAdmin(password) {
+  if (!password) return false;
+  return password === process.env.ADMIN_PASSWORD;
+}
+
+/**
+ * Check the role of the password
+ * @param {string} password
+ * @returns {'admin'|'staff'|null}
+ */
+function getRole(password) {
+  if (!password) return null;
+  if (password === process.env.ADMIN_PASSWORD) return 'admin';
+  if (process.env.STAFF_PASSWORD && password === process.env.STAFF_PASSWORD) return 'staff';
+  return null;
+}
+
 const app = express();
 
 // Security: Helmet for security headers
@@ -1349,7 +1396,7 @@ app.post('/admin/reset-counters', async (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1418,7 +1465,7 @@ app.post('/admin/reset-product-counter', async (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1496,7 +1543,7 @@ app.post('/admin/set-product-availability', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1524,7 +1571,7 @@ app.post('/admin/toggle-product-availability', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1557,7 +1604,7 @@ app.post('/admin/toggle-coming-soon', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1590,7 +1637,7 @@ app.post('/admin/set-slot-count', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1642,7 +1689,7 @@ app.post('/admin/set-max-slots', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1690,7 +1737,7 @@ app.post('/admin/set-extra-slot-max', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1747,7 +1794,7 @@ app.post('/admin/set-extra-slot-count', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1804,7 +1851,7 @@ app.post('/admin/set-extra-slot-price', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -1914,7 +1961,7 @@ app.get('/check-test-mode', (req, res) => {
   });
 });
 
-// Admin endpoint to toggle test mode
+// Admin endpoint to toggle test mode (ADMIN ONLY - could disable entire site)
 app.post('/admin/toggle-test-mode', (req, res) => {
   const { password, enabled } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -1923,8 +1970,9 @@ app.post('/admin/toggle-test-mode', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Admin only - staff cannot toggle test mode
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
   }
   
   testMode = enabled === true;
@@ -1957,7 +2005,7 @@ app.post('/check-whitelist', (req, res) => {
   });
 });
 
-// Admin endpoint to toggle whitelist mode
+// Admin endpoint to toggle whitelist mode (ADMIN ONLY - could lock out customers)
 app.post('/admin/toggle-whitelist-mode', (req, res) => {
   const { password, enabled } = req.body;
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -1966,8 +2014,9 @@ app.post('/admin/toggle-whitelist-mode', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Admin only - staff cannot toggle whitelist mode
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
   }
   
   whitelistMode = enabled === true;
@@ -1996,7 +2045,7 @@ app.post('/admin/add-to-whitelist', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2039,7 +2088,7 @@ app.post('/admin/remove-from-whitelist', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2089,7 +2138,7 @@ app.post('/admin/toggle-moderator', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2141,7 +2190,7 @@ app.post('/admin/reset-timer', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2176,7 +2225,7 @@ app.post('/admin/set-test-timer', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2263,7 +2312,7 @@ app.post('/admin/set-global-queue-time', async (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2302,7 +2351,7 @@ app.post('/admin/set-sparx-maths-queue-time', async (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2341,7 +2390,7 @@ app.post('/admin/set-other-products-queue-time', async (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2389,19 +2438,19 @@ async function proxyToAWS(endpoint, method = 'GET', body = null) {
   return response.json();
 }
 
-// Helper: validate admin password middleware
+// Helper: validate admin OR staff password middleware (used for bot queue endpoints)
 function requireAdmin(req, res, next) {
   const { password } = req.body || req.query;
-  if (password !== process.env.ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   next();
 }
 
-// Get full queue status
+// Get full queue status (staff allowed - bot automation section)
 app.get('/admin/queue-full-status', async (req, res) => {
   const { password } = req.query;
-  if (password !== process.env.ADMIN_PASSWORD) return res.status(401).json({ error: 'Unauthorized' });
+  if (!isAuthorized(password)) return res.status(401).json({ error: 'Unauthorized' });
   try {
     const result = await proxyToAWS('/admin/queue-full-status');
     res.json(result);
@@ -2495,8 +2544,9 @@ app.post('/admin/force-relogin', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Admin only - staff cannot force re-login (kicks all users)
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
   }
   
   try {
@@ -2585,12 +2635,12 @@ app.get('/admin/timer-reset-time', (req, res) => {
   });
 });
 
-// Admin endpoint to get login history
+// Admin endpoint to get login history (staff allowed - User Management)
 app.post('/admin/login-history', (req, res) => {
   const { password } = req.body;
   
-  // Check admin password
-  if (password !== process.env.ADMIN_PASSWORD) {
+  // Check admin OR staff password
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Invalid admin password' });
   }
   
@@ -2604,12 +2654,12 @@ app.post('/admin/login-history', (req, res) => {
   });
 });
 
-// Admin endpoint to remove purchase history entry
+// Admin endpoint to remove purchase history entry (staff allowed - User Management)
 app.post('/admin/remove-purchase-history', (req, res) => {
   const { password, index } = req.body;
   
-  // Check admin password
-  if (password !== process.env.ADMIN_PASSWORD) {
+  // Check admin OR staff password
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Invalid admin password' });
   }
   
@@ -2634,12 +2684,12 @@ app.post('/admin/remove-purchase-history', (req, res) => {
   });
 });
 
-// Clear all purchase history
+// Clear all purchase history (ADMIN ONLY - destructive)
 app.post('/admin/clear-all-purchase-history', (req, res) => {
   const { password } = req.body;
   
-  // Check admin password
-  if (password !== process.env.ADMIN_PASSWORD) {
+  // Check admin password ONLY (staff cannot clear all history)
+  if (!isAdmin(password)) {
     return res.status(401).json({ error: 'Invalid admin password' });
   }
   
@@ -2660,12 +2710,12 @@ app.post('/admin/clear-all-purchase-history', (req, res) => {
   });
 });
 
-// Admin endpoint to get active users
+// Admin endpoint to get active users (staff allowed - User Management)
 app.post('/admin/active-users', (req, res) => {
   const { password } = req.body;
   
-  // Check admin password
-  if (password !== process.env.ADMIN_PASSWORD) {
+  // Check admin OR staff password
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Invalid admin password' });
   }
   
@@ -2747,7 +2797,7 @@ app.post('/admin/get-cash-codes', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2767,7 +2817,7 @@ app.post('/admin/add-cash-code', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2804,7 +2854,7 @@ app.post('/admin/remove-cash-code', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2841,7 +2891,7 @@ app.post('/admin/get-code-usage', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -2874,6 +2924,37 @@ app.get('/get-site-deal', (req, res) => {
   });
 });
 
+// Staff Portal: Verify password and return role (admin/staff)
+app.post('/admin/verify-role', (req, res) => {
+  const { password } = req.body;
+  const role = getRole(password);
+  
+  if (!role) {
+    return res.status(401).json({ success: false, error: 'Invalid password' });
+  }
+  
+  res.json({
+    success: true,
+    role: role,
+    permissions: {
+      // What this role can access
+      canAccessProducts: true,
+      canAccessUsers: true,
+      canAccessSettings: true,
+      canAccessAutomation: true,
+      // Admin-only features (hidden from staff)
+      canAccessDashboard: role === 'admin',
+      canAccessGiveaway: role === 'admin',
+      canToggleTestMode: role === 'admin',
+      canToggleWhitelist: role === 'admin',
+      canForceRelogin: role === 'admin',
+      canClearAllHistory: role === 'admin',
+      canConfigureDeals: role === 'admin',
+      canViewRevenue: role === 'admin'
+    }
+  });
+});
+
 // Update site deal configuration (admin only)
 app.post('/admin/update-site-deal', (req, res) => {
   const { password, settings } = req.body;
@@ -2883,8 +2964,9 @@ app.post('/admin/update-site-deal', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // Admin only - staff cannot change holiday deal pricing
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
   }
   
   if (!settings || typeof settings !== 'object') {
@@ -2960,7 +3042,7 @@ app.post('/admin/ban-user', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -3002,7 +3084,7 @@ app.post('/admin/unban-user', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -3039,7 +3121,7 @@ app.post('/admin/get-banned-users', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -3059,7 +3141,7 @@ app.post('/admin/update-schedule', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
@@ -4448,7 +4530,7 @@ app.post('/admin/set-bot-mode', (req, res) => {
     return res.status(500).json({ error: 'Admin password not configured' });
   }
   
-  if (password !== ADMIN_PASSWORD) {
+  if (!isAuthorized(password)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
