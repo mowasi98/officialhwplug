@@ -7856,7 +7856,20 @@
             if (active.id === 'giveaway' && typeof loadGiveawayData === 'function') { try { loadGiveawayData(); } catch(e){} }
             if (active.id === 'users' && typeof loadWhitelistedUsers === 'function') { try { loadWhitelistedUsers(); } catch(e){} }
             if (active.id === 'users' && typeof loadBannedUsers === 'function') { try { loadBannedUsers(); } catch(e){} }
-            if (active.id === 'products' && typeof loadProductStatus === 'function') { try { loadProductStatus(); } catch(e){} }
+            
+            // Products: skip refresh if user is actively editing (prevents input field twitching)
+            if (active.id === 'products' && typeof loadProductStatus === 'function') {
+              const focused = document.activeElement;
+              const isEditingProducts = focused && (
+                focused.tagName === 'INPUT' || 
+                focused.tagName === 'BUTTON' || 
+                focused.tagName === 'SELECT'
+              ) && active.contains(focused);
+              
+              if (!isEditingProducts) {
+                try { loadProductStatus(); } catch(e){}
+              }
+            }
           }
           
           // Background stats refresh (every 3 ticks = 3s) — keeps stat tiles current even when not viewing the section
