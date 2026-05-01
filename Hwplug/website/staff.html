@@ -2782,25 +2782,25 @@
     </div>
     <nav>
       <ul class="nav-menu">
-        <li class="nav-item">
+        <li class="nav-item" data-permission="canAccessProducts">
           <a class="nav-link active" onclick="showSection('products')">
             <span class="nav-icon">📦</span>
             <span>Products & Slots</span>
           </a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item" data-permission="canAccessUsers">
           <a class="nav-link" onclick="showSection('users')">
             <span class="nav-icon">👥</span>
             <span>User Management</span>
           </a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item" data-permission="canAccessSettings">
           <a class="nav-link" onclick="showSection('settings')">
             <span class="nav-icon">⚙️</span>
             <span>Settings</span>
           </a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item" data-permission="canAccessAutomation">
           <a class="nav-link" onclick="showSection('automation')">
             <span class="nav-icon">🤖</span>
             <span>Bot Automation</span>
@@ -2808,6 +2808,10 @@
         </li>
       </ul>
     </nav>
+    <!-- Staff portal: shown when no permissions are granted -->
+    <div id="noAccessMessage" style="display:none; padding: 1.5rem; color: rgba(255,255,255,0.7); text-align: center; font-size: 0.85rem;">
+      🔒 No sections enabled<br><small>Contact your admin</small>
+    </div>
   </aside>
 
   <!-- Main Content -->
@@ -2855,12 +2859,12 @@
         <h3>🌐 Global Controls</h3>
         <p style="color: var(--neu-text-soft); margin-bottom: 1rem;">Bulk actions across every product</p>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
-          <button class="btn btn-danger" onclick="resetAllCounters()">Reset All Counters</button>
-          <button class="btn btn-warning" onclick="resetTimerOnly()">Reset Timer Only</button>
+          <button class="btn btn-danger" onclick="resetAllCounters()" data-perm="canResetSlots">Reset All Counters</button>
+          <button class="btn btn-warning" onclick="resetTimerOnly()" data-perm="canResetTimer">Reset Timer Only</button>
         </div>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-          <button class="btn btn-success" onclick="markAllAvailable()">Mark All Available</button>
-          <button class="btn btn-warning" onclick="markAllUnavailable()">Mark All Unavailable</button>
+          <button class="btn btn-success" onclick="markAllAvailable()" data-perm="canChangeProductAvailability">Mark All Available</button>
+          <button class="btn btn-warning" onclick="markAllUnavailable()" data-perm="canChangeProductAvailability">Mark All Unavailable</button>
         </div>
       </div>
 
@@ -2979,7 +2983,7 @@
         </div>
       </div>
 
-      <div class="control-card">
+      <div class="control-card" data-perm="canManageWhitelist">
         <h3>🔑 Whitelist Management</h3>
         <p style="color: #7f8c8d; margin-bottom: 1rem;">Whitelisted users can access the site during test mode</p>
         <div class="input-group">
@@ -2994,7 +2998,7 @@
         </div>
       </div>
 
-      <div class="control-card">
+      <div class="control-card" data-perm="canBanUsers">
         <h3>🚫 Ban Management</h3>
         <p style="color: #7f8c8d; margin-bottom: 1rem;">View and manage banned users</p>
         
@@ -3013,7 +3017,7 @@
         </div>
       </div>
 
-      <div class="control-card">
+      <div class="control-card" data-perm="canViewLoginHistory">
         <h3>📋 All Logins</h3>
         <button class="btn btn-primary" onclick="viewAllLogins()">View All User Logins</button>
         <div id="loginsContainer" style="margin-top: 1rem; max-height: 400px; overflow-y: auto;">
@@ -3594,6 +3598,9 @@
           }
         }
         
+        // Apply dynamic permissions to nav items and controls
+        applyPermissionsToUI(window._userPermissions || {});
+        
         // Fade out login screen
         const loginScreen = document.getElementById('loginScreen');
         loginScreen.classList.add('fade-out');
@@ -3621,7 +3628,7 @@
             }, 300);
             
             setTimeout(() => {
-              document.querySelectorAll('.nav-item').forEach(item => {
+              document.querySelectorAll('.nav-item:not([style*="display: none"])').forEach(item => {
                 item.classList.add('loaded');
               });
             }, 500);
@@ -3631,9 +3638,14 @@
             }, 300);
           }, 100);
           
-          // Load data for the default landing section (products, not dashboard)
+          // Land on first available section
+          const firstSection = getFirstAvailableSection();
+          if (firstSection) {
+            switchToSection(firstSection);
+          }
+          
+          // Load data for the landing section
           loadAvailabilitySchedule();
-          // Try to load product status if the function exists
           if (typeof loadCountersStatus === 'function') {
             loadCountersStatus();
           }
@@ -3649,6 +3661,90 @@
       }
     }
 
+    // ====== DYNAMIC PERMISSIONS ======
+    
+    // Hide nav items and control buttons based on permissions from backend
+    function applyPermissionsToUI(perms) {
+      console.log('🔐 Applying permissions:', perms);
+      
+      // Hide nav items for sections the user can't access
+      document.querySelectorAll('.nav-item[data-permission]').forEach(navItem => {
+        const permName = navItem.getAttribute('data-permission');
+        if (permName && perms[permName] === false) {
+          navItem.style.display = 'none';
+        }
+      });
+      
+      // Hide content sections the user can't access (defense in depth)
+      const sectionPermMap = {
+        products: 'canAccessProducts',
+        users: 'canAccessUsers',
+        settings: 'canAccessSettings',
+        automation: 'canAccessAutomation'
+      };
+      Object.keys(sectionPermMap).forEach(sectionId => {
+        const sectionEl = document.getElementById(sectionId);
+        if (sectionEl && perms[sectionPermMap[sectionId]] === false) {
+          sectionEl.classList.add('section-disabled');
+        }
+      });
+      
+      // Hide individual controls based on data-perm attributes
+      document.querySelectorAll('[data-perm]').forEach(el => {
+        const permName = el.getAttribute('data-perm');
+        if (permName && perms[permName] === false) {
+          el.style.display = 'none';
+        }
+      });
+      
+      // Show no-access message if no sections enabled
+      const visibleSections = Array.from(document.querySelectorAll('.nav-item[data-permission]'))
+        .filter(item => item.style.display !== 'none').length;
+      const noAccessMsg = document.getElementById('noAccessMessage');
+      if (visibleSections === 0 && noAccessMsg) {
+        noAccessMsg.style.display = 'block';
+        // Show a friendly message in main content too
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) {
+          mainContent.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; padding: 2rem;">
+              <div style="font-size: 5rem; margin-bottom: 1rem;">🔒</div>
+              <h1 style="color: #f59e0b; font-size: 2rem; margin-bottom: 1rem;">No Access</h1>
+              <p style="color: rgba(255,255,255,0.7); max-width: 400px; line-height: 1.6;">
+                Your administrator has not granted you access to any sections. 
+                Please contact them to request access.
+              </p>
+            </div>
+          `;
+        }
+      }
+    }
+    
+    function getFirstAvailableSection() {
+      const sectionOrder = ['products', 'users', 'settings', 'automation'];
+      for (const sectionId of sectionOrder) {
+        const navItem = document.querySelector(`.nav-item[data-permission="canAccess${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}"]`);
+        if (navItem && navItem.style.display !== 'none') {
+          return sectionId;
+        }
+      }
+      return null;
+    }
+    
+    function switchToSection(sectionId) {
+      // Make all sections inactive
+      document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+      // Make target active
+      const target = document.getElementById(sectionId);
+      if (target) target.classList.add('active');
+      
+      // Update nav highlight
+      document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+      const navItem = document.querySelector(`.nav-item[data-permission="canAccess${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}"]`);
+      const navLink = navItem ? navItem.querySelector('.nav-link') : null;
+      if (navLink) navLink.classList.add('active');
+    }
+    
     // ====== BOT MASCOT ANIMATION FUNCTIONS ======
     let botSpeechTimeout = null;
     
@@ -3784,6 +3880,23 @@
       const blockedSections = ['dashboard', 'giveaway'];
       if (blockedSections.includes(sectionId) && (window._userRole !== 'admin')) {
         console.warn(`🚫 Staff cannot access section: ${sectionId}`);
+        return;
+      }
+      
+      // Check dynamic permission
+      const sectionPermMap = {
+        products: 'canAccessProducts',
+        users: 'canAccessUsers',
+        settings: 'canAccessSettings',
+        automation: 'canAccessAutomation'
+      };
+      const requiredPerm = sectionPermMap[sectionId];
+      const perms = window._userPermissions || {};
+      if (requiredPerm && perms[requiredPerm] === false) {
+        console.warn(`🚫 Permission denied for section: ${sectionId}`);
+        if (typeof botSay === 'function') {
+          botSay('🔒 You don\'t have access to that section');
+        }
         return;
       }
       

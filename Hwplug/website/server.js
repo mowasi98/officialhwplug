@@ -466,6 +466,7 @@ const DataSchema = new mongoose.Schema({
   codeUsageHistory: { type: Array, default: [] }, // Track who used which codes
   availabilitySchedule: { type: Object, default: {} }, // Availability timing configuration
   siteDeal: { type: Object, default: {} }, // Holiday promotion / site-wide deal configuration
+  staffPermissions: { type: Object, default: {} }, // Granular permissions for staff/co-worker portal
   bannedUsers: { type: Array, default: [] }, // List of banned users
   testMode: { type: Boolean, default: false }, // Test mode flag
   whitelistMode: { type: Boolean, default: false }, // Whitelist mode - only approved users can access
@@ -570,6 +571,103 @@ let siteDeal = {
   name: 'Special Deal', // Display name (e.g., "Bank Holiday Sale!")
   message: 'Limited Time Offer!' // Sub-message shown on banner
 };
+
+// ====== STAFF PERMISSIONS ======
+// Configurable from admin panel "Staff Management" section
+// Admin can toggle what staff can see and do in their portal
+const STAFF_PERMISSION_DEFAULTS = {
+  // === Section visibility (top-level) ===
+  canAccessProducts: true,
+  canAccessUsers: true,
+  canAccessSettings: true,
+  canAccessAutomation: true,
+  
+  // === Products & Slots sub-permissions ===
+  canResetSlots: true,
+  canChangeSlotCounts: true,
+  canChangeProductAvailability: true,
+  canChangeExtraSlotPrice: true,
+  canResetTimer: true,
+  
+  // === User Management sub-permissions ===
+  canManageWhitelist: true,
+  canBanUsers: true,
+  canUnbanUsers: true,
+  canViewLoginHistory: true,
+  canRemovePurchaseHistory: true,
+  canViewOnlineUsers: true,
+  
+  // === Settings sub-permissions ===
+  canManageCashCodes: true,
+  canChangeSchedule: true,
+  canChangeTimezone: true,
+  
+  // === Bot Automation sub-permissions ===
+  canChangeBotMode: true,
+  canChangeQueueTiming: true,
+  canPauseQueue: true,
+  canRemoveQueueItems: true,
+  canMoveQueueItems: true,
+  canClearQueue: false, // Default OFF - destructive
+  
+  // === ALWAYS ADMIN-ONLY (cannot be enabled for staff) ===
+  // These are hardcoded to false and ignored if set to true
+  // - canConfigureDeals (holiday promotions)
+  // - canToggleTestMode (could disable site)
+  // - canToggleWhitelistMode (could lock out customers)
+  // - canForceRelogin (kicks all users)
+  // - canClearAllHistory (destructive)
+  // - canAccessDashboard (revenue)
+  // - canAccessGiveaway (giveaway management)
+};
+
+let staffPermissions = { ...STAFF_PERMISSION_DEFAULTS };
+
+// List of permissions that are always admin-only (security guard)
+const ADMIN_ONLY_PERMISSIONS = [
+  'canConfigureDeals',
+  'canToggleTestMode',
+  'canToggleWhitelistMode',
+  'canForceRelogin',
+  'canClearAllHistory',
+  'canAccessDashboard',
+  'canAccessGiveaway'
+];
+
+/**
+ * Get effective permissions for a given role
+ * Admins always get everything; staff get configurable + always-restricted hardcoded
+ */
+function getEffectivePermissions(role) {
+  if (role === 'admin') {
+    // Admin gets everything
+    return {
+      ...staffPermissions,
+      canAccessProducts: true,
+      canAccessUsers: true,
+      canAccessSettings: true,
+      canAccessAutomation: true,
+      canAccessDashboard: true,
+      canAccessGiveaway: true,
+      canConfigureDeals: true,
+      canToggleTestMode: true,
+      canToggleWhitelistMode: true,
+      canForceRelogin: true,
+      canClearAllHistory: true,
+      canViewRevenue: true
+    };
+  }
+  
+  if (role === 'staff') {
+    // Staff gets configured permissions, but admin-only ones are always false
+    const perms = { ...staffPermissions };
+    ADMIN_ONLY_PERMISSIONS.forEach(p => { perms[p] = false; });
+    perms.canViewRevenue = false;
+    return perms;
+  }
+  
+  return null;
+}
 
 // Check if products are currently available based on schedule
 
@@ -773,6 +871,7 @@ async function saveData() {
       codeUsageHistory,
       availabilitySchedule,
       siteDeal,
+      staffPermissions,
       bannedUsers,
       testMode,
       whitelistMode,
@@ -878,6 +977,12 @@ async function loadData() {
           name: data.siteDeal.name || 'Special Deal',
           message: data.siteDeal.message || 'Limited Time Offer!'
         };
+      }
+      // Merge loaded staff permissions with defaults (handles new permissions added later)
+      if (data.staffPermissions && Object.keys(data.staffPermissions).length > 0) {
+        staffPermissions = { ...STAFF_PERMISSION_DEFAULTS, ...data.staffPermissions };
+        // Force admin-only permissions to false (security guard)
+        ADMIN_ONLY_PERMISSIONS.forEach(p => { delete staffPermissions[p]; });
       }
       bannedUsers = data.bannedUsers || [];
       testMode = data.testMode || false;
@@ -2933,25 +3038,96 @@ app.post('/admin/verify-role', (req, res) => {
     return res.status(401).json({ success: false, error: 'Invalid password' });
   }
   
+  // Use dynamic permissions configured by admin
+  const permissions = getEffectivePermissions(role);
+  
   res.json({
     success: true,
     role: role,
-    permissions: {
-      // What this role can access
-      canAccessProducts: true,
-      canAccessUsers: true,
-      canAccessSettings: true,
-      canAccessAutomation: true,
-      // Admin-only features (hidden from staff)
-      canAccessDashboard: role === 'admin',
-      canAccessGiveaway: role === 'admin',
-      canToggleTestMode: role === 'admin',
-      canToggleWhitelist: role === 'admin',
-      canForceRelogin: role === 'admin',
-      canClearAllHistory: role === 'admin',
-      canConfigureDeals: role === 'admin',
-      canViewRevenue: role === 'admin'
+    permissions: permissions
+  });
+});
+
+// Get current staff permissions configuration (admin only)
+app.post('/admin/get-staff-permissions', (req, res) => {
+  const { password } = req.body;
+  
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
+  }
+  
+  // Filter out admin-only permissions from response (they're not configurable)
+  const configurable = { ...staffPermissions };
+  ADMIN_ONLY_PERMISSIONS.forEach(p => { delete configurable[p]; });
+  
+  res.json({
+    success: true,
+    permissions: configurable,
+    defaults: STAFF_PERMISSION_DEFAULTS,
+    adminOnlyPermissions: ADMIN_ONLY_PERMISSIONS, // List of locked permissions for UI
+    staffPasswordConfigured: !!process.env.STAFF_PASSWORD
+  });
+});
+
+// Update staff permissions configuration (admin only)
+app.post('/admin/update-staff-permissions', (req, res) => {
+  const { password, permissions } = req.body;
+  
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
+  }
+  
+  if (!permissions || typeof permissions !== 'object') {
+    return res.status(400).json({ error: 'Invalid permissions object' });
+  }
+  
+  // Sanitize: only allow boolean values for known permission keys
+  const sanitized = {};
+  Object.keys(STAFF_PERMISSION_DEFAULTS).forEach(key => {
+    if (typeof permissions[key] === 'boolean') {
+      sanitized[key] = permissions[key];
+    } else {
+      // Keep current value if not provided or invalid
+      sanitized[key] = staffPermissions[key] ?? STAFF_PERMISSION_DEFAULTS[key];
     }
+  });
+  
+  // Block any attempt to set admin-only permissions
+  ADMIN_ONLY_PERMISSIONS.forEach(p => {
+    if (p in sanitized) delete sanitized[p];
+  });
+  
+  staffPermissions = sanitized;
+  saveData();
+  
+  console.log('👥 Staff permissions updated by admin');
+  console.log('   Granted:', Object.keys(sanitized).filter(k => sanitized[k]).join(', ') || 'none');
+  console.log('   Denied:', Object.keys(sanitized).filter(k => !sanitized[k]).join(', ') || 'none');
+  
+  res.json({
+    success: true,
+    message: 'Staff permissions updated',
+    permissions: sanitized
+  });
+});
+
+// Reset staff permissions to defaults (admin only)
+app.post('/admin/reset-staff-permissions', (req, res) => {
+  const { password } = req.body;
+  
+  if (!isAdmin(password)) {
+    return res.status(401).json({ error: 'Unauthorized - admin only' });
+  }
+  
+  staffPermissions = { ...STAFF_PERMISSION_DEFAULTS };
+  saveData();
+  
+  console.log('👥 Staff permissions RESET to defaults by admin');
+  
+  res.json({
+    success: true,
+    message: 'Staff permissions reset to defaults',
+    permissions: staffPermissions
   });
 });
 
