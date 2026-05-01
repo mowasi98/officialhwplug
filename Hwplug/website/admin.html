@@ -2609,16 +2609,181 @@
     @media (max-width: 768px) {
       .staff-perm-grid {
         grid-template-columns: 1fr;
+        gap: 0.6rem;
       }
       .staff-perm-icon {
-        font-size: 1.5rem;
-        width: 32px;
+        font-size: 1.4rem;
+        width: 30px;
       }
       .staff-perm-title {
         font-size: 0.9rem;
       }
       .staff-perm-desc {
         font-size: 0.75rem;
+      }
+      .staff-perm-content {
+        padding: 0.75rem;
+        gap: 0.6rem;
+      }
+      .staff-perm-toggle {
+        width: 38px;
+        height: 22px;
+      }
+      .staff-perm-toggle::after {
+        width: 18px;
+        height: 18px;
+      }
+      .staff-perm-checkbox:checked ~ .staff-perm-content .staff-perm-toggle::after {
+        transform: translateX(16px);
+      }
+    }
+
+    /* ============================================================
+       COMPREHENSIVE MOBILE FIXES — buttons, cards, modals all phone-friendly
+       ============================================================ */
+    @media (max-width: 768px) {
+      /* Make every flex row wrap on phones */
+      .control-card div[style*="display: flex"][style*="gap"]:not(.staff-perm-content) {
+        flex-wrap: wrap !important;
+      }
+      /* Buttons in flex rows go full-width */
+      .control-card div[style*="display: flex"] > .btn {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+      }
+      /* Inputs in flex rows go full-width too (override inline min-width) */
+      .control-card div[style*="display: flex"] > input,
+      .control-card div[style*="display: flex"] > select,
+      .control-card div[style*="display: flex"] > textarea {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+      
+      /* Quick Presets row in Staff Management → 2-column grid on phones */
+      #staff .control-card > div[style*="flex-wrap"] {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+      }
+      #staff .control-card > div[style*="flex-wrap"] > .btn {
+        width: 100% !important;
+        font-size: 0.8rem !important;
+        padding: 0.65rem 0.5rem !important;
+        min-width: 0 !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+      }
+      
+      /* Staff Status card: stack title/description above buttons */
+      #staffStatusCard > div:first-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        text-align: center;
+      }
+      #staffStatusCard > div:first-child > div:last-child {
+        flex-direction: row !important;
+        gap: 0.5rem !important;
+      }
+      #staffStatusCard > div:first-child > div:last-child > * {
+        flex: 1 !important;
+        text-align: center;
+        font-size: 0.85rem !important;
+      }
+      
+      /* Sticky save bar at bottom of Staff Management → stack vertically */
+      #staff .control-card[style*="sticky"] > div:first-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.8rem !important;
+      }
+      #staff .control-card[style*="sticky"] > div:first-child > div:last-child {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.5rem !important;
+      }
+      #staff .control-card[style*="sticky"] > div:first-child > div:last-child > .btn {
+        width: 100% !important;
+      }
+      
+      /* Input groups → stack inputs above buttons */
+      .input-group {
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+      }
+      .input-group > * {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+      }
+      
+      /* All inputs touch-friendly height */
+      input, select, textarea {
+        font-size: 16px !important; /* prevents iOS zoom on focus */
+        min-height: 44px !important;
+      }
+      
+      /* Modal dialog full-width on phones */
+      .modal-content-box,
+      .custom-modal .modal-content-box {
+        width: calc(100vw - 1.5rem) !important;
+        max-width: calc(100vw - 1.5rem) !important;
+        margin: 0.75rem !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+      }
+      
+      /* Status badges shouldn't push layout */
+      .status-badge {
+        font-size: 0.7rem !important;
+        padding: 0.3rem 0.6rem !important;
+      }
+      
+      /* Quick action grid → 2 columns instead of auto */
+      .quick-actions {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.6rem !important;
+      }
+      .quick-action-btn {
+        padding: 0.85rem 0.5rem !important;
+        min-height: 80px !important;
+      }
+      .quick-action-icon { font-size: 1.6rem !important; }
+      .quick-action-label { font-size: 0.78rem !important; }
+      
+      /* Section headers more compact */
+      .control-card h3 {
+        font-size: 1.05rem !important;
+        line-height: 1.3 !important;
+      }
+      
+      /* Hide horizontal scrollbars from accidental overflow */
+      body { overflow-x: hidden !important; }
+      .main-content { max-width: 100vw !important; overflow-x: hidden !important; }
+    }
+
+    /* Extra-small phones (iPhone SE, etc.) */
+    @media (max-width: 380px) {
+      #staff .control-card > div[style*="flex-wrap"] {
+        grid-template-columns: 1fr !important;
+      }
+      #staff .control-card[style*="sticky"] > div:first-child > div:last-child {
+        grid-template-columns: 1fr !important;
+      }
+      .quick-actions {
+        grid-template-columns: 1fr !important;
+      }
+      .stat-value {
+        font-size: 1.3rem !important;
+      }
+      .control-card {
+        padding: 1rem !important;
+      }
+      .main-content {
+        padding: 0.75rem !important;
+      }
+      .page-title {
+        font-size: 1.25rem !important;
       }
     }
   </style>
