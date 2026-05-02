@@ -2393,9 +2393,19 @@
       font-size: 1.6rem;
       font-weight: 800;
       letter-spacing: -.5px;
+      color: #8b6914; /* solid fallback so the value is always visible */
       background: linear-gradient(135deg,#8b6914,#d4af37 55%,#b8860b);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
+    }
+    /* If background-clip:text isn't supported (or transparent fill kills it on some setups),
+       fall back to a solid dark gold color so the £ value never disappears. */
+    @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+      #chartTooltip .tt-value {
+        -webkit-text-fill-color: #8b6914 !important;
+        color: #8b6914 !important;
+        background: none !important;
+      }
     }
     #chartTooltip .tt-meta {
       font-size: .72rem;
@@ -2919,10 +2929,15 @@
 
       <!-- Payment Method Breakdown -->
       <div class="control-card" style="margin-top: 1.5rem;">
-        <h2 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; color: #2c3e50;">
-          💳💵 Payment Method Breakdown
-        </h2>
-        <p style="color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.95rem;">How much you've made via card vs cash</p>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 0.4rem;">
+          <h2 style="display: flex; align-items: center; gap: 0.5rem; margin: 0; color: #2c3e50;">
+            💳💵 Payment Method Breakdown
+          </h2>
+          <button class="btn btn-primary" onclick="openPaymentBreakdownModal()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.1rem;">
+            📊 View Detailed Breakdown
+          </button>
+        </div>
+        <p style="color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.95rem;">How much you've made via card vs cash — click "View Detailed Breakdown" to see every month and year</p>
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
           <!-- Today -->
@@ -4207,6 +4222,39 @@
   </main>
 
   <!-- Custom Alert Modal -->
+  <!-- Payment Breakdown Detailed Modal -->
+  <div id="paymentBreakdownModal" class="custom-modal" style="display:none;">
+    <div class="modal-content-box" style="max-width: 900px; max-height: 88vh; overflow-y: auto; text-align: left; padding: 1.6rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:.6rem;">
+        <div>
+          <h2 style="margin:0; color:#2c3e50; display:flex; align-items:center; gap:.5rem;">📊 Detailed Payment Breakdown</h2>
+          <p style="margin:.25rem 0 0 0; color:#7f8c8d; font-size:.9rem;">Cash vs card revenue for every month and year</p>
+        </div>
+        <button class="btn btn-secondary" onclick="closePaymentBreakdownModal()" style="padding:.5rem .9rem;">✕ Close</button>
+      </div>
+
+      <!-- Tab switcher -->
+      <div style="display:flex; gap:.5rem; margin-bottom:1rem; border-bottom: 2px solid #e0e0e0;">
+        <button id="pbTabMonth" class="btn" onclick="switchBreakdownTab('month')" style="border-radius:10px 10px 0 0; padding:.6rem 1.2rem; border:none; background:#6C63FF; color:#fff; font-weight:700;">Monthly</button>
+        <button id="pbTabYear" class="btn" onclick="switchBreakdownTab('year')" style="border-radius:10px 10px 0 0; padding:.6rem 1.2rem; border:none; background:#e9ecef; color:#495057; font-weight:700;">Yearly</button>
+      </div>
+
+      <!-- Monthly view -->
+      <div id="pbMonthlyView">
+        <div id="pbMonthlyContent" style="display:flex; flex-direction:column; gap:.6rem;">
+          <p style="text-align:center; color:#999; padding:2rem;">Loading...</p>
+        </div>
+      </div>
+
+      <!-- Yearly view -->
+      <div id="pbYearlyView" style="display:none;">
+        <div id="pbYearlyContent" style="display:flex; flex-direction:column; gap:.6rem;">
+          <p style="text-align:center; color:#999; padding:2rem;">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="customAlert" class="custom-modal">
     <div class="modal-content-box">
       <div class="modal-icon" id="alertIcon">✅</div>
@@ -4553,6 +4601,111 @@
     }
 
     // Load dashboard data
+    // ─── Payment Breakdown Modal ───
+    let __pbCachedData = null;
+    let __pbActiveTab = 'month';
+
+    async function openPaymentBreakdownModal() {
+      const modal = document.getElementById('paymentBreakdownModal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      // Default to monthly tab
+      switchBreakdownTab('month');
+      // Pull fresh data
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/admin/revenue-stats`);
+        const data = await res.json();
+        __pbCachedData = data;
+        renderBreakdownTab(__pbActiveTab);
+      } catch (e) {
+        console.error('Failed to load breakdown data:', e);
+        document.getElementById('pbMonthlyContent').innerHTML = '<p style="color:#e74c3c; text-align:center; padding:2rem;">Failed to load data: ' + e.message + '</p>';
+      }
+    }
+
+    function closePaymentBreakdownModal() {
+      const modal = document.getElementById('paymentBreakdownModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function switchBreakdownTab(tab) {
+      __pbActiveTab = tab;
+      const monthBtn = document.getElementById('pbTabMonth');
+      const yearBtn = document.getElementById('pbTabYear');
+      const monthView = document.getElementById('pbMonthlyView');
+      const yearView = document.getElementById('pbYearlyView');
+      
+      if (tab === 'month') {
+        if (monthBtn) { monthBtn.style.background = '#6C63FF'; monthBtn.style.color = '#fff'; }
+        if (yearBtn)  { yearBtn.style.background  = '#e9ecef'; yearBtn.style.color  = '#495057'; }
+        if (monthView) monthView.style.display = 'block';
+        if (yearView)  yearView.style.display  = 'none';
+      } else {
+        if (yearBtn)  { yearBtn.style.background  = '#6C63FF'; yearBtn.style.color  = '#fff'; }
+        if (monthBtn) { monthBtn.style.background = '#e9ecef'; monthBtn.style.color = '#495057'; }
+        if (yearView)  yearView.style.display  = 'block';
+        if (monthView) monthView.style.display = 'none';
+      }
+      
+      if (__pbCachedData) renderBreakdownTab(tab);
+    }
+
+    function renderBreakdownTab(tab) {
+      if (!__pbCachedData) return;
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      
+      const buildRow = (title, total, cash, card) => {
+        const totalRev = total * 2;
+        const cashRev = cash * 2;
+        const cardRev = card * 2;
+        return `
+          <div style="background:#fff; border:2px solid #e0e0e0; border-radius:12px; padding:1rem; box-shadow:0 2px 6px rgba(0,0,0,.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.6rem; margin-bottom:.7rem;">
+              <div style="font-weight:800; color:#2c3e50; font-size:1.05rem;">${title}</div>
+              <div style="font-weight:800; color:#6C63FF; font-size:1.15rem;">£${totalRev} <span style="color:#7f8c8d; font-size:.85rem; font-weight:600;">(${total} sales)</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem;">
+              <div style="background:#d4edda; border-left:4px solid #28a745; padding:.55rem .8rem; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#155724; font-weight:600; font-size:.9rem;">💳 Card</span>
+                <span style="color:#155724; font-weight:800; font-size:1.1rem;">£${cardRev}</span>
+              </div>
+              <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:.55rem .8rem; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#856404; font-weight:600; font-size:.9rem;">💵 Cash</span>
+                <span style="color:#856404; font-weight:800; font-size:1.1rem;">£${cashRev}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+      
+      if (tab === 'month') {
+        const container = document.getElementById('pbMonthlyContent');
+        const months = __pbCachedData.monthly || [];
+        if (months.length === 0) {
+          container.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:2rem;">No sales data yet.</p>';
+          return;
+        }
+        container.innerHTML = months.map(m => {
+          const title = `${monthNames[m.month - 1]} ${m.year}`;
+          return buildRow(title, m.total, m.cash, m.card);
+        }).join('');
+      } else {
+        const container = document.getElementById('pbYearlyContent');
+        const years = __pbCachedData.yearly || [];
+        if (years.length === 0) {
+          container.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:2rem;">No sales data yet.</p>';
+          return;
+        }
+        container.innerHTML = years.map(y => buildRow(String(y.year), y.total, y.cash, y.card)).join('');
+      }
+    }
+
+    // Close modal on outside click
+    document.addEventListener('click', function(e) {
+      const modal = document.getElementById('paymentBreakdownModal');
+      if (modal && e.target === modal) closePaymentBreakdownModal();
+    });
+
     async function loadDashboardData() {
       try {
         // Fetch revenue stats from backend
@@ -5127,23 +5280,21 @@
         if (chartDataPoints.length === 0) return;
         
         const rect = canvas.getBoundingClientRect();
+        // Chart points are stored in CSS pixels (the draw code uses ctx.setTransform(dpr,...)
+        // and then renders in CSS-pixel coords). So compare directly in CSS pixels — do NOT
+        // multiply by canvas.width/rect.width (that was the DPR-scaling bug that made the
+        // tooltip never appear on Retina/high-DPI displays).
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
-        // Scale for canvas resolution
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const scaledX = mouseX * scaleX;
-        const scaledY = mouseY * scaleY;
-        
         let clickedPoint = null;
-        let minDistance = 30;
+        let minDistance = 40; // generous click radius
         
         // Find closest point
         chartDataPoints.forEach((point, index) => {
           const distance = Math.sqrt(
-            Math.pow(scaledX - point.x, 2) + 
-            Math.pow(scaledY - point.y, 2)
+            Math.pow(mouseX - point.x, 2) + 
+            Math.pow(mouseY - point.y, 2)
           );
           
           if (distance < minDistance) {
@@ -5194,25 +5345,19 @@
         if (chartDataPoints.length === 0) return;
         
         const rect = canvas.getBoundingClientRect();
+        // CSS pixel coords — match the click handler
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
-        // Scale for canvas resolution
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const scaledX = mouseX * scaleX;
-        const scaledY = mouseY * scaleY;
-        
         let nearPoint = false;
         
-        // Check if mouse is near any point
         chartDataPoints.forEach((point) => {
           const distance = Math.sqrt(
-            Math.pow(scaledX - point.x, 2) + 
-            Math.pow(scaledY - point.y, 2)
+            Math.pow(mouseX - point.x, 2) + 
+            Math.pow(mouseY - point.y, 2)
           );
           
-          if (distance < 30) {
+          if (distance < 40) {
             nearPoint = true;
           }
         });

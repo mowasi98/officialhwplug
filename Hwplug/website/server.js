@@ -2076,6 +2076,42 @@ app.get('/api/admin/revenue-stats', (req, res) => {
       }
     });
 
+    // ── Per-month breakdown (cash vs card) for every month that has data ──
+    // Also produce a per-year roll-up.
+    const monthlyMap = {}; // key: "YYYY-MM" -> { total, cash, card, year, month }
+    const yearlyMap = {};  // key: "YYYY"    -> { total, cash, card, year }
+    
+    loginHistory.forEach(login => {
+      const d = new Date(login.timestamp);
+      if (isNaN(d.getTime())) return;
+      const yearKey = String(d.getFullYear());
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const isCash = login.paymentMethod && login.paymentMethod.toLowerCase().includes('cash');
+      const isCard = login.paymentMethod && (login.paymentMethod.toLowerCase().includes('card') || login.paymentMethod.toLowerCase().includes('webhook'));
+      
+      if (!monthlyMap[monthKey]) {
+        monthlyMap[monthKey] = { total: 0, cash: 0, card: 0, year: d.getFullYear(), month: d.getMonth() + 1 };
+      }
+      monthlyMap[monthKey].total++;
+      if (isCash) monthlyMap[monthKey].cash++;
+      if (isCard) monthlyMap[monthKey].card++;
+      
+      if (!yearlyMap[yearKey]) {
+        yearlyMap[yearKey] = { total: 0, cash: 0, card: 0, year: d.getFullYear() };
+      }
+      yearlyMap[yearKey].total++;
+      if (isCash) yearlyMap[yearKey].cash++;
+      if (isCard) yearlyMap[yearKey].card++;
+    });
+    
+    // Sort newest first
+    const monthly = Object.entries(monthlyMap)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([key, v]) => ({ key, ...v }));
+    const yearly = Object.entries(yearlyMap)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([key, v]) => ({ key, ...v }));
+
     res.json({
       // Legacy format for backward compatibility
       today: stats.today.total,
@@ -2085,7 +2121,11 @@ app.get('/api/admin/revenue-stats', (req, res) => {
       total: stats.allTime.total,
       
       // New detailed breakdown
-      breakdown: stats
+      breakdown: stats,
+      
+      // History (every month / every year that has at least one sale)
+      monthly,
+      yearly
     });
   } catch (error) {
     console.error('Error calculating revenue stats:', error);
