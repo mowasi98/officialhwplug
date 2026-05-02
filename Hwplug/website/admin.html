@@ -2918,74 +2918,85 @@
       </div>
 
       <!-- Payment Method Breakdown -->
-      <div class="control-card" style="margin-top: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-        <h2 style="color: white; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+      <div class="control-card" style="margin-top: 1.5rem;">
+        <h2 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; color: #2c3e50;">
           💳💵 Payment Method Breakdown
         </h2>
+        <p style="color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.95rem;">How much you've made via card vs cash</p>
         
-        <div class="stats-grid" style="margin-bottom: 1rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
           <!-- Today -->
-          <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">Today</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-              <span>💳 Card:</span>
-              <span style="font-weight: 700;">£<span id="todayCard">0</span></span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>💵 Cash:</span>
-              <span style="font-weight: 700;">£<span id="todayCash">0</span></span>
-            </div>
-          </div>
-          
-          <!-- Week -->
-          <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">This Week</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-              <span>💳 Card:</span>
-              <span style="font-weight: 700;">£<span id="weekCard">0</span></span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>💵 Cash:</span>
-              <span style="font-weight: 700;">£<span id="weekCash">0</span></span>
+          <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div style="background: linear-gradient(135deg, #6C63FF 0%, #5848d4 100%); color: white; padding: 0.7rem 1rem; font-weight: 700; font-size: 1rem; text-align: center; letter-spacing: 0.3px;">📅 TODAY</div>
+            <div style="padding: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #d4edda; border-radius: 10px; margin-bottom: 0.5rem; border-left: 4px solid #28a745;">
+                <span style="font-weight: 600; color: #155724; font-size: 0.95rem;">💳 Card</span>
+                <span style="font-weight: 800; color: #155724; font-size: 1.3rem;">£<span id="todayCard">0</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+                <span style="font-weight: 600; color: #856404; font-size: 0.95rem;">💵 Cash</span>
+                <span style="font-weight: 800; color: #856404; font-size: 1.3rem;">£<span id="todayCash">0</span></span>
+              </div>
             </div>
           </div>
           
-          <!-- Month -->
-          <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">This Month</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-              <span>💳 Card:</span>
-              <span style="font-weight: 700;">£<span id="monthCard">0</span></span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>💵 Cash:</span>
-              <span style="font-weight: 700;">£<span id="monthCash">0</span></span>
+          <!-- This Week -->
+          <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div style="background: linear-gradient(135deg, #6C63FF 0%, #5848d4 100%); color: white; padding: 0.7rem 1rem; font-weight: 700; font-size: 1rem; text-align: center; letter-spacing: 0.3px;">📆 THIS WEEK</div>
+            <div style="padding: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #d4edda; border-radius: 10px; margin-bottom: 0.5rem; border-left: 4px solid #28a745;">
+                <span style="font-weight: 600; color: #155724; font-size: 0.95rem;">💳 Card</span>
+                <span style="font-weight: 800; color: #155724; font-size: 1.3rem;">£<span id="weekCard">0</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+                <span style="font-weight: 600; color: #856404; font-size: 0.95rem;">💵 Cash</span>
+                <span style="font-weight: 800; color: #856404; font-size: 1.3rem;">£<span id="weekCash">0</span></span>
+              </div>
             </div>
           </div>
           
-          <!-- Year -->
-          <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">This Year</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-              <span>💳 Card:</span>
-              <span style="font-weight: 700;">£<span id="yearCard">0</span></span>
+          <!-- This Month -->
+          <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div style="background: linear-gradient(135deg, #6C63FF 0%, #5848d4 100%); color: white; padding: 0.7rem 1rem; font-weight: 700; font-size: 1rem; text-align: center; letter-spacing: 0.3px;">🗓️ THIS MONTH</div>
+            <div style="padding: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #d4edda; border-radius: 10px; margin-bottom: 0.5rem; border-left: 4px solid #28a745;">
+                <span style="font-weight: 600; color: #155724; font-size: 0.95rem;">💳 Card</span>
+                <span style="font-weight: 800; color: #155724; font-size: 1.3rem;">£<span id="monthCard">0</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+                <span style="font-weight: 600; color: #856404; font-size: 0.95rem;">💵 Cash</span>
+                <span style="font-weight: 800; color: #856404; font-size: 1.3rem;">£<span id="monthCash">0</span></span>
+              </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>💵 Cash:</span>
-              <span style="font-weight: 700;">£<span id="yearCash">0</span></span>
+          </div>
+          
+          <!-- This Year -->
+          <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div style="background: linear-gradient(135deg, #6C63FF 0%, #5848d4 100%); color: white; padding: 0.7rem 1rem; font-weight: 700; font-size: 1rem; text-align: center; letter-spacing: 0.3px;">📊 THIS YEAR</div>
+            <div style="padding: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #d4edda; border-radius: 10px; margin-bottom: 0.5rem; border-left: 4px solid #28a745;">
+                <span style="font-weight: 600; color: #155724; font-size: 0.95rem;">💳 Card</span>
+                <span style="font-weight: 800; color: #155724; font-size: 1.3rem;">£<span id="yearCard">0</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+                <span style="font-weight: 600; color: #856404; font-size: 0.95rem;">💵 Cash</span>
+                <span style="font-weight: 800; color: #856404; font-size: 1.3rem;">£<span id="yearCash">0</span></span>
+              </div>
             </div>
           </div>
           
           <!-- All Time -->
-          <div style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
-            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem; font-weight: 600;">All Time</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-              <span>💳 Card:</span>
-              <span style="font-weight: 700;">£<span id="allTimeCard">0</span></span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>💵 Cash:</span>
-              <span style="font-weight: 700;">£<span id="allTimeCash">0</span></span>
+          <div style="background: #fff; border: 2px solid #6C63FF; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(108,99,255,0.2);">
+            <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; padding: 0.7rem 1rem; font-weight: 700; font-size: 1rem; text-align: center; letter-spacing: 0.3px;">🏆 ALL TIME</div>
+            <div style="padding: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #d4edda; border-radius: 10px; margin-bottom: 0.5rem; border-left: 4px solid #28a745;">
+                <span style="font-weight: 600; color: #155724; font-size: 0.95rem;">💳 Card</span>
+                <span style="font-weight: 800; color: #155724; font-size: 1.3rem;">£<span id="allTimeCard">0</span></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.8rem; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107;">
+                <span style="font-weight: 600; color: #856404; font-size: 0.95rem;">💵 Cash</span>
+                <span style="font-weight: 800; color: #856404; font-size: 1.3rem;">£<span id="allTimeCash">0</span></span>
+              </div>
             </div>
           </div>
         </div>
