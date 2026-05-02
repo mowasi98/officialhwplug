@@ -234,7 +234,7 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
       if (username && password && productName) {
         // Check bot automation mode for ALL products
         let orderId = null;
-        const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca' || productName === 'Sparx Science');
+        const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educake' || productName === 'Seneca' || productName === 'Sparx Science');
         
         // ALWAYS create order ID for bot products (for REDO button in emails)
         if (isBotProduct) {
@@ -505,7 +505,7 @@ const GiveawayModel = mongoose.model('Giveaway', GiveawaySchema);
 let dailyLimits = {
   'Sparx Reader': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
   'Sparx Maths': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
-  'Educate': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
+  'Educake': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
   'Seneca': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 } },
   'Sparx Science': { count: 0, date: null, available: true, maxSlots: 5, extraSlots: { count: 0, max: 8, basePrice: 3, currentPrice: 3 }, comingSoon: true }
 };
@@ -892,6 +892,13 @@ async function loadData() {
       // Restore data
       const loadedLimits = data.dailyLimits || dailyLimits;
       
+      // ── Migration: rename old "Educate" key → "Educake" so existing counters carry over ──
+      if (loadedLimits['Educate'] && !loadedLimits['Educake']) {
+        loadedLimits['Educake'] = loadedLimits['Educate'];
+        delete loadedLimits['Educate'];
+        console.log('🔄 Migrated product key: Educate → Educake');
+      }
+      
       // Merge loaded data with default structure to ensure extraSlots and maxSlots are always present
       dailyLimits = {
         'Sparx Reader': {
@@ -916,15 +923,15 @@ async function loadData() {
             currentPrice: loadedLimits['Sparx Maths']?.extraSlots?.currentPrice || 3
           }
         },
-        'Educate': {
-          ...dailyLimits['Educate'],
-          ...loadedLimits['Educate'],
-          maxSlots: loadedLimits['Educate']?.maxSlots || 5,
+        'Educake': {
+          ...dailyLimits['Educake'],
+          ...loadedLimits['Educake'],
+          maxSlots: loadedLimits['Educake']?.maxSlots || 5,
           extraSlots: {
-            count: loadedLimits['Educate']?.extraSlots?.count || 0,
-            max: loadedLimits['Educate']?.extraSlots?.max || 8,
-            basePrice: loadedLimits['Educate']?.extraSlots?.basePrice || 3,
-            currentPrice: loadedLimits['Educate']?.extraSlots?.currentPrice || 3
+            count: loadedLimits['Educake']?.extraSlots?.count || 0,
+            max: loadedLimits['Educake']?.extraSlots?.max || 8,
+            basePrice: loadedLimits['Educake']?.extraSlots?.basePrice || 3,
+            currentPrice: loadedLimits['Educake']?.extraSlots?.currentPrice || 3
           }
         },
         'Seneca': {
@@ -954,7 +961,14 @@ async function loadData() {
       
       activeReservations = data.activeReservations || {};
       lastTimerResetTime = data.lastTimerResetTime || Date.now();
-      loginHistory.push(...(data.loginHistory || []));
+      // Migrate old "Educate" entries in login history to "Educake"
+      const migratedHistory = (data.loginHistory || []).map(entry => {
+        if (entry && entry.productName === 'Educate') {
+          return { ...entry, productName: 'Educake' };
+        }
+        return entry;
+      });
+      loginHistory.push(...migratedHistory);
       cashPaymentCodes = data.cashPaymentCodes || [];
       codeUsageHistory = data.codeUsageHistory || [];
       availabilitySchedule = data.availabilitySchedule || availabilitySchedule;
@@ -3856,7 +3870,7 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
     
     // Check bot automation mode for ALL products
     let orderId = null;
-    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca' || productName === 'Sparx Science');
+    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educake' || productName === 'Seneca' || productName === 'Sparx Science');
     
     // ALWAYS create order ID for bot products (for REDO button in emails)
     if (isBotProduct) {
@@ -4124,7 +4138,7 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
     // Send email notification with login details (CARD PAYMENT - only email sent for card)
     // Check bot automation mode for ALL products
     let orderId = null;
-    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educate' || productName === 'Seneca' || productName === 'Sparx Science');
+    const isBotProduct = (productName === 'Sparx Maths' || productName === 'Sparx Reader' || productName === 'Educake' || productName === 'Seneca' || productName === 'Sparx Science');
     
     // ALWAYS create order ID for bot products (for REDO button in emails)
     if (isBotProduct) {
