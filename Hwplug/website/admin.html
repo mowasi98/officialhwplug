@@ -5289,7 +5289,7 @@
     }
 
     // Product & Slot Functions
-    async function loadProductStatus() {
+    async function loadProductStatus(silent = false) {
       try {
         console.log('📦 Loading products from:', `${BACKEND_URL}/admin/counters-status`);
         const response = await fetch(`${BACKEND_URL}/admin/counters-status`);
@@ -5432,9 +5432,12 @@
         console.log('✅ Products loaded successfully:', products.length, 'products added to DOM');
       } catch (error) {
         console.error('❌ Error loading product status:', error);
-        const productsDiv = document.getElementById('productsList');
-        if (productsDiv) {
-          productsDiv.innerHTML = `<p style="color: #e74c3c; text-align: center; padding: 2rem;">Error loading products: ${error.message}<br>Check console for details.</p>`;
+        // Only show UI error message if not a silent background refresh
+        if (!silent) {
+          const productsDiv = document.getElementById('productsList');
+          if (productsDiv) {
+            productsDiv.innerHTML = `<p style="color: #e74c3c; text-align: center; padding: 2rem;">Error loading products: ${error.message}<br>Check console for details.</p>`;
+          }
         }
       }
     }
@@ -7965,6 +7968,7 @@
             if (active.id === 'users' && typeof loadBannedUsers === 'function') { try { loadBannedUsers(); } catch(e){} }
             
             // Products: skip refresh if user is actively editing (prevents input field twitching)
+            // Pass silent=true to suppress error UI during background refresh
             if (active.id === 'products' && typeof loadProductStatus === 'function') {
               const focused = document.activeElement;
               const isEditingProducts = focused && (
@@ -7974,7 +7978,7 @@
               ) && active.contains(focused);
               
               if (!isEditingProducts) {
-                try { loadProductStatus(); } catch(e){}
+                try { loadProductStatus(true); } catch(e){}
               }
             }
           }
