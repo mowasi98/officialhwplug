@@ -2023,25 +2023,69 @@ app.get('/api/admin/revenue-stats', (req, res) => {
     // Month starts on the 1st
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     monthStart.setHours(0, 0, 0, 0);
+    
+    // Year starts on Jan 1st
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    yearStart.setHours(0, 0, 0, 0);
 
-    // Count purchases by time period (each purchase is £2)
-    let todayCount = 0;
-    let weekCount = 0;
-    let monthCount = 0;
-    let totalCount = loginHistory.length;
+    // Initialize counters for each period and payment method
+    const stats = {
+      today: { total: 0, cash: 0, card: 0 },
+      week: { total: 0, cash: 0, card: 0 },
+      month: { total: 0, cash: 0, card: 0 },
+      year: { total: 0, cash: 0, card: 0 },
+      allTime: { total: 0, cash: 0, card: 0 }
+    };
 
     loginHistory.forEach(login => {
       const loginDate = new Date(login.timestamp);
-      if (loginDate >= todayStart) todayCount++;
-      if (loginDate >= weekStart) weekCount++;
-      if (loginDate >= monthStart) monthCount++;
+      const isCash = login.paymentMethod && login.paymentMethod.toLowerCase().includes('cash');
+      const isCard = login.paymentMethod && (login.paymentMethod.toLowerCase().includes('card') || login.paymentMethod.toLowerCase().includes('webhook'));
+      
+      // All time
+      stats.allTime.total++;
+      if (isCash) stats.allTime.cash++;
+      if (isCard) stats.allTime.card++;
+      
+      // Year
+      if (loginDate >= yearStart) {
+        stats.year.total++;
+        if (isCash) stats.year.cash++;
+        if (isCard) stats.year.card++;
+      }
+      
+      // Month
+      if (loginDate >= monthStart) {
+        stats.month.total++;
+        if (isCash) stats.month.cash++;
+        if (isCard) stats.month.card++;
+      }
+      
+      // Week
+      if (loginDate >= weekStart) {
+        stats.week.total++;
+        if (isCash) stats.week.cash++;
+        if (isCard) stats.week.card++;
+      }
+      
+      // Today
+      if (loginDate >= todayStart) {
+        stats.today.total++;
+        if (isCash) stats.today.cash++;
+        if (isCard) stats.today.card++;
+      }
     });
 
     res.json({
-      today: todayCount,
-      week: weekCount,
-      month: monthCount,
-      total: totalCount
+      // Legacy format for backward compatibility
+      today: stats.today.total,
+      week: stats.week.total,
+      month: stats.month.total,
+      year: stats.year.total,
+      total: stats.allTime.total,
+      
+      // New detailed breakdown
+      breakdown: stats
     });
   } catch (error) {
     console.error('Error calculating revenue stats:', error);
