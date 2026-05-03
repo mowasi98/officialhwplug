@@ -2054,12 +2054,12 @@ app.get('/api/admin/revenue-stats', (req, res) => {
       return isNaN(num) ? 2 : num;
     }
     
-    // Helper: skip entries where the buyer was whitelisted (whitelisted users get it free).
-    // This is a safety net — the backend already skips writing them to history, but if any
-    // historical entries slipped through (e.g. user was added to whitelist after the entry)
-    // they will be excluded from revenue counts.
-    function isFreeBuyer(login) {
-      return login && login.username && whitelistedUsers.includes(login.username);
+    // NOTE: We do NOT retroactively filter out users who are currently whitelisted.
+    // If a user paid £2 and was THEN whitelisted, that £2 still counts as historical revenue.
+    // Whitelisting only excludes FUTURE purchases (the backend already skips writing them at
+    // purchase time, so they never enter loginHistory in the first place).
+    function isFreeBuyer(_login) {
+      return false;
     }
 
     // Each period now tracks BOTH a sales count AND actual £ revenue, broken down by payment method.
@@ -2123,10 +2123,20 @@ app.get('/api/admin/revenue-stats', (req, res) => {
     });
     
     // Round all revenue figures to 2 decimal places (avoid float-pennies noise)
+    // Also expose legacy field aliases so older cached frontends don't break:
+    //   - `total` = sales count (legacy)
+    //   - `cash`  = cash REVENUE (legacy code did `cash * 2`, so we divide so it gets ~revenue)
+    //   - `card`  = card REVENUE (same)
+    // The new code reads .cashRevenue / .cardRevenue / .revenue / .sales explicitly.
     function roundBucket(b) {
       b.revenue     = Math.round(b.revenue     * 100) / 100;
       b.cashRevenue = Math.round(b.cashRevenue * 100) / 100;
       b.cardRevenue = Math.round(b.cardRevenue * 100) / 100;
+      // Legacy aliases — half of the revenue, so old `* 2` math lands roughly back on revenue.
+      // (Not perfect once a discount is active, but prevents NaN/blank for cached browsers.)
+      b.total = b.sales;
+      b.cash  = Math.round((b.cashRevenue / 2) * 100) / 100;
+      b.card  = Math.round((b.cardRevenue / 2) * 100) / 100;
       return b;
     }
     Object.values(stats).forEach(roundBucket);

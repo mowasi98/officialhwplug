@@ -4698,7 +4698,8 @@
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       
       const fmtMoney = v => {
-        const n = Number(v) || 0;
+        const n = Number(v);
+        if (!isFinite(n)) return '0';
         return n % 1 === 0 ? String(n) : n.toFixed(2);
       };
       
@@ -4755,9 +4756,10 @@
         const statsResponse = await fetch(`${BACKEND_URL}/api/admin/revenue-stats`);
         const data = await statsResponse.json();
 
-        // Helper: format £ amount (handles decimals nicely)
+        // Helper: format £ amount (handles decimals nicely, never returns "NaN")
         const fmt = v => {
-          const n = Number(v) || 0;
+          const n = Number(v);
+          if (!isFinite(n)) return '0';
           return n % 1 === 0 ? String(n) : n.toFixed(2);
         };
 
@@ -5104,7 +5106,8 @@
         'all':   'All Time Revenue'
       };
       // Revenue (totalSum is already in £, may have decimals from discounts)
-      const fmtSum = totalSum % 1 === 0 ? totalSum.toLocaleString() : totalSum.toFixed(2);
+      const safeSum = isFinite(totalSum) ? totalSum : 0;
+      const fmtSum = safeSum % 1 === 0 ? safeSum.toLocaleString() : safeSum.toFixed(2);
       if (totalEl) totalEl.textContent = '£' + fmtSum;
       if (labelEl) labelEl.textContent = periodLabelMap[period] || 'Revenue';
       if (deltaEl) {
@@ -5385,7 +5388,8 @@
 
           // Show fancy structured tooltip
           // value is real £ revenue (already includes deal/extra-slot pricing)
-          const v = Number(clickedPoint.value) || 0;
+          const vRaw = Number(clickedPoint.value);
+          const v = isFinite(vRaw) ? vRaw : 0;
           const fmtVal = v % 1 === 0 ? v.toLocaleString() : v.toFixed(2);
           tooltip.innerHTML = `
             <div class="tt-label">${clickedPoint.label}</div>
