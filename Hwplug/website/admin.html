@@ -13,12 +13,26 @@
       box-sizing: border-box;
     }
 
+    /* Lock down horizontal overflow on every breakpoint — fixes the "blank space when scrolling
+       sideways on mobile" issue. Some inner elements were forcing the page wider than the viewport. */
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden !important;
+    }
+    
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #f5f6fa;
       color: #2c3e50;
       overflow-x: hidden;
       position: relative;
+    }
+    
+    /* The main content area must never be wider than the viewport */
+    .main-content {
+      box-sizing: border-box;
+      overflow-x: hidden;
+      max-width: 100%;
     }
 
     body::before {
@@ -2770,6 +2784,35 @@
       /* Hide horizontal scrollbars from accidental overflow */
       body { overflow-x: hidden !important; }
       .main-content { max-width: 100vw !important; overflow-x: hidden !important; }
+      
+      /* Force the chart canvas to fit viewport on phones (it has a width=800 attribute) */
+      #revenueCanvas {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
+      /* Stats grids get ONE column on small phones to prevent any overflow */
+      .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: .7rem !important;
+      }
+      
+      /* Payment Method Breakdown card — make sub-grid single-column to avoid overflow */
+      .control-card > div[style*="grid-template-columns: repeat(auto-fit"] {
+        grid-template-columns: 1fr !important;
+        gap: .8rem !important;
+      }
+      
+      /* Any floating elements / images cap at viewport */
+      img, video, iframe, svg {
+        max-width: 100% !important;
+        height: auto;
+      }
+      canvas { max-width: 100% !important; }
+      
+      /* The page subtitle / titles can no longer stretch the page */
+      .page-header { max-width: 100%; overflow: hidden; }
+      .control-card { max-width: 100%; overflow: hidden; }
     }
 
     /* Extra-small phones (iPhone SE, etc.) */
@@ -4654,24 +4697,27 @@
       if (!__pbCachedData) return;
       const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
       
-      const buildRow = (title, total, cash, card) => {
-        const totalRev = total * 2;
-        const cashRev = cash * 2;
-        const cardRev = card * 2;
+      const fmtMoney = v => {
+        const n = Number(v) || 0;
+        return n % 1 === 0 ? String(n) : n.toFixed(2);
+      };
+      
+      // Bucket structure from backend: { sales, revenue, cashSales, cashRevenue, cardSales, cardRevenue }
+      const buildRow = (title, b) => {
         return `
           <div style="background:#fff; border:2px solid #e0e0e0; border-radius:12px; padding:1rem; box-shadow:0 2px 6px rgba(0,0,0,.05);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.6rem; margin-bottom:.7rem;">
               <div style="font-weight:800; color:#2c3e50; font-size:1.05rem;">${title}</div>
-              <div style="font-weight:800; color:#6C63FF; font-size:1.15rem;">£${totalRev} <span style="color:#7f8c8d; font-size:.85rem; font-weight:600;">(${total} sales)</span></div>
+              <div style="font-weight:800; color:#6C63FF; font-size:1.15rem;">£${fmtMoney(b.revenue)} <span style="color:#7f8c8d; font-size:.85rem; font-weight:600;">(${b.sales} sales)</span></div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem;">
               <div style="background:#d4edda; border-left:4px solid #28a745; padding:.55rem .8rem; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
                 <span style="color:#155724; font-weight:600; font-size:.9rem;">💳 Card</span>
-                <span style="color:#155724; font-weight:800; font-size:1.1rem;">£${cardRev}</span>
+                <span style="color:#155724; font-weight:800; font-size:1.1rem;">£${fmtMoney(b.cardRevenue)}</span>
               </div>
               <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:.55rem .8rem; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
                 <span style="color:#856404; font-weight:600; font-size:.9rem;">💵 Cash</span>
-                <span style="color:#856404; font-weight:800; font-size:1.1rem;">£${cashRev}</span>
+                <span style="color:#856404; font-weight:800; font-size:1.1rem;">£${fmtMoney(b.cashRevenue)}</span>
               </div>
             </div>
           </div>
@@ -4685,10 +4731,7 @@
           container.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:2rem;">No sales data yet.</p>';
           return;
         }
-        container.innerHTML = months.map(m => {
-          const title = `${monthNames[m.month - 1]} ${m.year}`;
-          return buildRow(title, m.total, m.cash, m.card);
-        }).join('');
+        container.innerHTML = months.map(m => buildRow(`${monthNames[m.month - 1]} ${m.year}`, m)).join('');
       } else {
         const container = document.getElementById('pbYearlyContent');
         const years = __pbCachedData.yearly || [];
@@ -4696,7 +4739,7 @@
           container.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:2rem;">No sales data yet.</p>';
           return;
         }
-        container.innerHTML = years.map(y => buildRow(String(y.year), y.total, y.cash, y.card)).join('');
+        container.innerHTML = years.map(y => buildRow(String(y.year), y)).join('');
       }
     }
 
@@ -4712,43 +4755,51 @@
         const statsResponse = await fetch(`${BACKEND_URL}/api/admin/revenue-stats`);
         const data = await statsResponse.json();
 
-        // Update main stats (each product is £2)
-        document.getElementById('todayRevenue').textContent = data.today * 2;
+        // Helper: format £ amount (handles decimals nicely)
+        const fmt = v => {
+          const n = Number(v) || 0;
+          return n % 1 === 0 ? String(n) : n.toFixed(2);
+        };
+
+        // Update main stats — use REAL revenue values from backend (already in £, no * 2)
+        // These now respect deal discounts, extra-slot pricing, and exclude whitelisted users.
+        const rev = data.revenue || {};
+        document.getElementById('todayRevenue').textContent = fmt(rev.today ?? data.today * 2);
         document.getElementById('todayChange').textContent = data.today;
 
-        document.getElementById('weekRevenue').textContent = data.week * 2;
+        document.getElementById('weekRevenue').textContent = fmt(rev.week ?? data.week * 2);
         document.getElementById('weekChange').textContent = data.week;
 
-        document.getElementById('monthRevenue').textContent = data.month * 2;
+        document.getElementById('monthRevenue').textContent = fmt(rev.month ?? data.month * 2);
         document.getElementById('monthChange').textContent = data.month;
         
-        document.getElementById('yearRevenue').textContent = data.year * 2;
+        document.getElementById('yearRevenue').textContent = fmt(rev.year ?? data.year * 2);
         document.getElementById('yearChange').textContent = data.year;
 
-        document.getElementById('totalRevenue').textContent = data.total * 2;
+        document.getElementById('totalRevenue').textContent = fmt(rev.allTime ?? data.total * 2);
         document.getElementById('totalSales').textContent = data.total;
         
-        // Update payment method breakdown (if available)
+        // Update payment method breakdown (uses real revenue from backend, no * 2)
         if (data.breakdown) {
           // Today
-          document.getElementById('todayCard').textContent = data.breakdown.today.card * 2;
-          document.getElementById('todayCash').textContent = data.breakdown.today.cash * 2;
+          document.getElementById('todayCard').textContent = fmt(data.breakdown.today.cardRevenue);
+          document.getElementById('todayCash').textContent = fmt(data.breakdown.today.cashRevenue);
           
           // Week
-          document.getElementById('weekCard').textContent = data.breakdown.week.card * 2;
-          document.getElementById('weekCash').textContent = data.breakdown.week.cash * 2;
+          document.getElementById('weekCard').textContent = fmt(data.breakdown.week.cardRevenue);
+          document.getElementById('weekCash').textContent = fmt(data.breakdown.week.cashRevenue);
           
           // Month
-          document.getElementById('monthCard').textContent = data.breakdown.month.card * 2;
-          document.getElementById('monthCash').textContent = data.breakdown.month.cash * 2;
+          document.getElementById('monthCard').textContent = fmt(data.breakdown.month.cardRevenue);
+          document.getElementById('monthCash').textContent = fmt(data.breakdown.month.cashRevenue);
           
           // Year
-          document.getElementById('yearCard').textContent = data.breakdown.year.card * 2;
-          document.getElementById('yearCash').textContent = data.breakdown.year.cash * 2;
+          document.getElementById('yearCard').textContent = fmt(data.breakdown.year.cardRevenue);
+          document.getElementById('yearCash').textContent = fmt(data.breakdown.year.cashRevenue);
           
           // All Time
-          document.getElementById('allTimeCard').textContent = data.breakdown.allTime.card * 2;
-          document.getElementById('allTimeCash').textContent = data.breakdown.allTime.cash * 2;
+          document.getElementById('allTimeCard').textContent = fmt(data.breakdown.allTime.cardRevenue);
+          document.getElementById('allTimeCash').textContent = fmt(data.breakdown.allTime.cashRevenue);
         }
 
         // Fetch full login history for line chart
@@ -4944,16 +4995,31 @@
       let labels = [];
       const now = new Date();
       
+      // Sum the actual £ revenue for entries in [start, end). Falls back to £2/entry for legacy
+      // data without a productPrice. The frontend can't easily know who's whitelisted, so we just
+      // use the entries the backend hands us (the backend already filters whitelist on write).
+      function sumRevenueIn(start, end) {
+        let sum = 0;
+        loginHistory.forEach(l => {
+          const d = new Date(l.timestamp);
+          if (d < start || d >= end) return;
+          const raw = l.productPrice;
+          let price = 2; // baseline fallback
+          if (raw !== null && raw !== undefined && raw !== 'Unknown' && raw !== 'N/A' && raw !== '') {
+            const n = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
+            if (!isNaN(n)) price = n;
+          }
+          sum += price;
+        });
+        return Math.round(sum * 100) / 100;
+      }
+      
       if (period === 'today') {
         // Show hourly data for today
         for (let hour = 0; hour < 24; hour++) {
           const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour);
           const hourEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour + 1);
-          const count = loginHistory.filter(l => {
-            const d = new Date(l.timestamp);
-            return d >= hourStart && d < hourEnd;
-          }).length;
-          dataPoints.push(count * 2);
+          dataPoints.push(sumRevenueIn(hourStart, hourEnd));
           labels.push(`${hour}:00`);
         }
       } else if (period === 'week') {
@@ -4961,13 +5027,8 @@
         for (let i = 6; i >= 0; i--) {
           const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
           dayStart.setHours(0, 0, 0, 0);
-          const dayEnd = new Date(dayStart);
-          dayEnd.setHours(23, 59, 59, 999);
-          const count = loginHistory.filter(l => {
-            const d = new Date(l.timestamp);
-            return d >= dayStart && d <= dayEnd;
-          }).length;
-          dataPoints.push(count * 2);
+          const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+          dataPoints.push(sumRevenueIn(dayStart, dayEnd));
           const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           labels.push(dayNames[dayStart.getDay()]);
         }
@@ -4977,13 +5038,8 @@
         for (let day = 1; day <= daysInMonth; day++) {
           const dayStart = new Date(now.getFullYear(), now.getMonth(), day);
           dayStart.setHours(0, 0, 0, 0);
-          const dayEnd = new Date(dayStart);
-          dayEnd.setHours(23, 59, 59, 999);
-          const count = loginHistory.filter(l => {
-            const d = new Date(l.timestamp);
-            return d >= dayStart && d <= dayEnd;
-          }).length;
-          dataPoints.push(count * 2);
+          const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+          dataPoints.push(sumRevenueIn(dayStart, dayEnd));
           labels.push(day.toString());
         }
       } else if (period === 'year') {
@@ -4991,38 +5047,36 @@
         for (let i = 11; i >= 0; i--) {
           const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
           monthStart.setHours(0, 0, 0, 0);
-          const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-          monthEnd.setHours(23, 59, 59, 999);
-          const count = loginHistory.filter(l => {
-            const d = new Date(l.timestamp);
-            return d >= monthStart && d <= monthEnd;
-          }).length;
-          dataPoints.push(count * 2);
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+          monthEnd.setHours(0, 0, 0, 0);
+          dataPoints.push(sumRevenueIn(monthStart, monthEnd));
           const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
           labels.push(monthNames[monthStart.getMonth()]);
         }
       } else {
         // All time - show monthly data
-        const allDates = loginHistory.map(l => new Date(l.timestamp));
-        if (allDates.length === 0) {
+        if (loginHistory.length === 0) {
           dataPoints = [0];
           labels = ['No Data'];
         } else {
-          const minDate = new Date(Math.min(...allDates));
           const monthsData = {};
-          
           loginHistory.forEach(l => {
             const d = new Date(l.timestamp);
-            const key = `${d.getFullYear()}-${d.getMonth()}`;
-            monthsData[key] = (monthsData[key] || 0) + 2;
+            const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`;
+            const raw = l.productPrice;
+            let price = 2;
+            if (raw !== null && raw !== undefined && raw !== 'Unknown' && raw !== 'N/A' && raw !== '') {
+              const n = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
+              if (!isNaN(n)) price = n;
+            }
+            monthsData[key] = (monthsData[key] || 0) + price;
           });
-          
           const sortedKeys = Object.keys(monthsData).sort();
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
           sortedKeys.forEach(key => {
             const [year, month] = key.split('-');
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             labels.push(`${monthNames[parseInt(month)]} ${year.slice(2)}`);
-            dataPoints.push(monthsData[key]);
+            dataPoints.push(Math.round(monthsData[key] * 100) / 100);
           });
         }
       }
@@ -5049,10 +5103,21 @@
         'year':  'Last 12 Months',
         'all':   'All Time Revenue'
       };
-      if (totalEl) totalEl.textContent = '£' + totalSum.toLocaleString();
+      // Revenue (totalSum is already in £, may have decimals from discounts)
+      const fmtSum = totalSum % 1 === 0 ? totalSum.toLocaleString() : totalSum.toFixed(2);
+      if (totalEl) totalEl.textContent = '£' + fmtSum;
       if (labelEl) labelEl.textContent = periodLabelMap[period] || 'Revenue';
       if (deltaEl) {
-        const salesCount = Math.round(totalSum / 2);
+        // Use real sales count from loginHistory matching this period — no more /2 estimate
+        const startMap = {
+          'today': new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+          'week':  (() => { const cur = now.getDay(); const off = cur === 0 ? 6 : cur - 1; const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - off); d.setHours(0,0,0,0); return d; })(),
+          'month': new Date(now.getFullYear(), now.getMonth(), 1),
+          'year':  new Date(now.getFullYear(), 0, 1),
+          'all':   new Date(0)
+        };
+        const periodStart = startMap[period] || new Date(0);
+        const salesCount = loginHistory.filter(l => new Date(l.timestamp) >= periodStart).length;
         deltaEl.textContent = '↑ ' + salesCount + ' sales';
       }
 
@@ -5319,10 +5384,13 @@
           ctx.stroke();
 
           // Show fancy structured tooltip
+          // value is real £ revenue (already includes deal/extra-slot pricing)
+          const v = Number(clickedPoint.value) || 0;
+          const fmtVal = v % 1 === 0 ? v.toLocaleString() : v.toFixed(2);
           tooltip.innerHTML = `
             <div class="tt-label">${clickedPoint.label}</div>
-            <div class="tt-value">£${Number(clickedPoint.value).toLocaleString()}</div>
-            <div class="tt-meta">↑ ${Math.round(clickedPoint.value / 2)} sales</div>
+            <div class="tt-value">£${fmtVal}</div>
+            <div class="tt-meta">Revenue earned</div>
           `;
 
           const scrollX = window.pageXOffset || document.documentElement.scrollLeft;

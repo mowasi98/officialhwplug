@@ -2042,81 +2042,96 @@ app.get('/api/admin/revenue-stats', (req, res) => {
     const yearStart = new Date(now.getFullYear(), 0, 1);
     yearStart.setHours(0, 0, 0, 0);
 
-    // Initialize counters for each period and payment method
+    // Helper: extract actual price paid for an entry. Falls back gracefully so old
+    // entries (which may not have productPrice stored) still count as the £2 baseline.
+    function extractPrice(login) {
+      if (!login) return 0;
+      const raw = login.productPrice;
+      if (raw === null || raw === undefined || raw === 'Unknown' || raw === 'N/A' || raw === '') {
+        return 2; // legacy fallback - assume baseline £2
+      }
+      const num = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
+      return isNaN(num) ? 2 : num;
+    }
+    
+    // Helper: skip entries where the buyer was whitelisted (whitelisted users get it free).
+    // This is a safety net — the backend already skips writing them to history, but if any
+    // historical entries slipped through (e.g. user was added to whitelist after the entry)
+    // they will be excluded from revenue counts.
+    function isFreeBuyer(login) {
+      return login && login.username && whitelistedUsers.includes(login.username);
+    }
+
+    // Each period now tracks BOTH a sales count AND actual £ revenue, broken down by payment method.
     const stats = {
-      today: { total: 0, cash: 0, card: 0 },
-      week: { total: 0, cash: 0, card: 0 },
-      month: { total: 0, cash: 0, card: 0 },
-      year: { total: 0, cash: 0, card: 0 },
-      allTime: { total: 0, cash: 0, card: 0 }
+      today:   { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0 },
+      week:    { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0 },
+      month:   { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0 },
+      year:    { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0 },
+      allTime: { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0 }
     };
 
+    function bumpBucket(bucket, price, isCash, isCard) {
+      bucket.sales++;
+      bucket.revenue += price;
+      if (isCash) { bucket.cashSales++; bucket.cashRevenue += price; }
+      if (isCard) { bucket.cardSales++; bucket.cardRevenue += price; }
+    }
+
     loginHistory.forEach(login => {
+      if (isFreeBuyer(login)) return; // safety net: never count whitelisted users in revenue
+      
       const loginDate = new Date(login.timestamp);
+      if (isNaN(loginDate.getTime())) return;
+      
       const isCash = login.paymentMethod && login.paymentMethod.toLowerCase().includes('cash');
       const isCard = login.paymentMethod && (login.paymentMethod.toLowerCase().includes('card') || login.paymentMethod.toLowerCase().includes('webhook'));
+      const price = extractPrice(login);
       
-      // All time
-      stats.allTime.total++;
-      if (isCash) stats.allTime.cash++;
-      if (isCard) stats.allTime.card++;
-      
-      // Year
-      if (loginDate >= yearStart) {
-        stats.year.total++;
-        if (isCash) stats.year.cash++;
-        if (isCard) stats.year.card++;
-      }
-      
-      // Month
-      if (loginDate >= monthStart) {
-        stats.month.total++;
-        if (isCash) stats.month.cash++;
-        if (isCard) stats.month.card++;
-      }
-      
-      // Week
-      if (loginDate >= weekStart) {
-        stats.week.total++;
-        if (isCash) stats.week.cash++;
-        if (isCard) stats.week.card++;
-      }
-      
-      // Today
-      if (loginDate >= todayStart) {
-        stats.today.total++;
-        if (isCash) stats.today.cash++;
-        if (isCard) stats.today.card++;
-      }
+      bumpBucket(stats.allTime, price, isCash, isCard);
+      if (loginDate >= yearStart)  bumpBucket(stats.year,  price, isCash, isCard);
+      if (loginDate >= monthStart) bumpBucket(stats.month, price, isCash, isCard);
+      if (loginDate >= weekStart)  bumpBucket(stats.week,  price, isCash, isCard);
+      if (loginDate >= todayStart) bumpBucket(stats.today, price, isCash, isCard);
     });
 
-    // ── Per-month breakdown (cash vs card) for every month that has data ──
+    // ── Per-month breakdown (cash vs card revenue) for every month that has data ──
     // Also produce a per-year roll-up.
-    const monthlyMap = {}; // key: "YYYY-MM" -> { total, cash, card, year, month }
-    const yearlyMap = {};  // key: "YYYY"    -> { total, cash, card, year }
+    const monthlyMap = {}; // key: "YYYY-MM" -> bucket + year/month
+    const yearlyMap = {};  // key: "YYYY"    -> bucket + year
     
     loginHistory.forEach(login => {
+      if (isFreeBuyer(login)) return; // exclude whitelisted users
+      
       const d = new Date(login.timestamp);
       if (isNaN(d.getTime())) return;
       const yearKey = String(d.getFullYear());
       const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const isCash = login.paymentMethod && login.paymentMethod.toLowerCase().includes('cash');
       const isCard = login.paymentMethod && (login.paymentMethod.toLowerCase().includes('card') || login.paymentMethod.toLowerCase().includes('webhook'));
+      const price = extractPrice(login);
       
       if (!monthlyMap[monthKey]) {
-        monthlyMap[monthKey] = { total: 0, cash: 0, card: 0, year: d.getFullYear(), month: d.getMonth() + 1 };
+        monthlyMap[monthKey] = { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0, year: d.getFullYear(), month: d.getMonth() + 1 };
       }
-      monthlyMap[monthKey].total++;
-      if (isCash) monthlyMap[monthKey].cash++;
-      if (isCard) monthlyMap[monthKey].card++;
+      bumpBucket(monthlyMap[monthKey], price, isCash, isCard);
       
       if (!yearlyMap[yearKey]) {
-        yearlyMap[yearKey] = { total: 0, cash: 0, card: 0, year: d.getFullYear() };
+        yearlyMap[yearKey] = { sales: 0, revenue: 0, cashSales: 0, cashRevenue: 0, cardSales: 0, cardRevenue: 0, year: d.getFullYear() };
       }
-      yearlyMap[yearKey].total++;
-      if (isCash) yearlyMap[yearKey].cash++;
-      if (isCard) yearlyMap[yearKey].card++;
+      bumpBucket(yearlyMap[yearKey], price, isCash, isCard);
     });
+    
+    // Round all revenue figures to 2 decimal places (avoid float-pennies noise)
+    function roundBucket(b) {
+      b.revenue     = Math.round(b.revenue     * 100) / 100;
+      b.cashRevenue = Math.round(b.cashRevenue * 100) / 100;
+      b.cardRevenue = Math.round(b.cardRevenue * 100) / 100;
+      return b;
+    }
+    Object.values(stats).forEach(roundBucket);
+    Object.values(monthlyMap).forEach(roundBucket);
+    Object.values(yearlyMap).forEach(roundBucket);
     
     // Sort newest first
     const monthly = Object.entries(monthlyMap)
@@ -2127,14 +2142,23 @@ app.get('/api/admin/revenue-stats', (req, res) => {
       .map(([key, v]) => ({ key, ...v }));
 
     res.json({
-      // Legacy format for backward compatibility
-      today: stats.today.total,
-      week: stats.week.total,
-      month: stats.month.total,
-      year: stats.year.total,
-      total: stats.allTime.total,
+      // Legacy "count" fields (kept for backward compat — represent SALES COUNT, not revenue)
+      today: stats.today.sales,
+      week:  stats.week.sales,
+      month: stats.month.sales,
+      year:  stats.year.sales,
+      total: stats.allTime.sales,
       
-      // New detailed breakdown
+      // New: actual revenue figures (already in £, do NOT multiply on the frontend)
+      revenue: {
+        today:   stats.today.revenue,
+        week:    stats.week.revenue,
+        month:   stats.month.revenue,
+        year:    stats.year.revenue,
+        allTime: stats.allTime.revenue
+      },
+      
+      // Detailed breakdown (revenue + counts, by payment method, for each period)
       breakdown: stats,
       
       // History (every month / every year that has at least one sale)
