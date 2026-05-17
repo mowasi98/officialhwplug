@@ -14,10 +14,16 @@
     }
 
     /* Lock down horizontal overflow on every breakpoint — fixes the "blank space when scrolling
-       sideways on mobile" issue. Some inner elements were forcing the page wider than the viewport. */
-    html, body {
+       sideways on mobile" issue. Some inner elements were forcing the page wider than the viewport.
+       NOTE: html uses overflow-x: clip (not hidden) so it doesn't create a scroll container —
+       overflow-x: hidden on <html> kills iOS momentum/smooth scrolling. */
+    html {
       max-width: 100vw;
-      overflow-x: hidden !important;
+      overflow-x: clip;
+    }
+    body {
+      max-width: 100vw;
+      overflow-x: hidden;
     }
     
     body {
@@ -26,6 +32,8 @@
       color: #2c3e50;
       overflow-x: hidden;
       position: relative;
+      -webkit-overflow-scrolling: touch; /* momentum scrolling on older iOS */
+      touch-action: pan-y;              /* allow vertical swipe-scroll, block horizontal */
     }
     
     /* The main content area must never be wider than the viewport */
@@ -2782,7 +2790,7 @@
       }
       
       /* Hide horizontal scrollbars from accidental overflow */
-      body { overflow-x: hidden !important; }
+      body { overflow-x: hidden !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
       .main-content { max-width: 100vw !important; overflow-x: hidden !important; }
       
       /* Force the chart canvas to fit viewport on phones (it has a width=800 attribute) */
