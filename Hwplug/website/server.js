@@ -328,22 +328,20 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (req,
         }
       }
       
-      // Track login history (skip if user is whitelisted)
-      const isWhitelisted = username && whitelistedUsers.includes(username);
-      if (!isWhitelisted) {
-        loginHistory.push({
-          username,
-          school: school || 'Not provided',
-          productName: rawProductName || productName || 'Unknown', // Use raw name for display
-          productPrice: productPrice || 'Unknown',
-          paymentMethod: 'Card (Webhook)',
-          timestamp: new Date().toISOString(),
-          isNewLogin
-        });
-        console.log(`📊 WEBHOOK: Login tracked: ${username} (Total: ${loginHistory.length})`);
-      } else {
-        console.log(`📊 WEBHOOK: Skipping login tracking for whitelisted user: ${username}`);
-      }
+      // Track login history. Whitelisted users ARE recorded (so they show in purchase history),
+      // but flagged as whitelist with NO price — they don't count toward revenue.
+      const isWhitelisted = isUserWhitelisted(username);
+      loginHistory.push({
+        username,
+        school: school || 'Not provided',
+        productName: rawProductName || productName || 'Unknown', // Use raw name for display
+        productPrice: isWhitelisted ? 'Whitelist' : (productPrice || 'Unknown'),
+        paymentMethod: isWhitelisted ? 'Whitelist' : 'Card (Webhook)',
+        isWhitelisted,
+        timestamp: new Date().toISOString(),
+        isNewLogin
+      });
+      console.log(`📊 WEBHOOK: Login tracked: ${username}${isWhitelisted ? ' (WHITELIST - free, no revenue)' : ''} (Total: ${loginHistory.length})`);
       
       // Update active session
       if (username && activeSessions[username]) {
@@ -517,6 +515,14 @@ let testMode = false;
 let whitelistMode = false;
 let whitelistedUsers = []; // Array of approved usernames
 let moderatorUsers = []; // Array of moderator usernames/emails
+
+// Case-insensitive whitelist check — "John", "john", "JOHN" all match the same whitelist entry.
+// Also trims whitespace so " john " matches "john".
+function isUserWhitelisted(username) {
+  if (!username) return false;
+  const u = String(username).trim().toLowerCase();
+  return whitelistedUsers.some(w => String(w).trim().toLowerCase() === u);
+}
 
 const MAX_PURCHASES_PER_DAY = 5; // Default starting slots per product per day (changed from 3 to 5)
 const ADMIN_MAX_SLOTS = 20; // Maximum slots admin can set per product
@@ -1254,7 +1260,7 @@ app.post('/reserve-slot', (req, res) => {
   // Check if test mode is active (block purchases unless user is whitelisted)
   if (testMode) {
     // Test mode is active - check if user is whitelisted
-    const isWhitelisted = username && whitelistedUsers.includes(username);
+    const isWhitelisted = isUserWhitelisted(username);
     if (!isWhitelisted) {
       console.log(`⚠️ Test mode active - blocking reservation for non-whitelisted user: ${username || 'unknown'}`);
       return res.json({
@@ -2054,12 +2060,12 @@ app.get('/api/admin/revenue-stats', (req, res) => {
       return isNaN(num) ? 2 : num;
     }
     
-    // NOTE: We do NOT retroactively filter out users who are currently whitelisted.
-    // If a user paid £2 and was THEN whitelisted, that £2 still counts as historical revenue.
-    // Whitelisting only excludes FUTURE purchases (the backend already skips writing them at
-    // purchase time, so they never enter loginHistory in the first place).
-    function isFreeBuyer(_login) {
-      return false;
+    // Exclude whitelist purchases from revenue. We rely on the `isWhitelisted` flag that was
+    // stamped on the entry AT PURCHASE TIME — so this respects "from start and from end":
+    // a purchase counts only if the buyer was NOT whitelisted at the moment they bought.
+    // Past purchases made before someone was whitelisted still count; future ones don't.
+    function isFreeBuyer(login) {
+      return !!(login && (login.isWhitelisted === true || login.paymentMethod === 'Whitelist'));
     }
 
     // Each period now tracks BOTH a sales count AND actual £ revenue, broken down by payment method.
@@ -2228,7 +2234,7 @@ app.post('/check-whitelist', (req, res) => {
   
   res.json({
     whitelistMode: whitelistMode,
-    isWhitelisted: whitelistMode ? whitelistedUsers.includes(username) : true // If whitelist disabled, everyone is allowed
+    isWhitelisted: whitelistMode ? isUserWhitelisted(username) : true // If whitelist disabled, everyone is allowed
   });
 });
 
@@ -3990,22 +3996,20 @@ app.post('/submit-cash-payment', paymentLimiter, async (req, res) => {
       // Don't fail the request if email fails
     });
 
-    // Track login history (skip if user is whitelisted)
-    const isWhitelisted = username && whitelistedUsers.includes(username);
-    if (!isWhitelisted) {
-      loginHistory.push({
-        username,
-        school: school || 'Not provided',
-        productName: rawProductName || productName || 'Unknown', // Use raw name for display
-        productPrice: productPrice || 'Unknown',
-        paymentMethod: 'Cash',
-        timestamp: new Date().toISOString(),
-        isNewLogin
-      });
-      console.log(`📊 Login tracked: ${username} (Total logins: ${loginHistory.length})`);
-    } else {
-      console.log(`📊 CASH: Skipping login tracking for whitelisted user: ${username}`);
-    }
+    // Track login history. Whitelisted users ARE recorded (so they show in purchase history),
+    // but flagged as whitelist with NO price — they don't count toward revenue.
+    const isWhitelisted = isUserWhitelisted(username);
+    loginHistory.push({
+      username,
+      school: school || 'Not provided',
+      productName: rawProductName || productName || 'Unknown', // Use raw name for display
+      productPrice: isWhitelisted ? 'Whitelist' : (productPrice || 'Unknown'),
+      paymentMethod: isWhitelisted ? 'Whitelist' : 'Cash',
+      isWhitelisted,
+      timestamp: new Date().toISOString(),
+      isNewLogin
+    });
+    console.log(`📊 Login tracked: ${username}${isWhitelisted ? ' (WHITELIST - free, no revenue)' : ''} (Total logins: ${loginHistory.length})`);
 
     // Update active session (if exists) - payment completed
     if (activeSessions[username]) {
@@ -4262,22 +4266,20 @@ app.post('/submit-login-details', paymentLimiter, async (req, res) => {
       console.log(`ℹ️ CARD: Not a bot product, skipping bot automation`);
     }
 
-    // Track login history (skip if user is whitelisted)
-    const isWhitelisted = username && whitelistedUsers.includes(username);
-    if (!isWhitelisted) {
-      loginHistory.push({
-        username,
-        school: school || 'Not provided',
-        productName: rawProductName || productName || 'Unknown', // Use raw name for display
-        productPrice: productPrice || 'Unknown',
-        paymentMethod: 'Card',
-        timestamp: new Date().toISOString(),
-        isNewLogin
-      });
-      console.log(`📊 Login tracked: ${username} (Total logins: ${loginHistory.length})`);
-    } else {
-      console.log(`📊 CARD: Skipping login tracking for whitelisted user: ${username}`);
-    }
+    // Track login history. Whitelisted users ARE recorded (so they show in purchase history),
+    // but flagged as whitelist with NO price — they don't count toward revenue.
+    const isWhitelisted = isUserWhitelisted(username);
+    loginHistory.push({
+      username,
+      school: school || 'Not provided',
+      productName: rawProductName || productName || 'Unknown', // Use raw name for display
+      productPrice: isWhitelisted ? 'Whitelist' : (productPrice || 'Unknown'),
+      paymentMethod: isWhitelisted ? 'Whitelist' : 'Card',
+      isWhitelisted,
+      timestamp: new Date().toISOString(),
+      isNewLogin
+    });
+    console.log(`📊 Login tracked: ${username}${isWhitelisted ? ' (WHITELIST - free, no revenue)' : ''} (Total logins: ${loginHistory.length})`);
 
     // Update active session (if exists) - payment completed
     if (activeSessions[username]) {

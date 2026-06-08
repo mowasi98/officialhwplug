@@ -232,10 +232,11 @@
 
     
     /* Lock down horizontal overflow on every breakpoint — fixes the "blank space when scrolling
-       sideways on mobile" issue. */
+       sideways on mobile" issue WITHOUT breaking vertical scroll.
+       Uses overflow-x: clip (not hidden) so the cross-axis doesn't compute to auto and trap scroll. */
     html, body {
       max-width: 100vw;
-      overflow-x: hidden !important;
+      overflow-x: clip;
     }
     
     body {
@@ -245,7 +246,7 @@
       margin: 0;
       padding: 0;
       position: relative;
-      overflow-x: hidden;
+      overflow-x: clip;
     }
     
     /* Defensive caps so no element can push the page wider than the viewport */
@@ -1873,12 +1874,12 @@
     @media (max-width: 900px) {
       html, body {
         max-width: 100vw !important;
-        overflow-x: hidden !important;
+        overflow-x: clip !important;
       }
       /* Cap every direct top-level container so nothing pushes the page wider */
       header, main, footer, section, .deal-banner {
         max-width: 100vw !important;
-        overflow-x: hidden;
+        overflow-x: clip;
         box-sizing: border-box;
       }
       /* Common wide elements that often cause the bug */

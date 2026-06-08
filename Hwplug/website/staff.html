@@ -13,11 +13,14 @@
       box-sizing: border-box;
     }
 
+    /* overflow-x: clip (not hidden) prevents sideways scroll without trapping vertical scroll */
+    html { max-width: 100vw; overflow-x: clip; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #f5f6fa;
       color: #2c3e50;
-      overflow-x: hidden;
+      overflow-x: clip;
+      max-width: 100vw;
       position: relative;
     }
 
@@ -2566,9 +2569,9 @@
         line-height: 1.3 !important;
       }
       
-      /* Prevent horizontal scroll */
-      body { overflow-x: hidden !important; }
-      .main-content { max-width: 100vw !important; overflow-x: hidden !important; }
+      /* Prevent horizontal scroll (clip keeps vertical scroll working) */
+      body { overflow-x: clip !important; }
+      .main-content { max-width: 100vw !important; overflow-x: clip !important; }
       
       /* Bot mascot smaller on phones (overrides existing) */
       .bot-mascot {
@@ -4368,6 +4371,8 @@
           const monthsData = {};
           
           loginHistory.forEach(l => {
+            // Skip whitelist (free) entries — they don't add to revenue
+            if (l.isWhitelisted === true || l.paymentMethod === 'Whitelist') return;
             const d = new Date(l.timestamp);
             const key = `${d.getFullYear()}-${d.getMonth()}`;
             monthsData[key] = (monthsData[key] || 0) + 2;
@@ -6163,21 +6168,28 @@
             console.log('📋 Processing', data.loginHistory.length, 'logins');
             const loginsList = data.loginHistory.map(login => {
               const isBanned = bannedUsers.includes(login.username);
+              const isWl = login.isWhitelisted === true || login.paymentMethod === 'Whitelist';
+              const priceLine = isWl
+                ? `📦 Product: <strong>${login.productName}</strong> <span style="background:#fff3cd; color:#856404; padding:0.1rem 0.5rem; border-radius:6px; font-weight:700; font-size:0.8rem; margin-left:0.3rem;">⭐ WHITELIST · FREE</span>`
+                : `📦 Product: <strong>${login.productName}</strong> (£${login.productPrice})`;
+              const paymentLine = isWl
+                ? `💳 Payment: <span style="color:#856404; font-weight:700;">Whitelist (no charge)</span>`
+                : `💳 Payment: ${login.paymentMethod}`;
               return `
-                <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; border-left: 4px solid ${isBanned ? '#e74c3c' : '#6C63FF'}; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; border-left: 4px solid ${isBanned ? '#e74c3c' : (isWl ? '#ffc107' : '#6C63FF')}; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                   <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
                     <div style="flex: 1; min-width: 200px;">
                       <div style="font-weight: 700; color: #2c3e50; font-size: 1.1rem; margin-bottom: 0.5rem;">
                         ${login.username} ${isBanned ? '<span style="color: #e74c3c; font-size: 0.9rem;">(BANNED)</span>' : ''}
                       </div>
                       <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
-                        📦 Product: <strong>${login.productName}</strong> (£${login.productPrice})
+                        ${priceLine}
                       </div>
                       <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
                         🏫 School: ${login.school || 'Not provided'}
                       </div>
                       <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
-                        💳 Payment: ${login.paymentMethod}
+                        ${paymentLine}
                       </div>
                       <div style="font-size: 0.85rem; color: #95a5a6;">
                         🕒 ${new Date(login.timestamp).toLocaleString()}
@@ -7209,21 +7221,25 @@
             <div style="margin-bottom: 1rem; color: #2c3e50; font-weight: 600;">
               Total Purchases: ${purchases.length}
             </div>
-            ${purchases.map((login, index) => `
-              <div style="padding: 1rem; background: white; border-radius: 12px; margin-bottom: 0.8rem; border: 2px solid #6C63FF; box-shadow: 0 2px 8px rgba(108,99,255,0.1); animation: slideIn 0.3s ease-out ${index * 0.05}s backwards;">
+            ${purchases.map((login, index) => {
+              const isWl = login.isWhitelisted === true || login.paymentMethod === 'Whitelist';
+              const priceBadge = isWl
+                ? `<div style="background: #fff3cd; color: #856404; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">⭐ WHITELIST · FREE</div>`
+                : `<div style="background: #e8f5e9; color: #27ae60; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">£${login.productPrice || '2'}</div>`;
+              const paymentText = isWl ? 'Whitelist (no charge)' : (login.paymentMethod || 'N/A');
+              return `
+              <div style="padding: 1rem; background: white; border-radius: 12px; margin-bottom: 0.8rem; border: 2px solid ${isWl ? '#ffc107' : '#6C63FF'}; box-shadow: 0 2px 8px rgba(108,99,255,0.1); animation: slideIn 0.3s ease-out ${index * 0.05}s backwards;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                   <div style="font-weight: 700; color: #6C63FF; font-size: 1.1rem;">${login.username || 'Unknown User'}</div>
-                  <div style="background: #e8f5e9; color: #27ae60; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
-                    £${login.productPrice || '2'}
-                  </div>
+                  ${priceBadge}
                 </div>
                 <div style="font-size: 0.9rem; color: #555; line-height: 1.6;">
                   <div><strong>Product:</strong> ${login.productName || 'N/A'}</div>
-                  <div><strong>Payment:</strong> ${login.paymentMethod || 'N/A'}</div>
+                  <div><strong>Payment:</strong> ${paymentText}</div>
                   <div><strong>Date:</strong> ${login.timestamp ? new Date(login.timestamp).toLocaleString() : 'N/A'}</div>
                 </div>
               </div>
-            `).join('')}
+            `;}).join('')}
           `;
         } else {
           listDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 2rem; background: white; border-radius: 12px;">No purchases found</p>';

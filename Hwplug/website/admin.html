@@ -14,32 +14,33 @@
     }
 
     /* Lock down horizontal overflow on every breakpoint — fixes the "blank space when scrolling
-       sideways on mobile" issue. Some inner elements were forcing the page wider than the viewport.
-       NOTE: html uses overflow-x: clip (not hidden) so it doesn't create a scroll container —
-       overflow-x: hidden on <html> kills iOS momentum/smooth scrolling. */
+       sideways on mobile" issue WITHOUT breaking vertical scroll.
+       CRITICAL: we use overflow-x: clip (NOT hidden). Setting overflow-x: hidden on <html>/<body>
+       forces the cross-axis (overflow-y) to compute as "auto", which turns the element into a
+       nested scroll container that can trap/block normal page scrolling on desktop and mobile.
+       overflow-x: clip hides horizontal overflow but leaves vertical scrolling completely normal. */
     html {
       max-width: 100vw;
       overflow-x: clip;
     }
     body {
       max-width: 100vw;
-      overflow-x: hidden;
+      overflow-x: clip;
     }
     
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: #f5f6fa;
       color: #2c3e50;
-      overflow-x: hidden;
+      overflow-x: clip;
       position: relative;
       -webkit-overflow-scrolling: touch; /* momentum scrolling on older iOS */
-      touch-action: pan-y;              /* allow vertical swipe-scroll, block horizontal */
     }
     
-    /* The main content area must never be wider than the viewport */
+    /* The main content area must never be wider than the viewport (clip, not hidden) */
     .main-content {
       box-sizing: border-box;
-      overflow-x: hidden;
+      overflow-x: clip;
       max-width: 100%;
     }
 
@@ -2789,9 +2790,9 @@
         line-height: 1.3 !important;
       }
       
-      /* Hide horizontal scrollbars from accidental overflow */
-      body { overflow-x: hidden !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
-      .main-content { max-width: 100vw !important; overflow-x: hidden !important; }
+      /* Hide horizontal scrollbars from accidental overflow (clip keeps vertical scroll working) */
+      body { overflow-x: clip !important; -webkit-overflow-scrolling: touch; }
+      .main-content { max-width: 100vw !important; overflow-x: clip !important; }
       
       /* Force the chart canvas to fit viewport on phones (it has a width=800 attribute) */
       #revenueCanvas {
@@ -5011,11 +5012,13 @@
       function sumRevenueIn(start, end) {
         let sum = 0;
         loginHistory.forEach(l => {
+          // Skip whitelist (free) entries — they shouldn't add to revenue
+          if (l.isWhitelisted === true || l.paymentMethod === 'Whitelist') return;
           const d = new Date(l.timestamp);
           if (d < start || d >= end) return;
           const raw = l.productPrice;
           let price = 2; // baseline fallback
-          if (raw !== null && raw !== undefined && raw !== 'Unknown' && raw !== 'N/A' && raw !== '') {
+          if (raw !== null && raw !== undefined && raw !== 'Unknown' && raw !== 'N/A' && raw !== '' && raw !== 'Whitelist') {
             const n = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
             if (!isNaN(n)) price = n;
           }
@@ -5071,11 +5074,13 @@
         } else {
           const monthsData = {};
           loginHistory.forEach(l => {
+            // Skip whitelist (free) entries
+            if (l.isWhitelisted === true || l.paymentMethod === 'Whitelist') return;
             const d = new Date(l.timestamp);
             const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`;
             const raw = l.productPrice;
             let price = 2;
-            if (raw !== null && raw !== undefined && raw !== 'Unknown' && raw !== 'N/A' && raw !== '') {
+            if (raw !== null && raw !== undefined && raw !== 'Unknown' && raw !== 'N/A' && raw !== '' && raw !== 'Whitelist') {
               const n = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
               if (!isNaN(n)) price = n;
             }
@@ -7092,21 +7097,29 @@
             console.log('📋 Processing', data.loginHistory.length, 'logins');
             const loginsList = data.loginHistory.map(login => {
               const isBanned = bannedUsers.includes(login.username);
+              const isWl = login.isWhitelisted === true || login.paymentMethod === 'Whitelist';
+              // Whitelist purchases show a "WHITELIST · FREE" badge and NO price
+              const priceLine = isWl
+                ? `📦 Product: <strong>${login.productName}</strong> <span style="background:#fff3cd; color:#856404; padding:0.1rem 0.5rem; border-radius:6px; font-weight:700; font-size:0.8rem; margin-left:0.3rem;">⭐ WHITELIST · FREE</span>`
+                : `📦 Product: <strong>${login.productName}</strong> (£${login.productPrice})`;
+              const paymentLine = isWl
+                ? `💳 Payment: <span style="color:#856404; font-weight:700;">Whitelist (no charge)</span>`
+                : `💳 Payment: ${login.paymentMethod}`;
               return `
-                <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; border-left: 4px solid ${isBanned ? '#e74c3c' : '#6C63FF'}; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="padding: 1rem; background: white; border-radius: 8px; margin-bottom: 0.8rem; border-left: 4px solid ${isBanned ? '#e74c3c' : (isWl ? '#ffc107' : '#6C63FF')}; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                   <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
                     <div style="flex: 1; min-width: 200px;">
                       <div style="font-weight: 700; color: #2c3e50; font-size: 1.1rem; margin-bottom: 0.5rem;">
                         ${login.username} ${isBanned ? '<span style="color: #e74c3c; font-size: 0.9rem;">(BANNED)</span>' : ''}
                       </div>
                       <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
-                        📦 Product: <strong>${login.productName}</strong> (£${login.productPrice})
+                        ${priceLine}
                       </div>
                       <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
                         🏫 School: ${login.school || 'Not provided'}
                       </div>
                       <div style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 0.3rem;">
-                        💳 Payment: ${login.paymentMethod}
+                        ${paymentLine}
                       </div>
                       <div style="font-size: 0.85rem; color: #95a5a6;">
                         🕒 ${new Date(login.timestamp).toLocaleString()}
@@ -8138,21 +8151,25 @@
             <div style="margin-bottom: 1rem; color: #2c3e50; font-weight: 600;">
               Total Purchases: ${purchases.length}
             </div>
-            ${purchases.map((login, index) => `
-              <div style="padding: 1rem; background: white; border-radius: 12px; margin-bottom: 0.8rem; border: 2px solid #6C63FF; box-shadow: 0 2px 8px rgba(108,99,255,0.1); animation: slideIn 0.3s ease-out ${index * 0.05}s backwards;">
+            ${purchases.map((login, index) => {
+              const isWl = login.isWhitelisted === true || login.paymentMethod === 'Whitelist';
+              const priceBadge = isWl
+                ? `<div style="background: #fff3cd; color: #856404; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">⭐ WHITELIST · FREE</div>`
+                : `<div style="background: #e8f5e9; color: #27ae60; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">£${login.productPrice || '2'}</div>`;
+              const paymentText = isWl ? 'Whitelist (no charge)' : (login.paymentMethod || 'N/A');
+              return `
+              <div style="padding: 1rem; background: white; border-radius: 12px; margin-bottom: 0.8rem; border: 2px solid ${isWl ? '#ffc107' : '#6C63FF'}; box-shadow: 0 2px 8px rgba(108,99,255,0.1); animation: slideIn 0.3s ease-out ${index * 0.05}s backwards;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                   <div style="font-weight: 700; color: #6C63FF; font-size: 1.1rem;">${login.username || 'Unknown User'}</div>
-                  <div style="background: #e8f5e9; color: #27ae60; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
-                    £${login.productPrice || '2'}
-                  </div>
+                  ${priceBadge}
                 </div>
                 <div style="font-size: 0.9rem; color: #555; line-height: 1.6;">
                   <div><strong>Product:</strong> ${login.productName || 'N/A'}</div>
-                  <div><strong>Payment:</strong> ${login.paymentMethod || 'N/A'}</div>
+                  <div><strong>Payment:</strong> ${paymentText}</div>
                   <div><strong>Date:</strong> ${login.timestamp ? new Date(login.timestamp).toLocaleString() : 'N/A'}</div>
                 </div>
               </div>
-            `).join('')}
+            `;}).join('')}
           `;
         } else {
           listDiv.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 2rem; background: white; border-radius: 12px;">No purchases found</p>';
